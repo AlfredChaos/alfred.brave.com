@@ -1,13 +1,16 @@
 package main
 
 import (
-	"log"
 	"os"
 
+	"alfred.brave.com/commands"
 	"alfred.brave.com/common"
+	"alfred.brave.com/event"
 
 	"github.com/urfave/cli"
 )
+
+var log = event.Log
 
 func main() {
 	defer func() {
@@ -19,9 +22,9 @@ func main() {
 	app := cli.NewApp()
 	app.Name = common.ProjectName
 	app.Usage = "make urfave project"
-	app.Commands = Braves
+	app.Commands = commands.Braves
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		log.Error(err)
 	}
 }
