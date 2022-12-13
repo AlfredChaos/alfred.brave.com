@@ -12,3 +12,10 @@ const (
 	LogLevelError = "error"
 	LogLevelInfo  = "info"
 )
+
+// 日志输出
+const (
+	LogOutputStderr = "stderr"
+	LogOutputStdout = "stdout"
+	LogOutputFile   = "file"
+)

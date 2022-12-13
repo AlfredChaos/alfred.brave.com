@@ -2,6 +2,7 @@ package conf
 
 import (
 	"alfred.brave.com/common"
+	"alfred.brave.com/event"
 	"github.com/urfave/cli"
 )
 
@@ -28,10 +29,10 @@ func NewOptions(ctx *cli.Context) *Options {
 	}
 
 	c.Name = common.ProjectName
-	c.LogLevel = common.LogLevelDebug
-	c.LogFilename = "brave.log"
-	c.HttpHost = "127.0.0.1"
-	c.HttpPort = 8080
+	c.LogLevel = event.ConfigYaml.GetString("log.level")
+	c.LogFilename = event.ConfigYaml.GetString("log.file_path")
+	c.HttpHost = event.ConfigYaml.GetString("bind_address")
+	c.HttpPort = event.ConfigYaml.GetInt("bind_port")
 
 	return c
 }

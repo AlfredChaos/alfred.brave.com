@@ -2,11 +2,17 @@ package conf
 
 import (
 	"fmt"
+	"io"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
+	"alfred.brave.com/common"
+	"alfred.brave.com/env"
 	"alfred.brave.com/event"
+	"github.com/fsnotify/fsnotify"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -20,19 +26,81 @@ type Config struct {
 	options *Options
 }
 
+func initDefaultConfig() {
+	event.ConfigYaml.SetDefault("debug", true)
+	event.ConfigYaml.SetDefault("version", "v1")
+	event.ConfigYaml.SetDefault("log.level", "debug")
+	event.ConfigYaml.SetDefault("log.output", "stdout")
+	event.ConfigYaml.SetDefault("log.file_path", "/var/log/brave/brave.log")
+	event.ConfigYaml.SetDefault("bind_address", "0.0.0.0")
+	event.ConfigYaml.SetDefault("bind_port", 37001)
+
+	event.ConfigYaml.SetDefault("mysql.user", "root")
+	event.ConfigYaml.SetDefault("mysql.password", 3306)
+	event.ConfigYaml.SetDefault("mysql.database", "brave")
+	event.ConfigYaml.SetDefault("mysql.charset", "utf8mb4")
+
+	_, ok := env.Environment["PROJECT_PATH"]
+	if !ok {
+		env.New()
+	}
+	confPath := filepath.Join(env.Environment["PROJECT_PATH"], "etc")
+	event.ConfigYaml.AddConfigPath(confPath)
+	event.ConfigYaml.SetConfigName("config")
+	event.ConfigYaml.SetConfigType("yaml")
+	if err := event.ConfigYaml.ReadInConfig(); err != nil {
+		log.Errorf("Read brave config.yaml fail")
+		panic(err)
+	}
+
+	event.ConfigYaml.WatchConfig()
+	event.ConfigYaml.OnConfigChange(func(in fsnotify.Event) {
+		log.Infof("Config file changed: %s", in.Name)
+	})
+}
+
 func initLogger() {
 	once.Do(func() {
 		log.SetFormatter(&logrus.TextFormatter{
 			DisableColors: false,
 			FullTimestamp: true,
 		})
-		fmt.Println("set formatter success")
-		log.SetLevel(logrus.DebugLevel)
-		fmt.Println("set level success")
+
+		output := event.ConfigYaml.GetString("log.output")
+		switch output {
+		case common.LogOutputStdout:
+			log.SetOutput(os.Stdout)
+		case common.LogOutputStderr:
+			log.SetOutput(os.Stderr)
+		case common.LogOutputFile:
+			logPath := event.ConfigYaml.GetString("log.file_path")
+			logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0655)
+			if err != nil {
+				log.Errorf("Brave open log %s fail", logPath)
+				panic(err)
+			}
+			writer := []io.Writer{logFile}
+			fileWriter := io.MultiWriter(writer...)
+			log.Infof("Brave Log redirect to %s", logPath)
+			log.SetOutput(fileWriter)
+		}
+
+		level := event.ConfigYaml.GetString("log.level")
+		switch level {
+		case common.LogLevelDebug:
+			log.SetLevel(logrus.DebugLevel)
+		case common.LogLevelInfo:
+			log.SetLevel(logrus.InfoLevel)
+		case common.LogLevelWarn:
+			log.SetLevel(logrus.WarnLevel)
+		case common.LogLevelError:
+			log.SetLevel(logrus.ErrorLevel)
+		}
 	})
 }
 
 func NewConfig(ctx *cli.Context) *Config {
+	initDefaultConfig()
 	initLogger()
 
 	c := &Config{

@@ -1,5 +1,7 @@
 package event
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/sirupsen/logrus"
+)
 
 var Log = logrus.New()
