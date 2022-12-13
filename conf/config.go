@@ -26,7 +26,9 @@ func initLogger() {
 			DisableColors: false,
 			FullTimestamp: true,
 		})
+		fmt.Println("set formatter success")
 		log.SetLevel(logrus.DebugLevel)
+		fmt.Println("set level success")
 	})
 }
 

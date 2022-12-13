@@ -2,4 +2,4 @@ package event
 
 import "github.com/sirupsen/logrus"
 
-var Log *logrus.Logger
+var Log = logrus.New()

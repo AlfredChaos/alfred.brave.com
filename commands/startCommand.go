@@ -32,7 +32,6 @@ var startFlags = []cli.Flag{
 }
 
 func startAction(ctx *cli.Context) error {
-	fmt.Println("++++++++++++++++++++++")
 	config := conf.NewConfig(ctx)
 
 	fmt.Printf("Name                  Value\n")
