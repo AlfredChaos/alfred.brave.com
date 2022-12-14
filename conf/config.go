@@ -34,11 +34,12 @@ func initDefaultConfig() {
 	event.ConfigYaml.SetDefault("log.file_path", "/var/log/brave/brave.log")
 	event.ConfigYaml.SetDefault("bind_address", "0.0.0.0")
 	event.ConfigYaml.SetDefault("bind_port", 37001)
-
+	event.ConfigYaml.SetDefault("database_driver", "mysql")
+	event.ConfigYaml.SetDefault("mysql.server", "0.0.0.0")
+	event.ConfigYaml.SetDefault("mysql.port", 3306)
 	event.ConfigYaml.SetDefault("mysql.user", "root")
-	event.ConfigYaml.SetDefault("mysql.password", 3306)
+	event.ConfigYaml.SetDefault("mysql.password", "")
 	event.ConfigYaml.SetDefault("mysql.database", "brave")
-	event.ConfigYaml.SetDefault("mysql.charset", "utf8mb4")
 
 	_, ok := env.Environment["PROJECT_PATH"]
 	if !ok {
