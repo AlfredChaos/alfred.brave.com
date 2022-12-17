@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"alfred.brave.com/common/utils"
+	"alfred.brave.com/database"
 	"alfred.brave.com/internal/mutex"
 	"github.com/jinzhu/gorm"
 )
@@ -18,12 +19,28 @@ const (
 	MariaDB = "mariadb"
 )
 
-func (c *Config) SetDbOptions() {
+func (c *Config) Db() *gorm.DB {
+	if c.db == nil {
+		log.Error("config: database not connected")
+	}
 
+	return c.db
+}
+
+// SetDbOptions sets the database collation to unicode if supported.
+func (c *Config) SetDbOptions() {
+	switch c.DatabaseDriver() {
+	case MySQL, MariaDB:
+		c.Db().Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci")
+
+	default:
+		log.Error("config: unsupported database driver")
+	}
 }
 
 func (c *Config) RegisterDb() {
-
+	c.SetDbOptions()
+	database.SetDbProvider(c)
 }
 
 func (c *Config) MigrateDb() {
@@ -90,6 +107,7 @@ func (c *Config) ConnectDb() error {
 		log.Error("connect database error")
 		return err
 	}
+	db.New()
 
 	// Ok.
 	c.db = db

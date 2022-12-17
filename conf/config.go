@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"alfred.brave.com/common"
 	"alfred.brave.com/env"
@@ -100,7 +101,12 @@ func initLogger() {
 	})
 }
 
-func NewConfig(ctx *cli.Context) *Config {
+func InitConfig(ctx *cli.Context) (*Config, error) {
+	c := newConfig(ctx)
+	return c, c.init()
+}
+
+func newConfig(ctx *cli.Context) *Config {
 	initDefaultConfig()
 	initLogger()
 
@@ -109,6 +115,17 @@ func NewConfig(ctx *cli.Context) *Config {
 	}
 
 	return c
+}
+
+func (c *Config) init() error {
+	start := time.Now()
+
+	if err := c.ConnectDb(); err != nil {
+		return err
+	}
+
+	log.Debugf("config: successfully initialized [%s]", time.Since(start))
+	return nil
 }
 
 func (c *Config) GetHttpHost() string {

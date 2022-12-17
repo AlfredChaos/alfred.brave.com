@@ -32,7 +32,10 @@ var startFlags = []cli.Flag{
 }
 
 func startAction(ctx *cli.Context) error {
-	config := conf.NewConfig(ctx)
+	config, err := conf.InitConfig(ctx)
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("Name                  Value\n")
 	fmt.Printf("http-host             %s\n", config.GetHttpHost())
