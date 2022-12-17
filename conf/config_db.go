@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"runtime"
@@ -25,6 +26,14 @@ func (c *Config) Db() *gorm.DB {
 	}
 
 	return c.db
+}
+
+func (c *Config) SqlDb() *sql.DB {
+	if c.db == nil {
+		log.Warn("config: database not connected.")
+		c.init()
+	}
+	return c.db.DB()
 }
 
 // SetDbOptions sets the database collation to unicode if supported.

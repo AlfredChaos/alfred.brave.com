@@ -9,12 +9,9 @@ import (
 	"time"
 
 	"alfred.brave.com/conf"
-	"alfred.brave.com/event"
 	"alfred.brave.com/server"
 	"github.com/urfave/cli"
 )
-
-var log = event.Log
 
 var StartCommand = cli.Command{
 	Name:    "start",
