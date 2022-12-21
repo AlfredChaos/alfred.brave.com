@@ -42,11 +42,11 @@ func initDefaultConfig() {
 	event.ConfigYaml.SetDefault("mysql.password", "")
 	event.ConfigYaml.SetDefault("mysql.database", "brave")
 
-	_, ok := env.Environment["PROJECT_PATH"]
-	if !ok {
+	if os.Getenv("PROJECT_PATH") == "" {
 		env.New()
 	}
-	confPath := filepath.Join(env.Environment["PROJECT_PATH"], "etc")
+
+	confPath := filepath.Join(os.Getenv("PROJECT_PATH"), "etc")
 	event.ConfigYaml.AddConfigPath(confPath)
 	event.ConfigYaml.SetConfigName("config")
 	event.ConfigYaml.SetConfigType("yaml")

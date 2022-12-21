@@ -2,22 +2,26 @@ package env
 
 import (
 	"os"
-	"os/exec"
+	"strings"
 
 	"alfred.brave.com/event"
 )
 
 var log = event.Log
-var Environment map[string]string
 
 func New() {
 	if os.Getenv("PROJECT_PATH") == "" {
-		config_env := exec.Command("export", "PROJECT_PATH=${pwd}")
-		if err := config_env.Start(); err != nil {
-			log.Error("Get environment error")
+		path, err := os.Getwd()
+		if err != nil {
+			log.Error("Get project current path error")
+			panic(err)
+		}
+		paths := strings.Split(path, "/")
+		parentPath := strings.Join(paths[:len(paths)-1], "/")
+		if err := os.Setenv("PROJECT_PATH", parentPath); err != nil {
+			log.Errorf("Set environment error: %v", err)
 			panic(err)
 		}
 	}
-	Environment["PROJECT_PATH"] = os.Getenv("PROJECT_PATH")
 	log.Infof("Enable Brave on %s", os.Getenv("PROJECT_PATH"))
 }
