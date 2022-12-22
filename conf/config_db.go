@@ -9,10 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"alfred.brave.com/common/utils"
 	"alfred.brave.com/database"
 	"alfred.brave.com/internal/mutex"
 	"github.com/jinzhu/gorm"
+
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
 const (
@@ -77,7 +78,9 @@ func (c *Config) ConnectDb() error {
 	defer mutex.Db.Unlock()
 
 	dbDriver := c.DatabaseDriver()
+	log.Infof("Get database driver: %s", dbDriver)
 	dbDsn := c.DatabaseDsn()
+	log.Infof("Get database dsn: %s", dbDsn)
 
 	if dbDriver == "" {
 		return errors.New("config: database driver not specified")
@@ -116,7 +119,6 @@ func (c *Config) ConnectDb() error {
 		log.Error("connect database error")
 		return err
 	}
-	db.New()
 
 	// Ok.
 	c.db = db
@@ -181,11 +183,17 @@ func (c *Config) DatabaseServer() string {
 	return c.options.DatabaseServer
 }
 
+func (c *Config) DatabaseConnAddress() string {
+	server := c.DatabaseServer()
+	port := c.DatabasePortString()
+	return fmt.Sprintf("%s:%s", server, port)
+}
+
 func (c *Config) DatabaseDsn() string {
 	if c.options.DatabaseDsn == "" {
 		switch c.DatabaseDriver() {
 		case MySQL, MariaDB:
-			address := c.DatabaseServer()
+			address := c.DatabaseConnAddress()
 			// Connect via TCP or Unix Domain Socket?
 			if strings.HasPrefix(address, "/") {
 				log.Debugf("mariadb: connecting via Unix domain socket")
@@ -251,10 +259,6 @@ func (c *Config) checkDb(db *gorm.DB) error {
 			return nil
 		} else if v := strings.Split(res.Value, "."); len(v) < 3 {
 			log.Warnf("config: unknown database server version")
-		} else if major := utils.UInt(v[0]); major < 10 {
-			return fmt.Errorf("config: MySQL %s is not supported", res.Value)
-		} else if sub := utils.UInt(v[1]); sub < 5 || sub == 5 && utils.UInt(v[2]) < 12 {
-			return fmt.Errorf("config: MySQL %s is not supported", res.Value)
 		}
 	}
 

@@ -55,6 +55,7 @@ func initDefaultConfig() {
 		panic(err)
 	}
 
+	log.Info("Enable Config Watching.")
 	event.ConfigYaml.WatchConfig()
 	event.ConfigYaml.OnConfigChange(func(in fsnotify.Event) {
 		log.Infof("Config file changed: %s", in.Name)
@@ -107,7 +108,9 @@ func InitConfig(ctx *cli.Context) (*Config, error) {
 }
 
 func newConfig(ctx *cli.Context) *Config {
+	log.Info("Start init default config")
 	initDefaultConfig()
+	log.Info("Start init global logger")
 	initLogger()
 
 	c := &Config{
@@ -120,6 +123,7 @@ func newConfig(ctx *cli.Context) *Config {
 func (c *Config) init() error {
 	start := time.Now()
 
+	log.Info("Prepare to connect database")
 	if err := c.ConnectDb(); err != nil {
 		return err
 	}
