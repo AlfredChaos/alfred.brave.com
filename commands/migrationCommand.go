@@ -1,6 +1,12 @@
 package commands
 
 import (
+	"fmt"
+	"os"
+
+	"alfred.brave.com/conf"
+	"alfred.brave.com/env"
+	"github.com/pressly/goose"
 	"github.com/urfave/cli"
 )
 
@@ -43,6 +49,10 @@ var migrationCommands = []cli.Command{
 }
 
 var createFlags = []cli.Flag{
+	cli.BoolFlag{
+		Name:  "init",
+		Usage: "init origin script",
+	},
 	cli.StringFlag{
 		Name:  "name",
 		Usage: "generate a script",
@@ -65,6 +75,20 @@ var versionFlags = []cli.Flag{
 func gooseCreateExecute(ctx *cli.Context) error {
 	command := "create"
 	arguments := []string{}
+
+	scriptName := ctx.String("name")
+	if ctx.Bool("init") {
+		scriptName = "init"
+	}
+	arguments = append(arguments, scriptName)
+	switch ctx.String("type") {
+	case "sql", "go":
+		arguments = append(arguments, ctx.String("type"))
+	default:
+		log.Error("unsupport type")
+		return nil
+	}
+
 	return migrationAction(ctx, command, arguments)
 }
 
@@ -77,12 +101,24 @@ func gooseStatusGet(ctx *cli.Context) error {
 func gooseMigrateExecute(ctx *cli.Context) error {
 	command := "up"
 	arguments := []string{}
+
+	if ctx.String("version") != "" {
+		command = "up-to"
+		arguments = append(arguments, ctx.String("version"))
+	}
+
 	return migrationAction(ctx, command, arguments)
 }
 
 func gooseMigrateRollback(ctx *cli.Context) error {
 	command := "down"
 	arguments := []string{}
+
+	if ctx.String("version") != "" {
+		command = "down-to"
+		arguments = append(arguments, ctx.String("version"))
+	}
+
 	return migrationAction(ctx, command, arguments)
 }
 
@@ -93,5 +129,24 @@ func gooseVersionGet(ctx *cli.Context) error {
 }
 
 func migrationAction(ctx *cli.Context, command string, arguments []string) error {
+	// Get migration files path
+	if os.Getenv("PROJECT_PATH") == "" {
+		env.New()
+	}
+	projectPath := os.Getenv("PROJECT_PATH")
+	migrationPath := fmt.Sprintf("%s/%s", projectPath, "database/migration")
+
+	// get database connection
+	config, err := conf.InitConfig(ctx)
+	if err != nil {
+		return err
+	}
+	sqlDb := config.Db().DB()
+
+	if err := goose.Run(command, sqlDb, migrationPath, arguments...); err != nil {
+		log.Errorf("migration occurs error: %v", err)
+		return err
+	}
+
 	return nil
 }
