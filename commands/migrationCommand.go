@@ -143,6 +143,11 @@ func migrationAction(ctx *cli.Context, command string, arguments []string) error
 	}
 	sqlDb := config.Db().DB()
 
+	goose.SetVerbose(true)
+	if err := goose.SetDialect(config.DatabaseDriver()); err != nil {
+		log.Errorf("set goose dialect %s error", config.DatabaseDriver())
+		return err
+	}
 	if err := goose.Run(command, sqlDb, migrationPath, arguments...); err != nil {
 		log.Errorf("migration occurs error: %v", err)
 		return err

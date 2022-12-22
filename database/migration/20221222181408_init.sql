@@ -1,9 +1,29 @@
 -- +goose Up
 -- +goose StatementBegin
-SELECT 'up SQL query';
+CREATE TABLE `users` (
+    `uid` varchar(36) NOT NULL,
+    `created_at` datetime DEFAULT NULL,
+    `updated_at` datetime DEFAULT NULL,
+    `deleted_at` datetime DEFAULT NULL,
+    `login_at` datetime DEFAULT NULL,
+    `user_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    PRIMARY KEY (`uid`),
+    KEY `idx_users_deleted_at` (`deleted_at`)
+);
+CREATE TABLE `passwords` (
+    `uid` varchar(36) NOT NULL,
+    `created_at` datetime DEFAULT NULL,
+    `updated_at` datetime DEFAULT NULL,
+    `deleted_at` datetime DEFAULT NULL,
+    `hash` varbinary(255) DEFAULT NULL,
+    `user_id` varchar(36) NOT NULL,
+    PRIMARY KEY (`uid`),
+    FOREIGN KEY(`user_id`) REFERENCES users(`uid`),
+    KEY `idx_passwords_deleted_at` (`deleted_at`)
+);
 -- +goose StatementEnd
-
 -- +goose Down
 -- +goose StatementBegin
-SELECT 'down SQL query';
+DROP TABLE IF EXISTS `passwords`;
+DROP TABLE IF EXISTS `users`;
 -- +goose StatementEnd
