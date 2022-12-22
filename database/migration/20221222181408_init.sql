@@ -1,5 +1,8 @@
 -- +goose Up
--- +goose StatementBegin
+
+--
+-- Table structure for table `users`
+--
 CREATE TABLE `users` (
     `uid` varchar(36) NOT NULL,
     `created_at` datetime DEFAULT NULL,
@@ -10,6 +13,10 @@ CREATE TABLE `users` (
     PRIMARY KEY (`uid`),
     KEY `idx_users_deleted_at` (`deleted_at`)
 );
+
+--
+-- Table structure for table `passwords`
+--
 CREATE TABLE `passwords` (
     `uid` varchar(36) NOT NULL,
     `created_at` datetime DEFAULT NULL,
@@ -18,12 +25,10 @@ CREATE TABLE `passwords` (
     `hash` varbinary(255) DEFAULT NULL,
     `user_id` varchar(36) NOT NULL,
     PRIMARY KEY (`uid`),
-    FOREIGN KEY(`user_id`) REFERENCES users(`uid`),
     KEY `idx_passwords_deleted_at` (`deleted_at`)
 );
--- +goose StatementEnd
+
+
 -- +goose Down
--- +goose StatementBegin
 DROP TABLE IF EXISTS `passwords`;
 DROP TABLE IF EXISTS `users`;
--- +goose StatementEnd
