@@ -22,8 +22,8 @@ var StartCommand = cli.Command{
 }
 
 var startFlags = []cli.Flag{
-	cli.BoolFlag{
-		Name:  "config, c",
+	cli.StringFlag{
+		Name:  "config",
 		Usage: "show config",
 	},
 }

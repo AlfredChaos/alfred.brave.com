@@ -1,48 +1,97 @@
 package commands
 
 import (
-	"flag"
-	"os"
-
-	"alfred.brave.com/conf"
-	"github.com/pressly/goose"
 	"github.com/urfave/cli"
 )
 
 var MigrationCommand = cli.Command{
-	Name:    "migration",
-	Aliases: []string{"goose"},
-	Usage:   "database version migration tools",
-	Action:  startAction,
+	Name:        "migration",
+	Aliases:     []string{"goose"},
+	Usage:       "database version migration tools",
+	Subcommands: migrationCommands,
 }
 
-var (
-	flags = flag.NewFlagSet("goose", flag.ExitOnError)
-	dir   = flags.String("dir", ".", "directory with migration files")
-)
+var migrationCommands = []cli.Command{
+	{
+		Name:   "status",
+		Usage:  "Dump the migration status for the current DB",
+		Action: gooseStatusGet,
+	},
+	{
+		Name:   "version",
+		Usage:  "Print the current version of the database",
+		Action: gooseVersionGet,
+	},
+	{
+		Name:   "create",
+		Usage:  "Creates new migration file with the current timestamp",
+		Flags:  createFlags,
+		Action: gooseCreateExecute,
+	},
+	{
+		Name:   "up",
+		Usage:  "Migrate the DB to the most recent version available or a specific VERSION",
+		Flags:  versionFlags,
+		Action: gooseMigrateExecute,
+	},
+	{
+		Name:   "down",
+		Usage:  "Roll back the version by 1 or a sspecific VERSION",
+		Flags:  versionFlags,
+		Action: gooseMigrateRollback,
+	},
+}
 
-func migrationAction(ctx *cli.Context) error {
-	config, err := conf.InitConfig(ctx)
-	if err != nil {
-		return err
-	}
+var createFlags = []cli.Flag{
+	cli.StringFlag{
+		Name:  "name",
+		Usage: "generate a script",
+	},
+	cli.StringFlag{
+		Name:     "type",
+		Usage:    "specifies script type",
+		Required: true,
+	},
+}
 
-	flags.Parse(os.Args[1:])
-	args := flags.Args()
+var versionFlags = []cli.Flag{
+	cli.StringFlag{
+		Name:     "version",
+		Usage:    "specific VERSION",
+		Required: false,
+	},
+}
 
-	if len(args) < 3 {
-		flags.Usage()
-		return nil
-	}
-
+func gooseCreateExecute(ctx *cli.Context) error {
+	command := "create"
 	arguments := []string{}
-	if len(args) > 3 {
-		arguments = append(arguments, args[3:]...)
-	}
+	return migrationAction(ctx, command, arguments)
+}
 
-	if err := goose.Run(args[2], config.SqlDb(), *dir, arguments...); err != nil {
-		log.Fatalf("goose %v: %v", args[2], err)
-	}
+func gooseStatusGet(ctx *cli.Context) error {
+	command := "status"
+	arguments := []string{}
+	return migrationAction(ctx, command, arguments)
+}
 
+func gooseMigrateExecute(ctx *cli.Context) error {
+	command := "up"
+	arguments := []string{}
+	return migrationAction(ctx, command, arguments)
+}
+
+func gooseMigrateRollback(ctx *cli.Context) error {
+	command := "down"
+	arguments := []string{}
+	return migrationAction(ctx, command, arguments)
+}
+
+func gooseVersionGet(ctx *cli.Context) error {
+	command := "version"
+	arguments := []string{}
+	return migrationAction(ctx, command, arguments)
+}
+
+func migrationAction(ctx *cli.Context, command string, arguments []string) error {
 	return nil
 }
