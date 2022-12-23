@@ -64,10 +64,11 @@ func initDefaultConfig() {
 
 func initLogger() {
 	once.Do(func() {
-		log.SetFormatter(&logrus.TextFormatter{
-			DisableColors: false,
-			FullTimestamp: true,
-		})
+		customFormatter := new(logrus.TextFormatter)
+		customFormatter.TimestampFormat = common.TimeFormat
+		customFormatter.DisableColors = false
+		customFormatter.FullTimestamp = true
+		log.SetFormatter(customFormatter)
 
 		output := event.ConfigYaml.GetString("log.output")
 		switch output {

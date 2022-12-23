@@ -19,3 +19,8 @@ const (
 	LogOutputStdout = "stdout"
 	LogOutputFile   = "file"
 )
+
+// 时间格式化常量
+const (
+	TimeFormat = "2006-01-02 15:04:05"
+)
