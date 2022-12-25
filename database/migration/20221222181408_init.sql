@@ -7,28 +7,27 @@ CREATE TABLE `users` (
     `uid` varchar(36) NOT NULL,
     `created_at` datetime DEFAULT NULL,
     `updated_at` datetime DEFAULT NULL,
-    `deleted_at` datetime DEFAULT NULL,
     `login_at` datetime DEFAULT NULL,
     `user_name` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-    PRIMARY KEY (`uid`),
-    KEY `idx_users_deleted_at` (`deleted_at`)
+    `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `profile` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `avatar` varbinary(255) DEFAULT NULL,
+    `password` varbinary(255) DEFAULT NULL,
+    PRIMARY KEY (`uid`)
 );
 
 --
 -- Table structure for table `passwords`
 --
-CREATE TABLE `passwords` (
+CREATE TABLE `friends` (
     `uid` varchar(36) NOT NULL,
-    `created_at` datetime DEFAULT NULL,
-    `updated_at` datetime DEFAULT NULL,
-    `deleted_at` datetime DEFAULT NULL,
-    `hash` varbinary(255) DEFAULT NULL,
-    `user_id` varchar(36) NOT NULL,
+    `owner_uid` varchar(36) NOT NULL,
+    `friend_uid` varchar(36) NOT NULL, 
     PRIMARY KEY (`uid`),
-    KEY `idx_passwords_deleted_at` (`deleted_at`)
+    KEY `idx_friends_owner_uid` (`owner_uid`)
 );
 
 
 -- +goose Down
-DROP TABLE IF EXISTS `passwords`;
 DROP TABLE IF EXISTS `users`;
+DROP TABLE IF EXISTS `friends`;

@@ -12,6 +12,6 @@ func registerRoutes(router *gin.Engine, config *conf.Config) {
 	v1 := router.Group(config.BaseUri(""))
 
 	{
-		api.GetHello(v1)
+		api.Register(v1)
 	}
 }
