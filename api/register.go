@@ -33,7 +33,7 @@ type Friend struct {
 	FriendUID     string `json:"friend_uid"`
 	FriendName    string `json:"friend_name"`
 	FriendProfile string `json:"friend_profile"`
-	FriendAvatar  string `json:"friend_avatar"`
+	FriendAvatar  []byte `json:"friend_avatar"`
 }
 
 func Register(router *gin.RouterGroup) {
@@ -75,6 +75,7 @@ func Register(router *gin.RouterGroup) {
 			Email:     user.Email,
 			Profile:   user.Profile,
 			Avatar:    user.Avatar,
+			Friends:   make([]Friend, 0),
 		}
 		c.JSON(http.StatusOK, resp)
 	})

@@ -13,5 +13,6 @@ func registerRoutes(router *gin.Engine, config *conf.Config) {
 
 	{
 		api.Register(v1)
+		api.GetUser(v1)
 	}
 }

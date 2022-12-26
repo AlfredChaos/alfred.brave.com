@@ -42,18 +42,18 @@ func (u *User) Update(uid string, values map[string]interface{}) error {
 }
 
 func (u *User) Get(uid string) error {
-	return DbClient().First(u, "id = ?", uid).Error
+	return DbClient().First(u, "uid = ?", uid).Error
 }
 
-func List(filters *UserFilters, users []User) error {
+func (u *User) List(filters *UserFilters, users []User) error {
 	if filters != nil {
 		condition := ""
 		if filters.UserName != nil && filters.Email == nil {
-			condition = "user_name LIKE = ?"
+			condition = "user_name LIKE ?"
 			return DbClient().Where(condition, *filters.UserName).Find(&users).Error
 		}
 		if filters.UserName == nil && filters.Email != nil {
-			condition = "email LIKE = ?"
+			condition = "email LIKE ?"
 			return DbClient().Where(condition, *filters.Email).Find(&users).Error
 		}
 		if len(filters.EmailList) != 0 {
