@@ -202,7 +202,7 @@ func (c *Config) DatabaseDsn() string {
 				address = fmt.Sprintf("tcp(%s)", address)
 			}
 			return fmt.Sprintf(
-				"%s:%s@%s/%s?charset=utf8mb4,utf8&collation=utf8mb4_unicode_ci&parseTime=true",
+				"%s:%s@%s/%s?charset=utf8mb4,utf8&collation=utf8mb4_unicode_ci&parseTime=true&loc=Local",
 				c.DatabaseUser(),
 				c.DatabasePassword(),
 				address,

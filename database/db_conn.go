@@ -3,7 +3,6 @@ package database
 import (
 	"time"
 
-	"alfred.brave.com/common"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 )
@@ -30,6 +29,4 @@ type ModelBase struct {
 
 func (mb *ModelBase) BeforeCreate(tx *gorm.DB) {
 	mb.UID = uuid.NewV4().String()
-	mb.CreatedAt.Format(common.TimeFormat)
-	mb.UpdatedAt.Format(common.TimeFormat)
 }

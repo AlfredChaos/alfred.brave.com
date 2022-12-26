@@ -1,5 +1,4 @@
 package database
-package database
 
 type Friend struct {
 	UID       string `gorm:"type:VARCHAR(36);primary_key;" json:"uid"`
