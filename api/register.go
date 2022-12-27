@@ -63,8 +63,8 @@ func Register(router *gin.RouterGroup) {
 		}
 		user.Password = hash
 		if err := user.Create(); err != nil {
-			log.Errorf("user: %s (create): %v", err)
-			AbortUnexpected(c)
+			log.Errorf("user (create): %v", err)
+			AbortDatabaseError(c)
 			return
 		}
 		resp := &UserResponse{
@@ -83,26 +83,26 @@ func Register(router *gin.RouterGroup) {
 }
 
 func verifyRegisterParamter(ur UserRegister) error {
-	if err := verifyUserName(ur.UserName); err != nil {
+	if err := VerifyUserName(ur.UserName); err != nil {
 		return err
 	}
-	if err := verifyEmail(ur.Email); err != nil {
+	if err := VerifyEmail(ur.Email); err != nil {
 		return err
 	}
-	if err := verifyPassword(ur.Password); err != nil {
+	if err := VerifyPassword(ur.Password); err != nil {
 		return err
 	}
 	return nil
 }
 
-func verifyUserName(name string) error {
+func VerifyUserName(name string) error {
 	return nil
 }
 
-func verifyEmail(email string) error {
+func VerifyEmail(email string) error {
 	return nil
 }
 
-func verifyPassword(password string) error {
+func VerifyPassword(password string) error {
 	return nil
 }

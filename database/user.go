@@ -45,6 +45,14 @@ func (u *User) Get(uid string) error {
 	return DbClient().First(u, "uid = ?", uid).Error
 }
 
+func (u *User) GetByUserName(name string) error {
+	return DbClient().First(u, "user_name = ?", name).Error
+}
+
+func (u *User) GetByEmail(email string) error {
+	return DbClient().First(u, "email = ?", email).Error
+}
+
 func (u *User) List(filters *UserFilters, users []User) error {
 	if filters != nil {
 		condition := ""

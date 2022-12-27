@@ -13,7 +13,7 @@ func GetUser(router *gin.RouterGroup) {
 		user := &database.User{}
 		if err := user.Get(uid); err != nil {
 			log.Errorf("user: %s (get): %v", uid, err)
-			AbortUnexpected(c)
+			AbortDatabaseError(c)
 			return
 		}
 		resp := &UserResponse{

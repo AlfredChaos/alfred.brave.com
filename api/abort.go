@@ -26,3 +26,15 @@ func AbortBadRequest(c *gin.Context) {
 func AbortUnexpected(c *gin.Context) {
 	Abort(c, http.StatusInternalServerError, i18n.ErrUnexpected)
 }
+
+func AbortNotFound(c *gin.Context) {
+	Abort(c, http.StatusNotFound, i18n.ErrNotFound)
+}
+
+func AbortWrongPassword(c *gin.Context) {
+	Abort(c, http.StatusUnauthorized, i18n.ErrPassword)
+}
+
+func AbortDatabaseError(c *gin.Context) {
+	Abort(c, http.StatusInternalServerError, i18n.ErrDatabase)
+}
