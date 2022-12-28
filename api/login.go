@@ -14,6 +14,8 @@ type UserLogin struct {
 	Password string  `json:"password"`
 }
 
+// 出于幂等和不改变服务器状态的原则，login本应使用GET方法，但brave暂未支持https所以无法保证安全性
+// 暂时使用POST方法传输
 func Login(router *gin.RouterGroup) {
 	router.POST("/login", func(c *gin.Context) {
 		var ul UserLogin
@@ -63,7 +65,7 @@ func Login(router *gin.RouterGroup) {
 		if err := bcrypt.CompareHashAndPassword(user.Password, []byte(ul.Password)); err != nil {
 			log.Errorf("user %s Password incorrect", user.UID)
 			log.Infof("user %s login failed", *ul.UserName)
-			AbortUnexpected(c)
+			AbortWrongPassword(c)
 			return
 		}
 		resp := &UserResponse{
@@ -104,4 +106,8 @@ func verifyLoginParamter(ul UserLogin) error {
 	return nil
 }
 
+// 结果：获取websocket host
+// 过程：
+// 1、从服务注册与发现的joker中随机找一个发送登陆请求
+// 2、joker返回正确的wsConn
 func upgradeWebsockets() {}
