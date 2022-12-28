@@ -5,8 +5,14 @@ import (
 
 	"alfred.brave.com/database"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
 
 type UserLogin struct {
 	UserName *string `json:"user_name"`
@@ -110,4 +116,10 @@ func verifyLoginParamter(ul UserLogin) error {
 // 过程：
 // 1、从服务注册与发现的joker中随机找一个发送登陆请求
 // 2、joker返回正确的wsConn
-func upgradeWebsockets() {}
+func upgradeWebsockets(c *gin.Context) {
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		log.Errorf("%v", err)
+		return
+	}
+}
