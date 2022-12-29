@@ -28,6 +28,7 @@ var (
 func WebSocket(router *gin.RouterGroup) {
 
 	router.GET("/ws", func(c *gin.Context) {
+		log.Infof("ready upgrade websocket")
 		UpgradeWebsockets(c)
 	})
 }
@@ -42,7 +43,7 @@ func UpgradeWebsockets(c *gin.Context) {
 		log.Errorf("%v", err)
 		return
 	}
-	client := &Client{conn: conn}
+	client := &Client{conn: conn, send: make(chan []byte, 256)}
 	go client.writePump()
 	go client.readPump()
 }
