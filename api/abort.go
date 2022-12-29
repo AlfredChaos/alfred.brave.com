@@ -38,3 +38,7 @@ func AbortWrongPassword(c *gin.Context) {
 func AbortDatabaseError(c *gin.Context) {
 	Abort(c, http.StatusInternalServerError, i18n.ErrDatabase)
 }
+
+func AbortLoginError(c *gin.Context) {
+	Abort(c, http.StatusUnauthorized, i18n.ErrLogin)
+}

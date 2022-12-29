@@ -36,7 +36,7 @@ func Login(router *gin.RouterGroup) {
 			if err := userByName.GetByUserName(*ul.UserName); err != nil {
 				log.Errorf("user %s (get by user_name): %v", *ul.UserName, err)
 				log.Infof("user %s login failed", *ul.UserName)
-				AbortDatabaseError(c)
+				AbortLoginError(c)
 				return
 			}
 		}
@@ -44,7 +44,7 @@ func Login(router *gin.RouterGroup) {
 			if err := userByEmail.GetByEmail(*ul.Email); err != nil {
 				log.Errorf("user %s (get by email): %v", *ul.Email, err)
 				log.Infof("user %s login failed", *ul.Email)
-				AbortDatabaseError(c)
+				AbortLoginError(c)
 				return
 			}
 		}

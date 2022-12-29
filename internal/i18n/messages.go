@@ -6,6 +6,7 @@ const (
 	ErrNotFound
 	ErrPassword
 	ErrDatabase
+	ErrLogin
 
 	MsgUserRegistered
 	MsgUserLogin
@@ -18,6 +19,7 @@ var Messages = MessageMap{
 	ErrNotFound:   "Not found",
 	ErrPassword:   "Wrong password",
 	ErrDatabase:   "Database error",
+	ErrLogin:      "User or email wrong, please try again",
 
 	MsgUserRegistered: "User %s register success.",
 	MsgUserLogin:      "User %s login success.",
