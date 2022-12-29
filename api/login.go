@@ -5,14 +5,8 @@ import (
 
 	"alfred.brave.com/database"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/bcrypt"
 )
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
 
 type UserLogin struct {
 	UserName *string `json:"user_name"`
@@ -23,6 +17,7 @@ type UserLogin struct {
 // 出于幂等和不改变服务器状态的原则，login本应使用GET方法，但brave暂未支持https所以无法保证安全性
 // 暂时使用POST方法传输
 func Login(router *gin.RouterGroup) {
+
 	router.POST("/login", func(c *gin.Context) {
 		var ul UserLogin
 		if err := c.BindJSON(&ul); err != nil {
@@ -90,7 +85,6 @@ func Login(router *gin.RouterGroup) {
 			return
 		}
 		log.Infof("user %s login success", user.UID)
-		upgradeWebsockets()
 		c.JSON(http.StatusOK, resp)
 	})
 }
@@ -110,16 +104,4 @@ func verifyLoginParamter(ul UserLogin) error {
 		return err
 	}
 	return nil
-}
-
-// 结果：获取websocket host
-// 过程：
-// 1、从服务注册与发现的joker中随机找一个发送登陆请求
-// 2、joker返回正确的wsConn
-func upgradeWebsockets(c *gin.Context) {
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		log.Errorf("%v", err)
-		return
-	}
 }

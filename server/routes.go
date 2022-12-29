@@ -12,8 +12,10 @@ func registerRoutes(router *gin.Engine, config *conf.Config) {
 	v1 := router.Group(config.BaseUri(""))
 
 	{
+		api.DefaultIndex(v1)
 		api.Register(v1)
 		api.GetUser(v1)
 		api.Login(v1)
+		api.WebSocket(v1)
 	}
 }
