@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"alfred.brave.com/database"
+	"alfred.brave.com/internal/abort"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,11 +22,11 @@ func Login(router *gin.RouterGroup) {
 	router.POST("/login", func(c *gin.Context) {
 		var ul UserLogin
 		if err := c.BindJSON(&ul); err != nil {
-			AbortBadRequest(c)
+			abort.AbortBadRequest(c)
 			return
 		}
 		if err := verifyLoginParamter(ul); err != nil {
-			AbortBadRequest(c)
+			abort.AbortBadRequest(c)
 			return
 		}
 
@@ -36,7 +37,7 @@ func Login(router *gin.RouterGroup) {
 			if err := userByName.GetByUserName(*ul.UserName); err != nil {
 				log.Errorf("user %s (get by user_name): %v", *ul.UserName, err)
 				log.Infof("user %s login failed", *ul.UserName)
-				AbortLoginError(c)
+				abort.AbortLoginError(c)
 				return
 			}
 		}
@@ -44,7 +45,7 @@ func Login(router *gin.RouterGroup) {
 			if err := userByEmail.GetByEmail(*ul.Email); err != nil {
 				log.Errorf("user %s (get by email): %v", *ul.Email, err)
 				log.Infof("user %s login failed", *ul.Email)
-				AbortLoginError(c)
+				abort.AbortLoginError(c)
 				return
 			}
 		}
@@ -59,14 +60,14 @@ func Login(router *gin.RouterGroup) {
 			if userByName.UID != userByEmail.UID {
 				log.Errorf("user %s incorrect", *ul.UserName)
 				log.Infof("user %s login failed", *ul.UserName)
-				AbortUnexpected(c)
+				abort.AbortUnexpected(c)
 				return
 			}
 		}
 		if err := bcrypt.CompareHashAndPassword(user.Password, []byte(ul.Password)); err != nil {
 			log.Errorf("user %s Password incorrect", user.UID)
 			log.Infof("user %s login failed", *ul.UserName)
-			AbortWrongPassword(c)
+			abort.AbortWrongPassword(c)
 			return
 		}
 		resp := &UserResponse{
@@ -81,7 +82,7 @@ func Login(router *gin.RouterGroup) {
 			Friends:   make([]Friend, 0),
 		}
 		if err := AddFriends(c, resp); err != nil {
-			AbortUnexpected(c)
+			abort.AbortUnexpected(c)
 			return
 		}
 		log.Infof("user %s login success", user.UID)

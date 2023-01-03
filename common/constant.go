@@ -2,7 +2,9 @@ package common
 
 // global constant
 const (
-	ProjectName = "brave"
+	ProjectName   = "brave"
+	JokerName     = "joker"
+	CloudwareName = "cloudware"
 )
 
 // 日志等级

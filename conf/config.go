@@ -27,7 +27,7 @@ type Config struct {
 	options *Options
 }
 
-func initDefaultConfig() {
+func initDefaultConfig(name string) {
 	event.ConfigYaml.SetDefault("debug", true)
 	event.ConfigYaml.SetDefault("version", "v1")
 	event.ConfigYaml.SetDefault("log.level", "debug")
@@ -48,7 +48,7 @@ func initDefaultConfig() {
 
 	confPath := filepath.Join(os.Getenv("PROJECT_PATH"), "etc")
 	event.ConfigYaml.AddConfigPath(confPath)
-	event.ConfigYaml.SetConfigName("config")
+	event.ConfigYaml.SetConfigName(name)
 	event.ConfigYaml.SetConfigType("yaml")
 	if err := event.ConfigYaml.ReadInConfig(); err != nil {
 		log.Errorf("Read brave config.yaml fail")
@@ -103,19 +103,23 @@ func initLogger() {
 	})
 }
 
-func InitConfig(ctx *cli.Context) (*Config, error) {
-	c := newConfig(ctx)
+func InitConfig(ctx *cli.Context, service string) (*Config, error) {
+	c := newConfig(ctx, service)
 	return c, c.init()
 }
 
-func newConfig(ctx *cli.Context) *Config {
+func InitConfigWithoutDatabaseConnection(ctx *cli.Context, service string) *Config {
+	return newConfig(ctx, service)
+}
+
+func newConfig(ctx *cli.Context, service string) *Config {
 	log.Info("Start init default config")
-	initDefaultConfig()
+	initDefaultConfig(service)
 	log.Info("Start init global logger")
 	initLogger()
 
 	c := &Config{
-		options: NewOptions(ctx),
+		options: NewOptions(ctx, service),
 	}
 
 	return c
@@ -150,11 +154,12 @@ func (c *Config) GetHttpPort() int {
 }
 
 func (c *Config) Shutdown() {
-
-	if err := c.CloseDb(); err != nil {
-		log.Errorf("could not close database connection: %s", err)
-	} else {
-		log.Info("closed database connection.")
+	if c.db != nil {
+		if err := c.CloseDb(); err != nil {
+			log.Errorf("could not close database connection: %s", err)
+		} else {
+			log.Info("closed database connection.")
+		}
 	}
 }
 

@@ -8,23 +8,21 @@ import (
 	"syscall"
 	"time"
 
+	"alfred.brave.com/cloudware"
+	"alfred.brave.com/common"
 	"alfred.brave.com/conf"
-	"alfred.brave.com/server"
 	"github.com/urfave/cli"
 )
 
 var CloudwareCommand = cli.Command{
 	Name:    "cloudware",
 	Aliases: []string{"cloud"},
-	Usage:   "Starts the web server",
+	Usage:   "Starts the cloudware server",
 	Action:  cloudwareAction,
 }
 
 func cloudwareAction(ctx *cli.Context) error {
-	config, err := conf.InitConfig(ctx)
-	if err != nil {
-		return err
-	}
+	config := conf.InitConfigWithoutDatabaseConnection(ctx, common.CloudwareName)
 
 	fmt.Printf("Name                  Value\n")
 	fmt.Printf("http-host             %s\n", config.GetHttpHost())
@@ -37,11 +35,8 @@ func cloudwareAction(ctx *cli.Context) error {
 	// Pass this context down the chain
 	cctx, cancel := context.WithCancel(context.Background())
 
-	// initialize the database
-	config.InitDb()
-
 	// Start web server
-	go server.Start(cctx, config)
+	go cloudware.Start(cctx, config)
 
 	// Wait for signal to initiate server shutdown
 	quit := make(chan os.Signal)

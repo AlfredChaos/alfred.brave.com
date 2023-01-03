@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"alfred.brave.com/common"
 	"alfred.brave.com/conf"
 	"alfred.brave.com/env"
 	"github.com/pressly/goose"
@@ -137,7 +138,7 @@ func migrationAction(ctx *cli.Context, command string, arguments []string) error
 	migrationPath := fmt.Sprintf("%s/%s", projectPath, "database/migration")
 
 	// get database connection
-	config, err := conf.InitConfig(ctx)
+	config, err := conf.InitConfig(ctx, common.ProjectName)
 	if err != nil {
 		return err
 	}

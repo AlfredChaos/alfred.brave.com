@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"alfred.brave.com/common"
 	"alfred.brave.com/conf"
 	"alfred.brave.com/server"
 	"github.com/urfave/cli"
@@ -29,7 +30,7 @@ var startFlags = []cli.Flag{
 }
 
 func startAction(ctx *cli.Context) error {
-	config, err := conf.InitConfig(ctx)
+	config, err := conf.InitConfig(ctx, common.ProjectName)
 	if err != nil {
 		return err
 	}

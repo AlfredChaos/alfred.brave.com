@@ -1,7 +1,6 @@
 package conf
 
 import (
-	"alfred.brave.com/common"
 	"alfred.brave.com/event"
 	"github.com/urfave/cli"
 )
@@ -26,14 +25,14 @@ type Options struct {
 	SiteUrl           string `json:"SiteUrl"`
 }
 
-func NewOptions(ctx *cli.Context) *Options {
+func NewOptions(ctx *cli.Context, service string) *Options {
 	c := &Options{}
 
 	if ctx == nil {
 		return c
 	}
 
-	c.Name = common.ProjectName
+	c.Name = service
 	c.LogLevel = event.ConfigYaml.GetString("log.level")
 	c.LogFilename = event.ConfigYaml.GetString("log.file_path")
 	c.HttpHost = event.ConfigYaml.GetString("bind_address")

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"alfred.brave.com/api"
 	"alfred.brave.com/conf"
+	"alfred.brave.com/server/api"
 	"github.com/gin-gonic/gin"
 )
 

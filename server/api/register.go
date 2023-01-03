@@ -6,6 +6,7 @@ import (
 
 	"alfred.brave.com/common"
 	"alfred.brave.com/database"
+	"alfred.brave.com/internal/abort"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -41,12 +42,12 @@ func Register(router *gin.RouterGroup) {
 	router.POST("/register", func(c *gin.Context) {
 		var ur UserRegister
 		if err := c.BindJSON(&ur); err != nil {
-			AbortBadRequest(c)
+			abort.AbortBadRequest(c)
 			return
 		}
 
 		if err := verifyRegisterParamter(ur); err != nil {
-			AbortBadRequest(c)
+			abort.AbortBadRequest(c)
 			return
 		}
 		user := &database.User{}
@@ -58,13 +59,13 @@ func Register(router *gin.RouterGroup) {
 		hash, err := bcrypt.GenerateFromPassword([]byte(ur.Password), bcrypt.DefaultCost)
 		if err != nil {
 			log.Errorf("generate from password fail: %v", err)
-			AbortBadRequest(c)
+			abort.AbortBadRequest(c)
 			return
 		}
 		user.Password = hash
 		if err := user.Create(); err != nil {
 			log.Errorf("user (create): %v", err)
-			AbortDatabaseError(c)
+			abort.AbortDatabaseError(c)
 			return
 		}
 		resp := &UserResponse{

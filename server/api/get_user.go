@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"alfred.brave.com/database"
+	"alfred.brave.com/internal/abort"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,7 +14,7 @@ func GetUser(router *gin.RouterGroup) {
 		user := &database.User{}
 		if err := user.Get(uid); err != nil {
 			log.Errorf("user: %s (get): %v", uid, err)
-			AbortDatabaseError(c)
+			abort.AbortDatabaseError(c)
 			return
 		}
 		resp := &UserResponse{
@@ -28,7 +29,7 @@ func GetUser(router *gin.RouterGroup) {
 			Friends:   make([]Friend, 0),
 		}
 		if err := AddFriends(c, resp); err != nil {
-			AbortUnexpected(c)
+			abort.AbortUnexpected(c)
 			return
 		}
 		c.JSON(http.StatusOK, resp)

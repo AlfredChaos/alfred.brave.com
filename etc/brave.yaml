@@ -11,6 +11,6 @@ database_driver: "mariadb"
 mysql:
   user: "root"
   password: "root"
-  server: "0.0.0.0"
+  server: "172.31.248.51"
   port: 3306
   database: "brave"

@@ -8,23 +8,21 @@ import (
 	"syscall"
 	"time"
 
+	"alfred.brave.com/common"
 	"alfred.brave.com/conf"
-	"alfred.brave.com/server"
+	"alfred.brave.com/joker"
 	"github.com/urfave/cli"
 )
 
 var JokerCommand = cli.Command{
 	Name:    "joker",
 	Aliases: []string{"jk"},
-	Usage:   "Starts the web server",
+	Usage:   "Starts the joker server",
 	Action:  jokerAction,
 }
 
 func jokerAction(ctx *cli.Context) error {
-	config, err := conf.InitConfig(ctx)
-	if err != nil {
-		return err
-	}
+	config := conf.InitConfigWithoutDatabaseConnection(ctx, common.JokerName)
 
 	fmt.Printf("Name                  Value\n")
 	fmt.Printf("http-host             %s\n", config.GetHttpHost())
@@ -37,11 +35,8 @@ func jokerAction(ctx *cli.Context) error {
 	// Pass this context down the chain
 	cctx, cancel := context.WithCancel(context.Background())
 
-	// initialize the database
-	config.InitDb()
-
 	// Start web server
-	go server.Start(cctx, config)
+	go joker.Start(cctx, config)
 
 	// Wait for signal to initiate server shutdown
 	quit := make(chan os.Signal)

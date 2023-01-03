@@ -1,0 +1,8 @@
+debug: false
+version: "v1"
+log:
+  level: "debug"
+  output: "stdout"
+  file_path: "/var/log/brave/joker.log"
+bind_address: "0.0.0.0"
+bind_port: 37002
