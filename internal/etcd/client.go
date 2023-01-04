@@ -1,0 +1,42 @@
+package etcd
+
+import (
+	"context"
+	"time"
+
+	"alfred.brave.com/event"
+	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
+	clientv3 "go.etcd.io/etcd/client/v3"
+)
+
+var log = event.Log
+
+func NewEtcdClient(endpoints []string) *clientv3.Client {
+	config := clientv3.Config{
+		Endpoints:   endpoints,
+		DialTimeout: 5 * time.Second,
+	}
+	setEtcdClientLogger(&config)
+	client, err := clientv3.New(config)
+	if err != nil {
+		log.Errorf("Get etcd client error: %s", err)
+		return nil
+	}
+	return client
+}
+
+func setEtcdClientLogger(config *clientv3.Config) {}
+
+func errorHandler(err error) error {
+	switch err {
+	case context.Canceled:
+		log.Errorf("ctx is canceled by another routine: %v", err)
+	case context.DeadlineExceeded:
+		log.Errorf("ctx is attached with a deadline is exceeded: %v", err)
+	case rpctypes.ErrEmptyKey:
+		log.Errorf("client-side error: %v", err)
+	default:
+		log.Errorf("bad cluster endpoints, which are not etcd servers: %v", err)
+	}
+	return err
+}
