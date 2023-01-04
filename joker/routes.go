@@ -13,6 +13,6 @@ func registerRoutes(router *gin.Engine, config *conf.Config) {
 	{
 		api.Login(v1)
 		api.Logout(v1)
-		api.SendMessage(v1)
+		api.Websocket(v1)
 	}
 }
