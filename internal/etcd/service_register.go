@@ -14,11 +14,12 @@ type ServiceRegister struct {
 	value         string
 }
 
-func NewServiceRegister(endpoints []string, key, value string, lease int64) (*ServiceRegister, error) {
+func NewServiceRegister(endpoints []string, service_id, host string, lease int64) (*ServiceRegister, error) {
+	key := generateNamespace(PrefixService, service_id)
 	service := &ServiceRegister{
 		client: NewEtcdClient(endpoints),
 		key:    key,
-		value:  value,
+		value:  host,
 	}
 	return service, nil
 }

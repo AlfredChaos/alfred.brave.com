@@ -22,7 +22,8 @@ func NewServiceDiscovery(endpoints []string) *ServiceDiscovery {
 }
 
 // 初始化服务列表和监视
-func (s *ServiceDiscovery) WatchService(prefix string) error {
+func (s *ServiceDiscovery) WatchService(service_id string) error {
+	prefix := generateNamespace(PrefixService, service_id)
 	resp, err := s.client.Get(context.Background(), prefix, clientv3.WithPrefix())
 	if err != nil {
 		log.Errorf("service_discory get with prefix %s error, %v", prefix, err)
