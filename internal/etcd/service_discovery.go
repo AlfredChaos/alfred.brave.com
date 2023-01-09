@@ -62,6 +62,10 @@ func (s *ServiceDiscovery) GetServices() []string {
 	return addrs
 }
 
+func (s *ServiceDiscovery) Close() error {
+	return s.client.Close()
+}
+
 func (s *ServiceDiscovery) watcher(prefix string) {
 	resChan := s.client.Watch(context.Background(), prefix, clientv3.WithPrefix())
 	for wresp := range resChan {

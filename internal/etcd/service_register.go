@@ -21,6 +21,9 @@ func NewServiceRegister(endpoints []string, service_id, host string, lease int64
 		key:    key,
 		value:  host,
 	}
+	if err := service.putKeyWithLease(lease); err != nil {
+		return nil, err
+	}
 	return service, nil
 }
 
