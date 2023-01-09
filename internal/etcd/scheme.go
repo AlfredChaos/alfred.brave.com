@@ -2,10 +2,10 @@ package etcd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/client/v3/namespace"
 )
 
 const (
@@ -22,37 +22,46 @@ func generateNamespace(prefix int, id string) string {
 	return fmt.Sprintf("%s/%s", Schemes[prefix], id)
 }
 
-type User struct {
-	client *clientv3.Client
+type Factory interface {
+	Update() error
+	Get() error
+	Delete() error
 }
 
-func (u *User) UpdateUser(user_id string, attr map[string]string) error {
-	nsClient := namespace.NewKV(u.client.KV, generateNamespace(PrefixUsers, user_id))
-	for key, value := range attr {
-		_, err := nsClient.Put(context.Background(), key, value)
-		if err != nil {
-			return errorHandler(err)
-		}
+type User struct {
+	UserId    string `json:"usr_id"`
+	LoginHost string `json:"login_host"`
+	LoginTime string `json:"login_time"`
+}
+
+type UserFactory struct {
+	Client    *clientv3.Client
+	Namespace string
+	User      *User
+}
+
+func (u *UserFactory) Update() error {
+	bData, _ := json.Marshal(u.User)
+	if _, err := u.Client.Put(context.Background(), u.Namespace, string(bData)); err != nil {
+		return errorHandler(err)
 	}
 	return nil
 }
 
-func (u *User) GetUser(user_id string) (error, map[string]string) {
-	result := make(map[string]string)
-	ns := generateNamespace(PrefixUsers, user_id)
-	resp, err := u.client.Get(context.Background(), ns)
+func (u *UserFactory) Get() error {
+	resp, err := u.Client.Get(context.Background(), u.Namespace)
 	if err != nil {
-		return errorHandler(err), nil
+		return errorHandler(err)
 	}
-	for _, kv := range resp.Kvs {
-		result[string(kv.Key)] = string(kv.Value)
+	for _, ev := range resp.Kvs {
+		json.Unmarshal(ev.Value, u.User)
+		return nil
 	}
-	return nil, result
+	return nil
 }
 
-func (u *User) DeleteUser(user_id string) error {
-	nsClient := namespace.NewKV(u.client.KV, Schemes[PrefixUsers])
-	if _, err := nsClient.Delete(context.Background(), user_id); err != nil {
+func (u *UserFactory) Delete() error {
+	if _, err := u.Client.Delete(context.Background(), u.Namespace, clientv3.WithPrefix()); err != nil {
 		return errorHandler(err)
 	}
 	return nil
