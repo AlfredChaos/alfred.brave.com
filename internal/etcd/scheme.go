@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
+	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -13,19 +15,30 @@ const (
 	PrefixService
 )
 
+var etcdConn *clientv3.Client
+
 var Schemes = map[int]string{
 	PrefixUsers:   "users",
 	PrefixService: "services",
-}
-
-func generateNamespace(prefix int, id string) string {
-	return fmt.Sprintf("%s/%s", Schemes[prefix], id)
 }
 
 type Factory interface {
 	Update() error
 	Get() error
 	Delete() error
+}
+
+func SetEtcdConn(conn *clientv3.Client) {
+	etcdConn = conn
+}
+
+func dbClient() *clientv3.Client {
+	if etcdConn == nil {
+		endpoints := strings.Split(viper.GetString("etcd.endpoints"), ",")
+		dialTimeout := viper.GetInt64("etcd.dial_timeout")
+		etcdConn = NewEtcdClient(endpoints, dialTimeout)
+	}
+	return etcdConn
 }
 
 type User struct {
@@ -37,21 +50,22 @@ type User struct {
 }
 
 type UserFactory struct {
-	Client    *clientv3.Client
-	Namespace string
+	Namespace int
 	User      *User
 }
 
 func (u *UserFactory) Update() error {
 	bData, _ := json.Marshal(u.User)
-	if _, err := u.Client.Put(context.Background(), u.Namespace, string(bData)); err != nil {
+	ns := generateNamespace(u.Namespace, u.User.UserId)
+	if _, err := dbClient().Put(context.Background(), ns, string(bData)); err != nil {
 		return errorHandler(err)
 	}
 	return nil
 }
 
 func (u *UserFactory) Get() error {
-	resp, err := u.Client.Get(context.Background(), u.Namespace)
+	ns := generateNamespace(u.Namespace, u.User.UserId)
+	resp, err := dbClient().Get(context.Background(), ns)
 	if err != nil {
 		return errorHandler(err)
 	}
@@ -63,8 +77,13 @@ func (u *UserFactory) Get() error {
 }
 
 func (u *UserFactory) Delete() error {
-	if _, err := u.Client.Delete(context.Background(), u.Namespace, clientv3.WithPrefix()); err != nil {
+	ns := generateNamespace(u.Namespace, u.User.UserId)
+	if _, err := dbClient().Delete(context.Background(), ns, clientv3.WithPrefix()); err != nil {
 		return errorHandler(err)
 	}
 	return nil
+}
+
+func generateNamespace(prefix int, id string) string {
+	return fmt.Sprintf("%s/%s", Schemes[prefix], id)
 }

@@ -8,6 +8,8 @@ import (
 
 	"alfred.brave.com/conf"
 	"alfred.brave.com/event"
+	"alfred.brave.com/internal/etcd"
+	"alfred.brave.com/server/api"
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,6 +37,7 @@ func Start(ctx context.Context, config *conf.Config) {
 	}
 	log.Infof("server: listening on %s [%s]", ser.Addr, time.Since(start))
 	go StartHttp(ser)
+	go StartListenService(config)
 
 	// Graceful HTTP server shutdown
 	<-ctx.Done()
@@ -51,6 +54,18 @@ func StartHttp(s *http.Server) {
 			log.Infof("server: shutdown complete")
 		} else {
 			log.Errorf("server: %s", err)
+		}
+	}
+}
+
+// Start listening joker services
+func StartListenService(config *conf.Config) {
+	server := etcd.NewServiceDiscovery(config.EtcdClient)
+	defer server.Close()
+	for {
+		select {
+		case <-time.Tick(5 * time.Second):
+			api.Services = server.GetServices()
 		}
 	}
 }

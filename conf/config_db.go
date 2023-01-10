@@ -79,6 +79,7 @@ func (c *Config) ConnectEtcd() {
 	defer mutex.EtcdMutex.Unlock()
 
 	c.EtcdClient = etcd.NewEtcdClient(c.options.EtcdEndpoints, c.options.EtcdDialTimeout)
+	etcd.SetEtcdConn(c.EtcdClient)
 }
 
 func (c *Config) ConnectDb() error {

@@ -1,10 +1,13 @@
 package api
 
 import (
+	"errors"
 	"net/http"
+	"strings"
 
 	"alfred.brave.com/database"
 	"alfred.brave.com/internal/abort"
+	"alfred.brave.com/internal/etcd"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -70,6 +73,29 @@ func Login(router *gin.RouterGroup) {
 			abort.AbortWrongPassword(c)
 			return
 		}
+
+		// 校验用户是否登录
+		ok, err := userLoginOrNot(user.UID)
+		if err != nil {
+			log.Infof("user %s login failed", *ul.UserName)
+			abort.AbortUnexpected(c)
+			return
+		}
+		if ok == nil {
+			// 用户未登录
+			log.Infof("user %s ready login", user.UID)
+			userLogin()
+		} else {
+			// 用户已登录
+			ser := loginServiceExistOrNot(ok.LoginHost)
+			if ser == "" {
+				log.Warnf("user %s login service has down", ok.UserId)
+				userLogin()
+			}
+
+		}
+
+		// 返回用户信息
 		resp := &UserResponse{
 			UID:       user.UID,
 			CreatedAt: user.CreatedAt,
@@ -105,4 +131,34 @@ func verifyLoginParamter(ul UserLogin) error {
 		return err
 	}
 	return nil
+}
+
+func userLoginOrNot(user_id string) (*etcd.User, error) {
+	userFactory := etcd.UserFactory{
+		Namespace: etcd.PrefixUsers,
+		User:      &etcd.User{UserId: user_id},
+	}
+	if err := userFactory.Get(); err != nil {
+		log.Errorf("get user %s from etcd error: %v", user_id, err)
+		return nil, err
+	}
+	if userFactory.User.LoginTime == "" {
+		log.Infof("user %s did not login", user_id)
+		return nil, nil
+	}
+	return userFactory.User, nil
+}
+
+func loginServiceExistOrNot(host string) string {
+	for _, v := range Services {
+		if v == host {
+			return host
+		}
+	}
+	return ""
+}
+
+func userLogin() {
+	// 随机获取一个service
+	// 调用Joker接口登录
 }

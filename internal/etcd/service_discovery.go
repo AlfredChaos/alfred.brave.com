@@ -14,9 +14,9 @@ type ServiceDiscovery struct {
 	lock       sync.Mutex
 }
 
-func NewServiceDiscovery(endpoints []string) *ServiceDiscovery {
+func NewServiceDiscovery(client *clientv3.Client) *ServiceDiscovery {
 	return &ServiceDiscovery{
-		client:     NewEtcdClient(endpoints),
+		client:     client,
 		serverList: make(map[string]string),
 	}
 }
