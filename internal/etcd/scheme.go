@@ -29,9 +29,11 @@ type Factory interface {
 }
 
 type User struct {
-	UserId    string `json:"usr_id"`
-	LoginHost string `json:"login_host"`
-	LoginTime string `json:"login_time"`
+	UserId         string `json:"usr_id"`
+	UserToken      string `json:"user_token"`
+	JokerServiceId string `json:"joken_service_id"`
+	LoginHost      string `json:"login_host"`
+	LoginTime      string `json:"login_time"`
 }
 
 type UserFactory struct {

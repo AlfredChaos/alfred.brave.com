@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"alfred.brave.com/database"
+	"alfred.brave.com/internal/etcd"
 	"alfred.brave.com/internal/mutex"
 	"github.com/jinzhu/gorm"
 
@@ -71,6 +72,13 @@ func (c *Config) CloseDb() error {
 		}
 	}
 	return nil
+}
+
+func (c *Config) ConnectEtcd() {
+	mutex.EtcdMutex.Lock()
+	defer mutex.EtcdMutex.Unlock()
+
+	c.EtcdClient = etcd.NewEtcdClient(c.options.EtcdEndpoints, c.options.EtcdDialTimeout)
 }
 
 func (c *Config) ConnectDb() error {

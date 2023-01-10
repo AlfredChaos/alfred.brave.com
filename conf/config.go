@@ -17,14 +17,16 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 var log = event.Log
 var once sync.Once
 
 type Config struct {
-	db      *gorm.DB
-	options *Options
+	db         *gorm.DB
+	options    *Options
+	EtcdClient *clientv3.Client
 }
 
 func initDefaultConfig(name string) {
@@ -41,6 +43,8 @@ func initDefaultConfig(name string) {
 	event.ConfigYaml.SetDefault("mysql.user", "root")
 	event.ConfigYaml.SetDefault("mysql.password", "")
 	event.ConfigYaml.SetDefault("mysql.database", "brave")
+	event.ConfigYaml.SetDefault("etcd.dial_timeout", 5)
+	event.ConfigYaml.SetDefault("etcd.endpoints", "0.0.0.0:2379,")
 
 	if os.Getenv("PROJECT_PATH") == "" {
 		env.New()
@@ -132,6 +136,9 @@ func (c *Config) init() error {
 	if err := c.ConnectDb(); err != nil {
 		return err
 	}
+
+	log.Info("Prepare to connect etcd")
+	c.ConnectEtcd()
 
 	log.Debugf("config: successfully initialized [%s]", time.Since(start))
 	return nil

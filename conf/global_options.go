@@ -1,28 +1,32 @@
 package conf
 
 import (
+	"strings"
+
 	"alfred.brave.com/event"
 	"github.com/urfave/cli"
 )
 
 type Options struct {
-	Name              string `json:"name"`
-	LogLevel          string `json:"LogLevel"`
-	AdminPassword     string `json:"AdminPassword"`
-	ConfigPath        string `json:"ConfigPath"`
-	DatabaseDriver    string `json:"DatabaseDriver"`
-	DatabaseServer    string `json:"DatabaseServer"`
-	DatabasePort      int    `json:"DatabasePort"`
-	DatabaseName      string `json:"DatabaseName"`
-	DatabaseUser      string `json:"DatabaseUser"`
-	DatabaseDsn       string `json:"DatabaseDsn"`
-	DatabasePassword  string `json:"DatabasePassword"`
-	DatabaseConns     int    `json:"DatabaseConns"`
-	DatabaseConnsIdle int    `json:"DatabaseConnsIdle"`
-	HttpHost          string `json:"HttpHost"`
-	HttpPort          int    `json:"HttpPort"`
-	LogFilename       string `json:"LogFilename"`
-	SiteUrl           string `json:"SiteUrl"`
+	Name              string   `json:"name"`
+	LogLevel          string   `json:"LogLevel"`
+	AdminPassword     string   `json:"AdminPassword"`
+	ConfigPath        string   `json:"ConfigPath"`
+	DatabaseDriver    string   `json:"DatabaseDriver"`
+	DatabaseServer    string   `json:"DatabaseServer"`
+	DatabasePort      int      `json:"DatabasePort"`
+	DatabaseName      string   `json:"DatabaseName"`
+	DatabaseUser      string   `json:"DatabaseUser"`
+	DatabaseDsn       string   `json:"DatabaseDsn"`
+	DatabasePassword  string   `json:"DatabasePassword"`
+	DatabaseConns     int      `json:"DatabaseConns"`
+	DatabaseConnsIdle int      `json:"DatabaseConnsIdle"`
+	EtcdEndpoints     []string `json:"etcdEndpoints"`
+	EtcdDialTimeout   int64    `json:"EtcdDialTimeout"`
+	HttpHost          string   `json:"HttpHost"`
+	HttpPort          int      `json:"HttpPort"`
+	LogFilename       string   `json:"LogFilename"`
+	SiteUrl           string   `json:"SiteUrl"`
 }
 
 func NewOptions(ctx *cli.Context, service string) *Options {
@@ -43,6 +47,8 @@ func NewOptions(ctx *cli.Context, service string) *Options {
 	c.DatabasePort = event.ConfigYaml.GetInt("mysql.port")
 	c.DatabaseUser = event.ConfigYaml.GetString("mysql.user")
 	c.DatabasePassword = event.ConfigYaml.GetString("mysql.password")
+	c.EtcdDialTimeout = event.ConfigYaml.GetInt64("etcd.dial_timeout")
+	c.EtcdEndpoints = strings.Split(event.ConfigYaml.GetString("etcd.endpoints"), ",")
 
 	return c
 }

@@ -6,3 +6,6 @@ log:
   file_path: "/var/log/brave/joker.log"
 bind_address: "0.0.0.0"
 bind_port: 37002
+etcd:
+  dial_timeout: 5
+  endpoints: "172.31.248.51:2379,"

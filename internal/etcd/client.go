@@ -11,10 +11,10 @@ import (
 
 var log = event.Log
 
-func NewEtcdClient(endpoints []string) *clientv3.Client {
+func NewEtcdClient(endpoints []string, timeout int64) *clientv3.Client {
 	config := clientv3.Config{
 		Endpoints:   endpoints,
-		DialTimeout: 5 * time.Second,
+		DialTimeout: time.Duration(timeout),
 	}
 	setEtcdClientLogger(&config)
 	client, err := clientv3.New(config)
