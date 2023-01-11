@@ -7,6 +7,12 @@ const (
 	CloudwareName = "cloudware"
 )
 
+// 中间间
+const (
+	MiddlewareMysql = iota
+	MiddlewareEtcd
+)
+
 // 日志等级
 const (
 	LogLevelDebug = "debug"

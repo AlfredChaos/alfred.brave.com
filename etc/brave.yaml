@@ -14,3 +14,7 @@ mysql:
   server: "172.31.248.51"
   port: 3306
   database: "brave"
+
+etcd:
+  dial_timeout: 5
+  endpoints: "172.31.248.51:2379"

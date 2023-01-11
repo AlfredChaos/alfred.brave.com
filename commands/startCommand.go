@@ -30,7 +30,8 @@ var startFlags = []cli.Flag{
 }
 
 func startAction(ctx *cli.Context) error {
-	config, err := conf.InitConfig(ctx, common.ProjectName)
+	middlewares := registerBraveMiddlewares()
+	config, err := conf.InitConfig(ctx, common.ProjectName, middlewares)
 	if err != nil {
 		return err
 	}
@@ -69,4 +70,11 @@ func startAction(ctx *cli.Context) error {
 	config.Shutdown()
 
 	return nil
+}
+
+func registerBraveMiddlewares() []int {
+	return []int{
+		common.MiddlewareMysql,
+		common.MiddlewareEtcd,
+	}
 }

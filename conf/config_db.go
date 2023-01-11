@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"alfred.brave.com/common"
 	"alfred.brave.com/database"
 	"alfred.brave.com/internal/etcd"
 	"alfred.brave.com/internal/mutex"
@@ -33,7 +34,7 @@ func (c *Config) Db() *gorm.DB {
 func (c *Config) SqlDb() *sql.DB {
 	if c.db == nil {
 		log.Warn("config: database not connected.")
-		c.init()
+		c.init([]int{common.MiddlewareMysql})
 	}
 	return c.db.DB()
 }
@@ -74,12 +75,16 @@ func (c *Config) CloseDb() error {
 	return nil
 }
 
-func (c *Config) ConnectEtcd() {
+func (c *Config) ConnectEtcd() error {
 	mutex.EtcdMutex.Lock()
 	defer mutex.EtcdMutex.Unlock()
 
 	c.EtcdClient = etcd.NewEtcdClient(c.options.EtcdEndpoints, c.options.EtcdDialTimeout)
-	etcd.SetEtcdConn(c.EtcdClient)
+	if c.EtcdClient == nil {
+		return errors.New("Get etcd client nil")
+	}
+	etcd.RegisterEtcdConn(c.EtcdClient)
+	return nil
 }
 
 func (c *Config) ConnectDb() error {

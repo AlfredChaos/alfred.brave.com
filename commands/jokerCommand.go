@@ -22,7 +22,11 @@ var JokerCommand = cli.Command{
 }
 
 func jokerAction(ctx *cli.Context) error {
-	config := conf.InitConfigWithoutDatabaseConnection(ctx, common.JokerName)
+	middlewares := registerJokerMiddlewares()
+	config, err := conf.InitConfig(ctx, common.JokerName, middlewares)
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("Name                  Value\n")
 	fmt.Printf("http-host             %s\n", config.GetHttpHost())
@@ -55,4 +59,10 @@ func jokerAction(ctx *cli.Context) error {
 	config.Shutdown()
 
 	return nil
+}
+
+func registerJokerMiddlewares() []int {
+	return []int{
+		common.MiddlewareEtcd,
+	}
 }

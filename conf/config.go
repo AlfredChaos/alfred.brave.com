@@ -107,13 +107,9 @@ func initLogger() {
 	})
 }
 
-func InitConfig(ctx *cli.Context, service string) (*Config, error) {
+func InitConfig(ctx *cli.Context, service string, middlewares []int) (*Config, error) {
 	c := newConfig(ctx, service)
-	return c, c.init()
-}
-
-func InitConfigWithoutDatabaseConnection(ctx *cli.Context, service string) *Config {
-	return newConfig(ctx, service)
+	return c, c.init(middlewares)
 }
 
 func newConfig(ctx *cli.Context, service string) *Config {
@@ -129,16 +125,24 @@ func newConfig(ctx *cli.Context, service string) *Config {
 	return c
 }
 
-func (c *Config) init() error {
+func (c *Config) init(middlewares []int) error {
 	start := time.Now()
 
-	log.Info("Prepare to connect database")
-	if err := c.ConnectDb(); err != nil {
-		return err
-	}
+	for _, mw := range middlewares {
+		switch mw {
+		case common.MiddlewareMysql:
+			log.Info("Prepare to connect database")
+			if err := c.ConnectDb(); err != nil {
+				return err
+			}
 
-	log.Info("Prepare to connect etcd")
-	c.ConnectEtcd()
+		case common.MiddlewareEtcd:
+			log.Info("Prepare to connect etcd")
+			if err := c.ConnectEtcd(); err != nil {
+				return err
+			}
+		}
+	}
 
 	log.Debugf("config: successfully initialized [%s]", time.Since(start))
 	return nil

@@ -52,19 +52,19 @@ func (s *ServiceRegister) putKeyWithLease(lease int64) error {
 
 // 监听续约情况
 func (s *ServiceRegister) ListenLeaseRespChan() {
-	defer func() { log.Errorf("lease %s close", s.leaseId) }()
+	defer func() { log.Debugf("lease %v close", s.leaseId) }()
 	for leaseKeepResp := range s.keepAliveChan {
-		log.Infof("lease %s renew success, result = %v", s.leaseId, leaseKeepResp)
+		log.Infof("lease %v renew success, result = %v", s.leaseId, leaseKeepResp)
 	}
 }
 
 // 注销服务
 func (s *ServiceRegister) Close() error {
 	if _, err := s.client.Revoke(context.Background(), s.leaseId); err != nil {
-		log.Errorf("revoke lease %s failed, error = %v", s.leaseId, err)
+		log.Errorf("revoke lease %v failed, error = %v", s.leaseId, err)
 		return err
 	}
-	log.Infof("revoke lease %s success", s.leaseId)
+	log.Infof("revoke lease %v success", s.leaseId)
 	return s.client.Close()
 }
 

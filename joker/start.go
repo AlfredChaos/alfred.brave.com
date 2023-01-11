@@ -8,10 +8,13 @@ import (
 
 	"alfred.brave.com/conf"
 	"alfred.brave.com/event"
+	"alfred.brave.com/internal/etcd"
 	"github.com/gin-gonic/gin"
+	uuid "github.com/satori/go.uuid"
 )
 
 var log = event.Log
+var ServiceId = uuid.NewV4().String()
 
 // Start the REST API server using the configuration provided
 func Start(ctx context.Context, config *conf.Config) {
@@ -35,6 +38,7 @@ func Start(ctx context.Context, config *conf.Config) {
 	}
 	log.Infof("server: listening on %s [%s]", ser.Addr, time.Since(start))
 	go StartHttp(ser)
+	go ServiceRegister(ctx, config)
 
 	// Graceful HTTP server shutdown
 	<-ctx.Done()
@@ -53,4 +57,23 @@ func StartHttp(s *http.Server) {
 			log.Errorf("server: %s", err)
 		}
 	}
+}
+
+func ServiceRegister(cctx context.Context, config *conf.Config) {
+	lease := setServiceLease()
+	host := fmt.Sprintf("%s:%d", config.GetHttpHost(), config.GetHttpPort())
+	server, err := etcd.NewServiceRegister(ServiceId, host, lease, config.EtcdClient)
+	if err != nil {
+		log.Errorf("service %s register error: %v", ServiceId, err)
+		return
+	}
+	defer server.Close()
+	go server.ListenLeaseRespChan()
+
+	<-cctx.Done()
+	log.Infof("service listening exit...")
+}
+
+func setServiceLease() int64 {
+	return int64(60)
 }

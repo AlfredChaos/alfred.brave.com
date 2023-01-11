@@ -1,9 +1,7 @@
 package api
 
 import (
-	"errors"
 	"net/http"
-	"strings"
 
 	"alfred.brave.com/database"
 	"alfred.brave.com/internal/abort"

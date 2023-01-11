@@ -22,7 +22,11 @@ var CloudwareCommand = cli.Command{
 }
 
 func cloudwareAction(ctx *cli.Context) error {
-	config := conf.InitConfigWithoutDatabaseConnection(ctx, common.CloudwareName)
+	middlewares := registerCloudwareMiddlewares()
+	config, err := conf.InitConfig(ctx, common.CloudwareName, middlewares)
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("Name                  Value\n")
 	fmt.Printf("http-host             %s\n", config.GetHttpHost())
@@ -55,4 +59,11 @@ func cloudwareAction(ctx *cli.Context) error {
 	config.Shutdown()
 
 	return nil
+}
+
+func registerCloudwareMiddlewares() []int {
+	return []int{
+		common.MiddlewareMysql,
+		common.MiddlewareEtcd,
+	}
 }

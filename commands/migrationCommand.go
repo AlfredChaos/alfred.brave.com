@@ -138,7 +138,8 @@ func migrationAction(ctx *cli.Context, command string, arguments []string) error
 	migrationPath := fmt.Sprintf("%s/%s", projectPath, "database/migration")
 
 	// get database connection
-	config, err := conf.InitConfig(ctx, common.ProjectName)
+	middlewares := registerMigrationMiddlewares()
+	config, err := conf.InitConfig(ctx, common.ProjectName, middlewares)
 	if err != nil {
 		return err
 	}
@@ -155,4 +156,10 @@ func migrationAction(ctx *cli.Context, command string, arguments []string) error
 	}
 
 	return nil
+}
+
+func registerMigrationMiddlewares() []int {
+	return []int{
+		common.MiddlewareMysql,
+	}
 }

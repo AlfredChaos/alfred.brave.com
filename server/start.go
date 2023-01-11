@@ -62,10 +62,12 @@ func StartHttp(s *http.Server) {
 func StartListenService(config *conf.Config) {
 	server := etcd.NewServiceDiscovery(config.EtcdClient)
 	defer server.Close()
+	server.WatchService("")
 	for {
 		select {
 		case <-time.Tick(5 * time.Second):
 			api.Services = server.GetServices()
+			log.Infof("services = %v", api.Services)
 		}
 	}
 }

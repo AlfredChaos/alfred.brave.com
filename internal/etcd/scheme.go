@@ -28,7 +28,7 @@ type Factory interface {
 	Delete() error
 }
 
-func SetEtcdConn(conn *clientv3.Client) {
+func RegisterEtcdConn(conn *clientv3.Client) {
 	etcdConn = conn
 }
 
