@@ -42,7 +42,7 @@ func dbClient() *clientv3.Client {
 }
 
 type User struct {
-	UserId         string `json:"usr_id"`
+	UserId         string `json:"user_id"`
 	UserToken      string `json:"user_token"`
 	JokerServiceId string `json:"joken_service_id"`
 	LoginHost      string `json:"login_host"`

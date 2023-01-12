@@ -9,6 +9,7 @@ import (
 	"alfred.brave.com/conf"
 	"alfred.brave.com/event"
 	"alfred.brave.com/internal/etcd"
+	"alfred.brave.com/joker/api"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/satori/go.uuid"
 )
@@ -30,12 +31,14 @@ func Start(ctx context.Context, config *conf.Config) {
 	router := gin.New()
 
 	// Register HTTP route handlers
+	api.RegisterServiceId(ServiceId)
 	registerRoutes(router, config)
 
 	ser := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", config.GetHttpHost(), config.GetHttpPort()),
 		Handler: router,
 	}
+	api.RegisterServiceHost(ser.Addr)
 	log.Infof("server: listening on %s [%s]", ser.Addr, time.Since(start))
 	go StartHttp(ser)
 	go ServiceRegister(ctx, config)
