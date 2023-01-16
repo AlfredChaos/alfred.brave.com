@@ -42,6 +42,21 @@ type URL struct {
 
 var HTTPClient Client = &http.Client{}
 
+func (u *URL) Combind(path string, query map[string]string, variables ...string) {
+	u.Path = LoginPath
+	if len(variables) != 0 {
+		u.PathVariables = variables
+	}
+	if len(query) != 0 {
+		queryParams := make([]Query, 0)
+		for key, value := range query {
+			q := Query{Key: key, Value: value}
+			queryParams = append(queryParams, q)
+		}
+		u.QueryParams = queryParams
+	}
+}
+
 func (u *URL) Concat() (string, error) {
 	var fullUrl string
 	var newUrl []string
