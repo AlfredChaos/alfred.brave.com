@@ -5,19 +5,14 @@ import (
 
 	"alfred.brave.com/internal/abort"
 	"alfred.brave.com/internal/etcd"
+	"alfred.brave.com/internal/http_client"
 	"github.com/gin-gonic/gin"
 )
-
-type UserLogin struct {
-	UserId    string `json:"user_id"`
-	UserToken string `json:"user_token"`
-	LoginTime string `json:"login_time"`
-}
 
 func Login(router *gin.RouterGroup) {
 
 	router.POST("/login", func(c *gin.Context) {
-		var ul UserLogin
+		var ul http_client.UserLogin
 		if err := c.BindJSON(&ul); err != nil {
 			abort.AbortBadRequest(c)
 		}
