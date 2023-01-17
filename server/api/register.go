@@ -24,6 +24,7 @@ type UserResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	LoginAt   time.Time `json:"login_at"`
+	LoginHost string    `json:"login_host"`
 	UserName  string    `json:"user_name"`
 	Email     string    `json:"email"`
 	Profile   string    `json:"profile"`

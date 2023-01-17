@@ -2,7 +2,6 @@ package http_client
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -12,6 +11,7 @@ import (
 	"strings"
 
 	"alfred.brave.com/event"
+	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	uuid "github.com/satori/go.uuid"
 	"moul.io/http2curl"
@@ -96,23 +96,23 @@ func (u *URL) Concat() (string, error) {
 	return fullUrl, nil
 }
 
-func Get(c *context.Context, url *URL, resp interface{}, headers ...Headers) (*http.Response, error) {
+func Get(c *gin.Context, url *URL, resp interface{}, headers ...Headers) (*http.Response, error) {
 	return request(c, http.MethodGet, url, nil, resp, headers...)
 }
 
-func Post(c *context.Context, url *URL, body []byte, resp interface{}, headers ...Headers) (*http.Response, error) {
+func Post(c *gin.Context, url *URL, body []byte, resp interface{}, headers ...Headers) (*http.Response, error) {
 	return request(c, http.MethodPost, url, body, resp, headers...)
 }
 
-func Delete(c *context.Context, url *URL, resp interface{}, headers ...Headers) (*http.Response, error) {
+func Delete(c *gin.Context, url *URL, resp interface{}, headers ...Headers) (*http.Response, error) {
 	return request(c, http.MethodDelete, url, nil, resp, headers...)
 }
 
-func Put(c *context.Context, url *URL, body []byte, resp interface{}, headers ...Headers) (*http.Response, error) {
+func Put(c *gin.Context, url *URL, body []byte, resp interface{}, headers ...Headers) (*http.Response, error) {
 	return request(c, http.MethodPut, url, body, resp, headers...)
 }
 
-func request(c *context.Context, method string, u *URL, body []byte, resp interface{}, headers ...Headers) (*http.Response, error) {
+func request(c *gin.Context, method string, u *URL, body []byte, resp interface{}, headers ...Headers) (*http.Response, error) {
 	var req *http.Request
 	errMsg := fmt.Errorf("error occurred wheile requesting")
 	requestId := fmt.Sprintf("req-%s", uuid.NewV4().String())

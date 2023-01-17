@@ -1,8 +1,11 @@
 package http_client
 
 import (
-	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -21,10 +24,13 @@ type UserLogin struct {
 }
 
 func NewJokenClient(host string) JokenClient {
+	if !strings.Contains(host, "//") {
+		host = fmt.Sprintf("http://%s", host)
+	}
 	return JokenClient{URL: &URL{Base: host}}
 }
 
-func (j *JokenClient) Login(c *context.Context, body UserLogin, query map[string]string, variables ...string) error {
+func (j *JokenClient) Login(c *gin.Context, body UserLogin, query map[string]string, variables ...string) error {
 	j.URL.Combind(LoginPath, query, variables...)
 	bodyBytes, _ := json.Marshal(body)
 	if _, err := Post(c, j.URL, bodyBytes, nil); err != nil {

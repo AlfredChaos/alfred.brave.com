@@ -1,11 +1,14 @@
 package api
 
 import (
+	"math/rand"
 	"net/http"
+	"time"
 
 	"alfred.brave.com/database"
 	"alfred.brave.com/internal/abort"
 	"alfred.brave.com/internal/etcd"
+	"alfred.brave.com/internal/http_client"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,7 +24,12 @@ type UserLogin struct {
 func Login(router *gin.RouterGroup) {
 
 	router.POST("/login", func(c *gin.Context) {
-		var ul UserLogin
+		ul := &UserLogin{}
+		resp := &UserResponse{}
+		user := &database.User{}
+		userByName := &database.User{}
+		userByEmail := &database.User{}
+
 		if err := c.BindJSON(&ul); err != nil {
 			abort.AbortBadRequest(c)
 			return
@@ -31,9 +39,6 @@ func Login(router *gin.RouterGroup) {
 			return
 		}
 
-		user := &database.User{}
-		userByName := &database.User{}
-		userByEmail := &database.User{}
 		if ul.UserName != nil {
 			if err := userByName.GetByUserName(*ul.UserName); err != nil {
 				log.Errorf("user %s (get by user_name): %v", *ul.UserName, err)
@@ -82,29 +87,40 @@ func Login(router *gin.RouterGroup) {
 		if ok == nil {
 			// 用户未登录
 			log.Infof("user %s ready login", user.UID)
-			userLogin()
+			if err := userLogin(c, user); err != nil {
+				log.Errorf("user %s login failed", user.UID)
+				abort.AbortLoginError(c)
+				return
+			}
 		} else {
 			// 用户已登录
 			ser := loginServiceExistOrNot(ok.LoginHost)
 			if ser == "" {
 				log.Warnf("user %s login service has down", ok.UserId)
-				userLogin()
+				if err := userLogin(c, user); err != nil {
+					log.Errorf("user %s login failed", user.UID)
+					abort.AbortLoginError(c)
+					return
+				}
 			}
-
+		}
+		loginUser, err := userLoginOrNot(user.UID)
+		if err != nil {
+			log.Infof("user %s login failed", *ul.UserName)
+			abort.AbortUnexpected(c)
+			return
 		}
 
-		// 返回用户信息
-		resp := &UserResponse{
-			UID:       user.UID,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
-			LoginAt:   user.LoginAt,
-			UserName:  user.UserName,
-			Email:     user.Email,
-			Profile:   user.Profile,
-			Avatar:    user.Avatar,
-			Friends:   make([]Friend, 0),
-		}
+		resp.UID = user.UID
+		resp.CreatedAt = user.CreatedAt
+		resp.UpdatedAt = user.UpdatedAt
+		resp.LoginAt = user.LoginAt
+		resp.UserName = user.UserName
+		resp.Email = user.Email
+		resp.Profile = user.Profile
+		resp.Avatar = user.Avatar
+		resp.Friends = make([]Friend, 0)
+		resp.LoginHost = loginUser.LoginHost
 		if err := AddFriends(c, resp); err != nil {
 			abort.AbortUnexpected(c)
 			return
@@ -114,7 +130,7 @@ func Login(router *gin.RouterGroup) {
 	})
 }
 
-func verifyLoginParamter(ul UserLogin) error {
+func verifyLoginParamter(ul *UserLogin) error {
 	if ul.UserName != nil {
 		if err := VerifyUserName(*ul.UserName); err != nil {
 			return err
@@ -156,7 +172,26 @@ func loginServiceExistOrNot(host string) string {
 	return ""
 }
 
-func userLogin() {
+func userLogin(c *gin.Context, user *database.User) error {
 	// 随机获取一个service
+	service := getServiceByRandom()
 	// 调用Joker接口登录
+	ul := http_client.UserLogin{}
+	jokerClient := http_client.NewJokenClient(service)
+	if err := jokerClient.Login(c, ul, QueryParams(c)); err != nil {
+		log.Errorf("Joker http client login failed, err = %v", err)
+		return err
+	}
+	return nil
+}
+
+func QueryParams(c *gin.Context) map[string]string {
+	res := make(map[string]string)
+	return res
+}
+
+func getServiceByRandom() string {
+	serviceNum := len(Services)
+	rand.Seed(time.Now().Unix())
+	return Services[rand.Intn(serviceNum)]
 }
