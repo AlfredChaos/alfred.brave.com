@@ -10,12 +10,14 @@ import (
 	"alfred.brave.com/event"
 	"alfred.brave.com/internal/etcd"
 	"alfred.brave.com/joker/api"
+	"alfred.brave.com/joker/exchange"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/satori/go.uuid"
 )
 
 var log = event.Log
 var ServiceId = uuid.NewV4().String()
+var Manager = exchange.NewManager()
 
 // Start the REST API server using the configuration provided
 func Start(ctx context.Context, config *conf.Config) {
@@ -42,6 +44,9 @@ func Start(ctx context.Context, config *conf.Config) {
 	log.Infof("server: listening on %s [%s]", ser.Addr, time.Since(start))
 	go StartHttp(ser)
 	go ServiceRegister(ctx, config)
+
+	// Init Websockets Manager
+	go Manager.Start()
 
 	// Graceful HTTP server shutdown
 	<-ctx.Done()

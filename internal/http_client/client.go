@@ -125,7 +125,7 @@ func request(c *gin.Context, method string, u *URL, body []byte, resp interface{
 		log.Errorf("[X-Request-ID: %s] url error = %v", requestId, err)
 		return nil, err
 	}
-	req, err = http.NewRequestWithContext(*c, method, fullUrl, bytes.NewBuffer(body))
+	req, err = http.NewRequestWithContext(c, method, fullUrl, bytes.NewBuffer(body))
 	if err != nil {
 		log.Errorf("[X-Request-ID: %s] generate request fail, error = %v", requestId, err)
 		return nil, err
