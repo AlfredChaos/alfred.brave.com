@@ -13,11 +13,6 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-type MessageRequest struct {
-	From string
-	To   string
-}
-
 func Websocket(router *gin.RouterGroup) {
 
 	router.GET("/ws/:id", func(c *gin.Context) {

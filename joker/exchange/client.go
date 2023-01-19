@@ -5,8 +5,11 @@ import (
 	"runtime/debug"
 	"time"
 
+	"encoding/json"
+
 	"alfred.brave.com/event"
 	"github.com/gorilla/websocket"
+	"github.com/jinzhu/gorm/dialects/postgres"
 )
 
 var log = event.Log
@@ -20,6 +23,18 @@ type Client struct {
 	UserId string
 	Socket *websocket.Conn
 	Send   chan []byte
+}
+
+type MessageRequest struct {
+	From    string      `json:"from"`
+	To      string      `json:"to"`
+	Message interface{} `json:"message,omitempty"`
+}
+
+type MessageResponse struct {
+	Code    uint32      `json:"code"`
+	CodeMsg string      `json:"code_msg"`
+	Message interface{} `json:"message,omitempty"`
 }
 
 func NewClient(userId string, socket *websocket.Conn) *Client {
@@ -95,7 +110,35 @@ func (c *Client) ReadPump() {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.Send <- message
 		log.Debugf("==> Get Message: %s", message)
+		poccessMessage(c, message)
 	}
+}
+
+func (c *Client) SendMessage(message []byte) {}
+
+func (c *Client) SendResponse(code uint32, codeMsg string, message interface{}) {
+	resp := &MessageResponse{Code: code, CodeMsg: codeMsg, Message: message}
+	respByte, err := json.Marshal(resp)
+	if err != nil {
+		log.Errorf("send respnse error = %v", err)
+		return
+	}
+
+	c.SendMessage(respByte)
+}
+
+func poccessMessage(client *Client, message []byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("message process stop, recover = %v", r)
+		}
+	}()
+
+	request := &MessageRequest{}
+	if err := json.Unmarshal(message, request); err != nil {
+		log.Errorf("process message json unmarrshal error = %v", err)
+		client.SendResponse(ParameterIllegal, "", nil)
+	}
+
 }
