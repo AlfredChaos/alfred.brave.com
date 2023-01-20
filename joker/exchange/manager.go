@@ -5,10 +5,12 @@ import (
 )
 
 type Manager struct {
-	Users      sync.Map
-	Register   chan *Client
-	Unregister chan *Client
-	Broadcast  chan []byte
+	Users       sync.Map
+	Register    chan *Client
+	Unregister  chan *Client
+	Broadcast   chan []byte
+	ServiceId   string
+	ServiceHost string
 }
 
 func NewManager() *Manager {

@@ -16,18 +16,17 @@ const (
 )
 
 var codeMap = map[uint32]string{
-	OK:                 "Success",
-	NotLoggedIn:        "未登录",
-	ParameterIllegal:   "参数不合法",
-	UnauthorizedUserId: "非法的用户Id",
-	Unauthorized:       "未授权",
-	NotData:            "没有数据",
-	ServerError:        "系统错误",
-	ModelAddError:      "添加错误",
-	ModelDeleteError:   "删除错误",
-	ModelStoreError:    "存储错误",
-	OperationFailure:   "操作失败",
-	RoutingNotExist:    "路由不存在",
+	OK:               "Success",
+	NotLoggedIn:      "未登录",
+	ParameterIllegal: "参数不合法",
+	Unauthorized:     "未授权",
+	NotData:          "没有数据",
+	ServerError:      "系统错误",
+	ModelAddError:    "添加错误",
+	ModelDeleteError: "删除错误",
+	ModelStoreError:  "存储错误",
+	OperationFailure: "操作失败",
+	RoutingNotExist:  "路由不存在",
 }
 
 // 根据错误码 获取错误信息

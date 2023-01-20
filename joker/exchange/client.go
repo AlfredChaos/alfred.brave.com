@@ -8,8 +8,9 @@ import (
 	"encoding/json"
 
 	"alfred.brave.com/event"
+	"alfred.brave.com/internal/etcd"
+	jkCommon "alfred.brave.com/joker/common"
 	"github.com/gorilla/websocket"
-	"github.com/jinzhu/gorm/dialects/postgres"
 )
 
 var log = event.Log
@@ -115,17 +116,33 @@ func (c *Client) ReadPump() {
 	}
 }
 
-func (c *Client) SendMessage(message []byte) {}
+func (c *Client) SendMessage(request *MessageRequest) {
+	answer := request.To
+	// 判断收信人是否在线
+	userFactory := etcd.UserFactory{
+		Namespace: etcd.PrefixUsers,
+		User:      &etcd.User{UserId: answer},
+	}
+	if err := userFactory.Get(); err != nil {
+		log.Errorf("check answer %s login status fail, err = %v", answer, err)
+		c.SendResponse(NotLoggedIn, "", nil)
+		return
+	}
+	if jkCommon.ServiceHost == userFactory.User.LoginHost {
+		// 收信人在本地登录
+	} else {
+		// 收信人在异地登录
+	}
+}
 
 func (c *Client) SendResponse(code uint32, codeMsg string, message interface{}) {
-	resp := &MessageResponse{Code: code, CodeMsg: codeMsg, Message: message}
+	resp := &MessageResponse{Code: code, CodeMsg: getErrorMessage(code, codeMsg), Message: message}
 	respByte, err := json.Marshal(resp)
 	if err != nil {
 		log.Errorf("send respnse error = %v", err)
 		return
 	}
-
-	c.SendMessage(respByte)
+	c.Send <- respByte
 }
 
 func poccessMessage(client *Client, message []byte) {
@@ -139,6 +156,8 @@ func poccessMessage(client *Client, message []byte) {
 	if err := json.Unmarshal(message, request); err != nil {
 		log.Errorf("process message json unmarrshal error = %v", err)
 		client.SendResponse(ParameterIllegal, "", nil)
+		return
 	}
 
+	client.SendMessage(request)
 }
