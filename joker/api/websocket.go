@@ -3,7 +3,6 @@ package api
 import (
 	"net/http"
 
-	jkCommon "alfred.brave.com/joker/common"
 	"alfred.brave.com/joker/exchange"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -35,5 +34,5 @@ func UpgradeWebsockets(user string, c *gin.Context) {
 	go client.WritePump()
 
 	// 注册至manager
-	jkCommon.Manager.Register <- client
+	exchange.Controller.Register <- client
 }

@@ -9,7 +9,7 @@ import (
 	"alfred.brave.com/conf"
 	"alfred.brave.com/event"
 	"alfred.brave.com/internal/etcd"
-	jkCommon "alfred.brave.com/joker/common"
+	"alfred.brave.com/joker/exchange"
 	"github.com/gin-gonic/gin"
 	uuid "github.com/satori/go.uuid"
 )
@@ -31,20 +31,20 @@ func Start(ctx context.Context, config *conf.Config) {
 	router := gin.New()
 
 	// Register HTTP route handlers
-	jkCommon.RegisterServiceId(ServiceId)
+	exchange.RegisterServiceId(ServiceId)
 	registerRoutes(router, config)
 
 	ser := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", config.GetHttpHost(), config.GetHttpPort()),
 		Handler: router,
 	}
-	jkCommon.RegisterServiceHost(ser.Addr)
+	exchange.RegisterServiceHost(ser.Addr)
 	log.Infof("server: listening on %s [%s]", ser.Addr, time.Since(start))
 	go StartHttp(ser)
 	go ServiceRegister(ctx, config)
 
 	// Init Websockets Manager
-	go jkCommon.Manager.Start()
+	go exchange.Controller.Start()
 
 	// Graceful HTTP server shutdown
 	<-ctx.Done()

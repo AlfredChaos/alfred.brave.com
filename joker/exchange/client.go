@@ -9,7 +9,6 @@ import (
 
 	"alfred.brave.com/event"
 	"alfred.brave.com/internal/etcd"
-	jkCommon "alfred.brave.com/joker/common"
 	"github.com/gorilla/websocket"
 )
 
@@ -128,7 +127,7 @@ func (c *Client) SendMessage(request *MessageRequest) {
 		c.SendResponse(NotLoggedIn, "", nil)
 		return
 	}
-	if jkCommon.ServiceHost == userFactory.User.LoginHost {
+	if ServiceHost == userFactory.User.LoginHost {
 		// 收信人在本地登录
 	} else {
 		// 收信人在异地登录

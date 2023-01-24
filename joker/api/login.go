@@ -6,7 +6,7 @@ import (
 	"alfred.brave.com/internal/abort"
 	"alfred.brave.com/internal/etcd"
 	"alfred.brave.com/internal/http_client"
-	jkCommon "alfred.brave.com/joker/common"
+	"alfred.brave.com/joker/exchange"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,8 +24,8 @@ func Login(router *gin.RouterGroup) {
 				UserId:         ul.UserId,
 				UserToken:      ul.UserToken,
 				LoginTime:      ul.LoginTime,
-				LoginHost:      jkCommon.ServiceHost,
-				JokerServiceId: jkCommon.ServiceId,
+				LoginHost:      exchange.ServiceHost,
+				JokerServiceId: exchange.ServiceId,
 			},
 		}
 		if err := userFactory.Update(); err != nil {

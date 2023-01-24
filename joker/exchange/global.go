@@ -1,10 +1,8 @@
-package common
+package exchange
 
-import "alfred.brave.com/joker/exchange"
-
-var Manager = exchange.NewManager()
 var ServiceId = ""
 var ServiceHost = ""
+var Controller *Manager = NewManager()
 
 func RegisterServiceId(serviceId string) {
 	ServiceId = serviceId
