@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"alfred.brave.com/common"
 	"alfred.brave.com/database"
 	"alfred.brave.com/internal/abort"
 	"alfred.brave.com/internal/etcd"
@@ -176,7 +177,10 @@ func userLogin(c *gin.Context, user *database.User) error {
 	// 随机获取一个service
 	service := getServiceByRandom()
 	// 调用Joker接口登录
-	ul := http_client.UserLogin{}
+	ul := http_client.UserLogin{
+		UserId:    user.UID,
+		LoginTime: user.LoginAt.Format(common.TimeFormat),
+	}
 	jokerClient := http_client.NewJokenClient(service)
 	if err := jokerClient.Login(c, ul, QueryParams(c)); err != nil {
 		log.Errorf("Joker http client login failed, err = %v", err)

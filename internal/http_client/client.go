@@ -68,6 +68,7 @@ func (u *URL) Concat() (string, error) {
 	}
 	urlBase, _ := url.Parse(u.Base)
 	newUrl = append(newUrl, urlBase.Path)
+	newUrl = append(newUrl, u.Path)
 	pathVariablesCount := strings.Count(u.Base, "%s")
 	if pathVariablesCount != len(u.PathVariables) {
 		log.Errorf("url path_variables count incorrect")
@@ -77,7 +78,7 @@ func (u *URL) Concat() (string, error) {
 		fullUrl = fmt.Sprintf(u.Base, u.PathVariables[0])
 	}
 	if pathVariablesCount == 2 {
-		fullUrl = fmt.Sprintf(u.Base, u.PathVariables[0], u.PathVariables[2])
+		fullUrl = fmt.Sprintf(u.Base, u.PathVariables[0], u.PathVariables[1])
 	}
 	if pathVariablesCount > 2 {
 		log.Errorf("url length do not support")
