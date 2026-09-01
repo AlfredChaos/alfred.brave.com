@@ -164,6 +164,18 @@ func (c *Config) GetHttpPort() int {
 	return c.options.HttpPort
 }
 
+// GetAdvertiseHost 返回本节点对外可路由的主机地址（用于注册到 etcd 与回传给客户端）。
+// 未配置 advertise_host 时回退到监听地址 bind_address，保证本地裸跑行为不变。
+func (c *Config) GetAdvertiseHost() string {
+	if c.options == nil {
+		return ""
+	}
+	if c.options.AdvertiseHost != "" {
+		return c.options.AdvertiseHost
+	}
+	return c.GetHttpHost()
+}
+
 func (c *Config) Shutdown() {
 	if c.db != nil {
 		if err := c.CloseDb(); err != nil {

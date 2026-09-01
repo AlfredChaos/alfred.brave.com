@@ -38,7 +38,9 @@ func Start(ctx context.Context, config *conf.Config) {
 		Addr:    fmt.Sprintf("%s:%d", config.GetHttpHost(), config.GetHttpPort()),
 		Handler: router,
 	}
-	exchange.RegisterServiceHost(ser.Addr)
+	// 注册到 etcd 与回传客户端用的 host 必须是对外可路由地址（advertise_host），
+	// 而非监听地址 ser.Addr（监听通常是 0.0.0.0，外部无法连接）。
+	exchange.RegisterServiceHost(fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetHttpPort()))
 	log.Infof("server: listening on %s [%s]", ser.Addr, time.Since(start))
 	go StartHttp(ser)
 	go ServiceRegister(ctx, config)
@@ -67,7 +69,8 @@ func StartHttp(s *http.Server) {
 
 func ServiceRegister(cctx context.Context, config *conf.Config) {
 	lease := setServiceLease()
-	host := fmt.Sprintf("%s:%d", config.GetHttpHost(), config.GetHttpPort())
+	// 注册进 etcd 的服务地址同样用 advertise_host，供 server 发现与调用。
+	host := fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetHttpPort())
 	server, err := etcd.NewServiceRegister(ServiceId, host, lease, config.EtcdClient)
 	if err != nil {
 		log.Errorf("service %s register error: %v", ServiceId, err)

@@ -25,6 +25,7 @@ type Options struct {
 	EtcdDialTimeout   int64    `json:"EtcdDialTimeout"`
 	HttpHost          string   `json:"HttpHost"`
 	HttpPort          int      `json:"HttpPort"`
+	AdvertiseHost     string   `json:"AdvertiseHost"`
 	LogFilename       string   `json:"LogFilename"`
 	SiteUrl           string   `json:"SiteUrl"`
 }
@@ -41,6 +42,7 @@ func NewOptions(ctx *cli.Context, service string) *Options {
 	c.LogFilename = event.ConfigYaml.GetString("log.file_path")
 	c.HttpHost = event.ConfigYaml.GetString("bind_address")
 	c.HttpPort = event.ConfigYaml.GetInt("bind_port")
+	c.AdvertiseHost = event.ConfigYaml.GetString("advertise_host")
 	c.DatabaseDriver = event.ConfigYaml.GetString("database_driver")
 	c.DatabaseName = event.ConfigYaml.GetString("mysql.database")
 	c.DatabaseServer = event.ConfigYaml.GetString("mysql.server")
