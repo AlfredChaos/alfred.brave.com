@@ -10,6 +10,7 @@ import (
 	"alfred.brave.com/conf"
 	"alfred.brave.com/database"
 	"alfred.brave.com/event"
+	"alfred.brave.com/internal/chat"
 	"alfred.brave.com/internal/etcd"
 	ibrave "alfred.brave.com/internal/kafka"
 	"alfred.brave.com/joker/exchange"
@@ -17,6 +18,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
+
+	"github.com/segmentio/kafka-go"
 )
 
 var log = event.Log
@@ -77,6 +80,18 @@ func Start(ctx context.Context, config *conf.Config) {
 
 	// Init Websockets Manager
 	go exchange.Controller.Start()
+
+	// chat.ack 消费者（§3 步骤 14-15）：每实例独立消费组 = 广播语义
+	ackReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: config.KafkaBrokers(),
+		GroupID: "cs-ack-" + ServiceId,
+		Topic:   chat.TopicAck,
+	})
+	go func() {
+		if err := exchange.ConsumeAcks(ctx, exchange.Controller, ackReader); err != nil {
+			log.Errorf("ack consumer exited: %v", err)
+		}
+	}()
 
 	// Graceful HTTP server shutdown
 	<-ctx.Done()
