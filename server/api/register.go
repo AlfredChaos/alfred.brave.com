@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"alfred.brave.com/common"
 	"alfred.brave.com/database"
 	"alfred.brave.com/internal/abort"
 	"github.com/gin-gonic/gin"
@@ -42,7 +41,7 @@ type Friend struct {
 	FriendAvatar  []byte `json:"friend_avatar"`
 }
 
-func Register(router *gin.RouterGroup) {
+func (s *Server) Register(router *gin.RouterGroup) {
 	router.POST("/register", func(c *gin.Context) {
 		var ur UserRegister
 		if err := c.BindJSON(&ur); err != nil {
@@ -54,21 +53,21 @@ func Register(router *gin.RouterGroup) {
 			abort.AbortBadRequest(c)
 			return
 		}
-		user := &database.User{}
-		user.UserName = ur.UserName
-		user.Email = ur.Email
-		user.Profile = ur.Profile
-		user.LoginAt = time.Now()
-		user.LoginAt.Format(common.TimeFormat)
 		hash, err := bcrypt.GenerateFromPassword([]byte(ur.Password), bcrypt.DefaultCost)
 		if err != nil {
 			log.Errorf("generate from password fail: %v", err)
 			abort.AbortBadRequest(c)
 			return
 		}
-		user.Password = hash
-		if err := user.Create(); err != nil {
-			log.Errorf("user (create): %v", err)
+		user := &database.User{
+			UserName: ur.UserName,
+			Email:    ur.Email,
+			Profile:  ur.Profile,
+			Password: hash,
+			LoginAt:  time.Now(),
+		}
+		if err := s.users.Create(c, user); err != nil {
+			log.Errorf("user %s (create): %v", ur.UserName, err)
 			abort.AbortDatabaseError(c)
 			return
 		}

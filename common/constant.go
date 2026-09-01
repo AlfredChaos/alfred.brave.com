@@ -1,5 +1,7 @@
 package common
 
+import "os"
+
 // global constant
 const (
 	ProjectName   = "brave"
@@ -7,9 +9,9 @@ const (
 	CloudwareName = "cloudware"
 )
 
-// 中间间
+// 中间件
 const (
-	MiddlewareMysql = iota
+	MiddlewareDatabase = iota
 	MiddlewareEtcd
 )
 
@@ -32,3 +34,8 @@ const (
 const (
 	TimeFormat = "2006-01-02 15:04:05"
 )
+
+// ProjectPath 返回项目根目录（等价 os.Getenv("PROJECT_PATH")，集中一处取用）。
+func ProjectPath() string {
+	return os.Getenv("PROJECT_PATH")
+}

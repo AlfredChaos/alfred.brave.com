@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"alfred.brave.com/common"
+	"alfred.brave.com/database"
 	"alfred.brave.com/env"
 	"alfred.brave.com/event"
 	"github.com/fsnotify/fsnotify"
-	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -24,7 +24,7 @@ var log = event.Log
 var once sync.Once
 
 type Config struct {
-	db         *gorm.DB
+	pg         *database.Store
 	options    *Options
 	EtcdClient *clientv3.Client
 }
@@ -37,12 +37,12 @@ func initDefaultConfig(name string) {
 	event.ConfigYaml.SetDefault("log.file_path", "/var/log/brave/brave.log")
 	event.ConfigYaml.SetDefault("bind_address", "0.0.0.0")
 	event.ConfigYaml.SetDefault("bind_port", 37001)
-	event.ConfigYaml.SetDefault("database_driver", "mysql")
-	event.ConfigYaml.SetDefault("mysql.server", "0.0.0.0")
-	event.ConfigYaml.SetDefault("mysql.port", 3306)
-	event.ConfigYaml.SetDefault("mysql.user", "root")
-	event.ConfigYaml.SetDefault("mysql.password", "")
-	event.ConfigYaml.SetDefault("mysql.database", "brave")
+	event.ConfigYaml.SetDefault("database_driver", "postgres")
+	event.ConfigYaml.SetDefault("postgres.server", "127.0.0.1")
+	event.ConfigYaml.SetDefault("postgres.port", 5432)
+	event.ConfigYaml.SetDefault("postgres.user", "brave")
+	event.ConfigYaml.SetDefault("postgres.password", "brave")
+	event.ConfigYaml.SetDefault("postgres.database", "brave")
 	event.ConfigYaml.SetDefault("etcd.dial_timeout", 5)
 	event.ConfigYaml.SetDefault("etcd.endpoints", "0.0.0.0:2379,")
 
@@ -130,7 +130,7 @@ func (c *Config) init(middlewares []int) error {
 
 	for _, mw := range middlewares {
 		switch mw {
-		case common.MiddlewareMysql:
+		case common.MiddlewareDatabase:
 			log.Info("Prepare to connect database")
 			if err := c.ConnectDb(); err != nil {
 				return err
@@ -177,11 +177,9 @@ func (c *Config) GetAdvertiseHost() string {
 }
 
 func (c *Config) Shutdown() {
-	if c.db != nil {
+	if c.pg != nil {
 		if err := c.CloseDb(); err != nil {
 			log.Errorf("could not close database connection: %s", err)
-		} else {
-			log.Info("closed database connection.")
 		}
 	}
 }

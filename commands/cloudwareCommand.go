@@ -63,7 +63,7 @@ func cloudwareAction(ctx *cli.Context) error {
 
 func registerCloudwareMiddlewares() []int {
 	return []int{
-		common.MiddlewareMysql,
+		common.MiddlewareDatabase,
 		common.MiddlewareEtcd,
 	}
 }

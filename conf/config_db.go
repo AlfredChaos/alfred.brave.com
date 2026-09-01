@@ -1,76 +1,37 @@
 package conf
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
 	"runtime"
 	"strconv"
-	"strings"
-	"time"
 
-	"alfred.brave.com/common"
 	"alfred.brave.com/database"
 	"alfred.brave.com/internal/etcd"
 	"alfred.brave.com/internal/mutex"
-	"github.com/jinzhu/gorm"
-
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
-const (
-	MySQL   = "mysql"
-	MariaDB = "mariadb"
-)
+// PostgreSQL 驱动（T02 起替换 MySQL）。
+const Postgres = "postgres"
 
-func (c *Config) Db() *gorm.DB {
-	if c.db == nil {
+// Db 返回 PG 数据访问层。未连接时返回 nil 并告警（沿用原 Get 行为，调用方自查）。
+func (c *Config) Db() *database.Store {
+	if c.pg == nil {
 		log.Error("config: database not connected")
 	}
-
-	return c.db
-}
-
-func (c *Config) SqlDb() *sql.DB {
-	if c.db == nil {
-		log.Warn("config: database not connected.")
-		c.init([]int{common.MiddlewareMysql})
-	}
-	return c.db.DB()
-}
-
-// SetDbOptions sets the database collation to unicode if supported.
-func (c *Config) SetDbOptions() {
-	switch c.DatabaseDriver() {
-	case MySQL, MariaDB:
-		c.Db().Set("gorm:table_options", "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci")
-
-	default:
-		log.Error("config: unsupported database driver")
-	}
-}
-
-func (c *Config) RegisterDb() {
-	c.SetDbOptions()
-	database.SetDbProvider(c)
-}
-
-func (c *Config) MigrateDb() {
-
+	return c.pg
 }
 
 func (c *Config) InitDb() {
-	c.RegisterDb()
-	c.MigrateDb()
+	// pgx 版无 gorm 的表选项注册步骤，保留空实现维持中间件调用序列
 }
 
 func (c *Config) CloseDb() error {
-	if c.db != nil {
-		if err := c.db.Close(); err == nil {
-			c.db = nil
-		} else {
-			return err
-		}
+	if c.pg != nil {
+		c.pg.Close()
+		c.pg = nil
+		log.Info("closed database connection.")
 	}
 	return nil
 }
@@ -87,77 +48,30 @@ func (c *Config) ConnectEtcd() error {
 	return nil
 }
 
+// ConnectDb 建立 pgx 连接池（带重试），失败返回错误。
 func (c *Config) ConnectDb() error {
 	mutex.Db.Lock()
 	defer mutex.Db.Unlock()
 
-	dbDriver := c.DatabaseDriver()
-	log.Infof("Get database driver: %s", dbDriver)
-	dbDsn := c.DatabaseDsn()
-	log.Infof("Get database dsn: %s", dbDsn)
+	dsn := c.DatabaseDsn()
+	log.Infof("Get database driver: %s, server: %s", c.DatabaseDriver(), c.DatabaseConnAddress())
 
-	if dbDriver == "" {
-		return errors.New("config: database driver not specified")
-	}
-	if dbDsn == "" {
-		return errors.New("config: database dsn not specified")
-	}
-
-	db, err := gorm.Open(dbDriver, dbDsn)
-	if err != nil || db == nil {
-		// retry
-		for i := 1; i <= 12; i++ {
-			db, err = gorm.Open(dbDriver, dbDsn)
-			if db != nil && err == nil {
-				break
-			}
-			time.Sleep(5 * time.Second)
-		}
-
-		if err != nil || db == nil {
-			return err
-		}
-	}
-
-	// Configure database logging
-	db.LogMode(true)
-	db.SetLogger(log)
-
-	// Set database connection parameters.
-	db.DB().SetMaxOpenConns(c.DatabaseConns())
-	db.DB().SetMaxIdleConns(c.DatabaseConnsIdle())
-	db.DB().SetConnMaxLifetime(time.Hour)
-
-	// Check database server version.
-	if err = c.checkDb(db); err != nil {
-		log.Error("connect database error")
+	store, err := database.NewStore(context.Background(), dsn, int32(c.DatabaseConns()))
+	if err != nil || store == nil {
 		return err
 	}
-
-	// Ok.
-	c.db = db
-
+	c.pg = store
 	return nil
 }
 
 func (c *Config) DatabaseDriver() string {
-	switch strings.ToLower(c.options.DatabaseDriver) {
-	case MySQL, MariaDB:
-		c.options.DatabaseDriver = MySQL
-
-	default:
-		log.Warnf("config: unsupported database driver %s, using mysql", c.options.DatabaseDriver)
-		c.options.DatabaseDriver = MySQL
-	}
-
-	return c.options.DatabaseDriver
+	return Postgres
 }
 
 func (c *Config) DatabaseUser() string {
 	if c.options.DatabaseUser == "" {
-		return "root"
+		return "brave"
 	}
-
 	return c.options.DatabaseUser
 }
 
@@ -173,17 +87,12 @@ func (c *Config) DatabaseName() string {
 }
 
 func (c *Config) DatabasePort() int {
-	defaultPort := 3306
-
-	if server := c.DatabaseServer(); server == "" {
+	defaultPort := 5432
+	if c.options.DatabasePort < 1 || c.options.DatabasePort > 65535 {
+		log.Errorf("Config Database port %d error: range 1-65535", c.options.DatabasePort)
 		return defaultPort
 	}
-	port := c.options.DatabasePort
-	if port < 1 || port > 65535 {
-		log.Errorf("Config Database port %d error: range 1-65535", port)
-		return defaultPort
-	}
-	return port
+	return c.options.DatabasePort
 }
 
 func (c *Config) DatabasePortString() string {
@@ -192,89 +101,44 @@ func (c *Config) DatabasePortString() string {
 
 func (c *Config) DatabaseServer() string {
 	if c.options.DatabaseServer == "" {
-		return "0.0.0.0"
+		return "127.0.0.1"
 	}
 	return c.options.DatabaseServer
 }
 
 func (c *Config) DatabaseConnAddress() string {
-	server := c.DatabaseServer()
-	port := c.DatabasePortString()
-	return fmt.Sprintf("%s:%s", server, port)
+	return fmt.Sprintf("%s:%s", c.DatabaseServer(), c.DatabasePortString())
 }
 
+// DatabaseDsn PG 连接串。本地/容器内一律 sslmode=disable（练手项目无 TLS 终结）。
 func (c *Config) DatabaseDsn() string {
-	if c.options.DatabaseDsn == "" {
-		switch c.DatabaseDriver() {
-		case MySQL, MariaDB:
-			address := c.DatabaseConnAddress()
-			// Connect via TCP or Unix Domain Socket?
-			if strings.HasPrefix(address, "/") {
-				log.Debugf("mariadb: connecting via Unix domain socket")
-				address = fmt.Sprintf("unix(%s)", address)
-			} else {
-				address = fmt.Sprintf("tcp(%s)", address)
-			}
-			return fmt.Sprintf(
-				"%s:%s@%s/%s?charset=utf8mb4,utf8&collation=utf8mb4_unicode_ci&parseTime=true&loc=Local",
-				c.DatabaseUser(),
-				c.DatabasePassword(),
-				address,
-				c.DatabaseName(),
-			)
-
-		default:
-			log.Errorf("config: empty database dsn")
-			return ""
-		}
+	if c.options.DatabaseDsn != "" {
+		return c.options.DatabaseDsn
 	}
-	return c.options.DatabaseDsn
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable",
+		c.DatabaseUser(), c.DatabasePassword(), c.DatabaseServer(), c.DatabasePort(), c.DatabaseName())
 }
 
-// DatabaseConns returns the maximum number of open connections to the database.
+// DatabaseConns 连接池上限（对齐原 gorm 时代的推导公式）。
 func (c *Config) DatabaseConns() int {
 	limit := c.options.DatabaseConns
-
 	if limit <= 0 {
 		limit = (runtime.NumCPU() * 2) + 16
 	}
-
 	if limit > 1024 {
 		limit = 1024
 	}
-
 	return limit
 }
 
-// DatabaseConnsIdle returns the maximum number of idle connections to the database (equal or less than open).
+// DatabaseConnsIdle 空闲连接上限（推导保留；pgxpool 以 MaxConns 为准）。
 func (c *Config) DatabaseConnsIdle() int {
 	limit := c.options.DatabaseConnsIdle
-
 	if limit <= 0 {
 		limit = runtime.NumCPU() + 8
 	}
-
 	if limit > c.DatabaseConns() {
 		limit = c.DatabaseConns()
 	}
-
 	return limit
-}
-
-// connectDb checks the database server version.
-func (c *Config) checkDb(db *gorm.DB) error {
-	switch c.DatabaseDriver() {
-	case MySQL:
-		type Res struct {
-			Value string `gorm:"column:Value;"`
-		}
-		var res Res
-		if err := db.Raw("SHOW VARIABLES LIKE 'innodb_version'").Scan(&res).Error; err != nil {
-			return nil
-		} else if v := strings.Split(res.Value, "."); len(v) < 3 {
-			log.Warnf("config: unknown database server version")
-		}
-	}
-
-	return nil
 }

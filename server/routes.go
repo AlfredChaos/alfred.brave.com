@@ -11,15 +11,16 @@ import (
 
 func registerRoutes(router *gin.Engine, config *conf.Config) {
 	projectPath := os.Getenv("PROJECT_PATH")
-	templatePaht := fmt.Sprintf("%s/%s", projectPath, "template/*")
+	templatePath := fmt.Sprintf("%s/%s", projectPath, "template/*")
 	// JSON-REST API Version 1
 	v1 := router.Group(config.BaseUri(""))
-	router.LoadHTMLGlob(templatePaht)
+	router.LoadHTMLGlob(templatePath)
 
+	srv := api.NewServer(config.Db())
 	{
 		api.DefaultIndex(v1)
-		api.Register(v1)
-		api.GetUser(v1)
-		api.Login(v1)
+		srv.Register(v1)
+		srv.GetUser(v1)
+		srv.Login(v1)
 	}
 }

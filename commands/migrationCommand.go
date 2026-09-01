@@ -1,20 +1,24 @@
 package commands
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"os"
 
 	"alfred.brave.com/common"
 	"alfred.brave.com/conf"
 	"alfred.brave.com/env"
-	"github.com/pressly/goose"
+
+	_ "github.com/jackc/pgx/v5/stdlib" // 注册 database/sql 的 pgx 驱动（goose 需要）
+	"github.com/pressly/goose/v3"
 	"github.com/urfave/cli"
 )
 
 var MigrationCommand = cli.Command{
 	Name:        "migration",
 	Aliases:     []string{"goose"},
-	Usage:       "database version migration tools",
+	Usage:       "database version migration tools (postgres)",
 	Subcommands: migrationCommands,
 }
 
@@ -43,7 +47,7 @@ var migrationCommands = []cli.Command{
 	},
 	{
 		Name:   "down",
-		Usage:  "Roll back the version by 1 or a sspecific VERSION",
+		Usage:  "Roll back the version by 1 or to a specific VERSION",
 		Flags:  versionFlags,
 		Action: gooseMigrateRollback,
 	},
@@ -74,92 +78,75 @@ var versionFlags = []cli.Flag{
 }
 
 func gooseCreateExecute(ctx *cli.Context) error {
-	command := "create"
-	arguments := []string{}
-
 	scriptName := ctx.String("name")
 	if ctx.Bool("init") {
 		scriptName = "init"
 	}
-	arguments = append(arguments, scriptName)
 	switch ctx.String("type") {
 	case "sql", "go":
-		arguments = append(arguments, ctx.String("type"))
 	default:
 		log.Error("unsupport type")
 		return nil
 	}
-
-	return migrationAction(ctx, command, arguments)
+	return migrationAction(ctx, "create", []string{scriptName, ctx.String("type")})
 }
 
 func gooseStatusGet(ctx *cli.Context) error {
-	command := "status"
-	arguments := []string{}
-	return migrationAction(ctx, command, arguments)
+	return migrationAction(ctx, "status", nil)
 }
 
 func gooseMigrateExecute(ctx *cli.Context) error {
 	command := "up"
 	arguments := []string{}
-
 	if ctx.String("version") != "" {
 		command = "up-to"
 		arguments = append(arguments, ctx.String("version"))
 	}
-
 	return migrationAction(ctx, command, arguments)
 }
 
 func gooseMigrateRollback(ctx *cli.Context) error {
 	command := "down"
 	arguments := []string{}
-
 	if ctx.String("version") != "" {
 		command = "down-to"
 		arguments = append(arguments, ctx.String("version"))
 	}
-
 	return migrationAction(ctx, command, arguments)
 }
 
 func gooseVersionGet(ctx *cli.Context) error {
-	command := "version"
-	arguments := []string{}
-	return migrationAction(ctx, command, arguments)
+	return migrationAction(ctx, "version", nil)
 }
 
+// migrationAction 用 goose v3 执行迁移子命令（postgres 方言）。
+// goose 需要 *sql.DB：经 pgx stdlib 驱动开独立短连接，不与业务连接池争用（迁移是低频运维操作）。
 func migrationAction(ctx *cli.Context, command string, arguments []string) error {
-	// Get migration files path
 	if os.Getenv("PROJECT_PATH") == "" {
 		env.New()
 	}
-	projectPath := os.Getenv("PROJECT_PATH")
-	migrationPath := fmt.Sprintf("%s/%s", projectPath, "database/migration")
+	migrationPath := fmt.Sprintf("%s/%s", common.ProjectPath(), "database/migration")
 
-	// get database connection
-	middlewares := registerMigrationMiddlewares()
-	config, err := conf.InitConfig(ctx, common.ProjectName, middlewares)
+	config, err := conf.InitConfig(ctx, common.ProjectName, []int{common.MiddlewareDatabase})
 	if err != nil {
 		return err
 	}
-	sqlDb := config.Db().DB()
 
-	goose.SetVerbose(true)
-	if err := goose.SetDialect(config.DatabaseDriver()); err != nil {
-		log.Errorf("set goose dialect %s error", config.DatabaseDriver())
+	sqlDb, err := sql.Open("pgx", config.DatabaseDsn())
+	if err != nil {
+		log.Errorf("open sql handle for goose failed: %v", err)
 		return err
 	}
-	if err := goose.Run(command, sqlDb, migrationPath, arguments...); err != nil {
+	defer sqlDb.Close()
+
+	goose.SetVerbose(true)
+	if err := goose.SetDialect("postgres"); err != nil {
+		log.Errorf("set goose dialect postgres error: %v", err)
+		return err
+	}
+	if err := goose.RunContext(context.Background(), command, sqlDb, migrationPath, arguments...); err != nil {
 		log.Errorf("migration occurs error: %v", err)
 		return err
 	}
-
 	return nil
-}
-
-func registerMigrationMiddlewares() []int {
-	return []int{
-		common.MiddlewareMysql,
-	}
 }

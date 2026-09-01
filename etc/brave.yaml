@@ -6,13 +6,13 @@ log:
   file_path: "/var/log/brave/brave.log"
 bind_address: "0.0.0.0"
 bind_port: 37001
-database_driver: "mariadb"
+database_driver: "postgres"
 
-mysql:
-  user: "root"
-  password: "root"
-  server: "172.31.248.51"
-  port: 3306
+postgres:
+  user: "brave"
+  password: "brave"
+  server: "127.0.0.1"
+  port: 5432
   database: "brave"
 
 etcd:

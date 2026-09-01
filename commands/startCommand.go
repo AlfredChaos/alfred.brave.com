@@ -74,7 +74,7 @@ func startAction(ctx *cli.Context) error {
 
 func registerBraveMiddlewares() []int {
 	return []int{
-		common.MiddlewareMysql,
+		common.MiddlewareDatabase,
 		common.MiddlewareEtcd,
 	}
 }

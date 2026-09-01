@@ -6,13 +6,13 @@ log:
   file_path: "/var/log/brave/brave.log"
 bind_address: "0.0.0.0"
 bind_port: 37001
-database_driver: "mysql"
-mysql:
-  user: "${MYSQL_USER}"
-  password: "${MYSQL_PASSWORD}"
-  server: "${MYSQL_HOST}"
-  port: 3306
-  database: "${MYSQL_DATABASE}"
+database_driver: "postgres"
+postgres:
+  user: "${POSTGRES_USER}"
+  password: "${POSTGRES_PASSWORD}"
+  server: "${POSTGRES_HOST}"
+  port: 5432
+  database: "${POSTGRES_DB}"
 etcd:
   dial_timeout: 5
   # 连 etcd 集群（任一成员即可读到全集群数据）
