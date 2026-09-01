@@ -37,7 +37,7 @@ func (s *ServiceRegister) putKeyWithLease(lease int64) error {
 	log.Infof("generate lease %v success", resp.ID)
 	_, err = s.client.Put(context.Background(), s.key, s.value, clientv3.WithLease(resp.ID))
 	if err != nil {
-		log.Errorf("set lease %s error = %v", resp.ID, err)
+		log.Errorf("set lease %v error = %v", resp.ID, err)
 		return err
 	}
 	leaseRespChan, err := s.client.KeepAlive(context.Background(), resp.ID)

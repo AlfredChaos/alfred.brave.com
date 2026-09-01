@@ -28,7 +28,7 @@ func UpgradeWebsockets(user string, c *gin.Context) {
 		log.Errorf("upgrade http to websocket error = %v", err)
 		return
 	}
-	client := exchange.NewClient(user, conn)
+	client := exchange.NewClient(exchange.Controller, user, conn)
 
 	go client.ReadPump()
 	go client.WritePump()

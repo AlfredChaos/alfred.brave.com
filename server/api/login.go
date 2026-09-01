@@ -3,7 +3,6 @@ package api
 import (
 	"math/rand"
 	"net/http"
-	"time"
 
 	"alfred.brave.com/common"
 	"alfred.brave.com/database"
@@ -201,6 +200,6 @@ func getServiceByRandom() string {
 	if serviceNum == 0 {
 		return ""
 	}
-	rand.Seed(time.Now().Unix())
+	// Go 1.20+ 全局随机源已自动播种；显式 rand.Seed 并发不安全且已被废弃。
 	return Services[rand.Intn(serviceNum)]
 }
