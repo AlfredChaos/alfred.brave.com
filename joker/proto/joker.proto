@@ -1,0 +1,35 @@
+// Joker 节点间/投递 gRPC 契约。
+// 数据流（D02）：deliver worker 消费 chat.push 后经本服务把已落库消息投给持有连接的 CS。
+// 取舍：Unary 而非 Stream——消息模型离散，Unary 实现简单、易调试（AGENTS.md §2 记录的取舍）。
+syntax = "proto3";
+
+package joker;
+
+option go_package = "alfred.brave.com/joker/proto;jokerproto";
+
+// Relay 投递服务：worker → 目标 Chat Server。
+service Relay {
+  // RelayMessage 投递一条已落库消息；目标 CS 查本地连接表写入 Send 通道。
+  rpc RelayMessage(RelayMessageRequest) returns (RelayMessageResponse);
+}
+
+message RelayMessageRequest {
+  string msg_id = 1;    // 服务端消息 ID（幂等键）
+  string cli_msg_id = 2; // 客户端消息 ID（发送端 UI 打勾用，经 ack 透传）
+  string conv_id = 3;
+  string from_uid = 4;
+  string to_uid = 5;    // 本 CS 上的目标连接
+  string type = 6;      // single|group|system_event
+  bytes content = 7;    // 消息内容（JSON 字节）
+  int64 seq = 8;        // 会话内序号（客户端排序去重键）
+  bool mention = 9;     // 投递展开后的 @ 标记
+  // 防回环保留位（AGENTS.md §2）：Kafka 主干下投递是 worker→CS 单向的，
+  // CS 不会再转发消息，恒为 false；保留字段以兼容契约审查。
+  bool is_local = 10;
+  int64 created_at = 11;
+}
+
+message RelayMessageResponse {
+  bool delivered = 1;  // 是否已写入目标连接的 Send 通道
+  string reason = 2;   // 未投递原因：not_found=本机无该连接
+}

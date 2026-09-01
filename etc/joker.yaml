@@ -16,6 +16,8 @@ postgres:
   server: "127.0.0.1"
   port: 5432
   database: "brave"
+kafka:
+  brokers: "127.0.0.1:9092"
 etcd:
   dial_timeout: 5
   endpoints: "172.31.248.51:2379"

@@ -13,6 +13,8 @@ postgres:
   server: "${POSTGRES_HOST}"
   port: 5432
   database: "${POSTGRES_DB}"
+auth:
+  secret: "${AUTH_SECRET}"
 etcd:
   dial_timeout: 5
   # 连 etcd 集群（任一成员即可读到全集群数据）

@@ -18,4 +18,6 @@ var Braves = []cli.Command{
 	GhostCommand,
 	// Kafka persist worker
 	PersistCommand,
+	// Kafka deliver worker
+	DeliverCommand,
 }

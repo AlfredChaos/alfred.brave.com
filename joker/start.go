@@ -3,6 +3,7 @@ package joker
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
@@ -12,8 +13,10 @@ import (
 	"alfred.brave.com/internal/etcd"
 	ibrave "alfred.brave.com/internal/kafka"
 	"alfred.brave.com/joker/exchange"
+	"alfred.brave.com/joker/relay"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"google.golang.org/grpc"
 )
 
 var log = event.Log
@@ -57,12 +60,28 @@ func Start(ctx context.Context, config *conf.Config) {
 	exchange.Controller.SetMsgProducer(msgProducer)
 	defer msgProducer.Close()
 
+	// gRPC 投递接收端（§3 步骤 9-10）：deliver worker → RelayMessage → 本地 Send 通道
+	grpcLis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", config.GetHttpHost(), config.GetGrpcPort()))
+	if err != nil {
+		log.Errorf("grpc listen :%d failed: %v", config.GetGrpcPort(), err)
+		return
+	}
+	grpcServer := grpc.NewServer()
+	relay.NewServer(exchange.Controller).Register(grpcServer)
+	go func() {
+		log.Infof("grpc relay listening on :%d", config.GetGrpcPort())
+		if err := grpcServer.Serve(grpcLis); err != nil {
+			log.Errorf("grpc serve: %v", err)
+		}
+	}()
+
 	// Init Websockets Manager
 	go exchange.Controller.Start()
 
 	// Graceful HTTP server shutdown
 	<-ctx.Done()
 	log.Info("server: shutting down")
+	grpcServer.GracefulStop()
 	if err := ser.Close(); err != nil {
 		log.Errorf("server: shutdown failed (%s)", err)
 	}

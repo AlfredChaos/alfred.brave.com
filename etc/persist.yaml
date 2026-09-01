@@ -1,0 +1,13 @@
+debug: false
+version: "v1"
+log:
+  level: "info"
+  output: "stdout"
+kafka:
+  brokers: "127.0.0.1:9092"
+postgres:
+  user: "brave"
+  password: "brave"
+  server: "127.0.0.1"
+  port: 5432
+  database: "brave"

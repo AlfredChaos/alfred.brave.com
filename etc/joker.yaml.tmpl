@@ -15,6 +15,8 @@ postgres:
   server: "${POSTGRES_HOST}"
   port: 5432
   database: "${POSTGRES_DB}"
+kafka:
+  brokers: "${KAFKA_BROKERS}"
 etcd:
   dial_timeout: 5
   # joker 连同容器内的本地 etcd 成员（127.0.0.1:2379），集群内部同步服务表

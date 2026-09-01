@@ -69,3 +69,15 @@ type Ack struct {
 type ContentText struct {
 	Text string `json:"text"`
 }
+
+// AckFromPush 从送达的 push 构造回执（deliver 送达后 produce chat.ack，key=from_uid）。
+func AckFromPush(p *Push) *Ack {
+	return &Ack{
+		MsgID:    p.MsgID,
+		CliMsgID: p.CliMsgID,
+		ConvID:   p.ConvID,
+		Seq:      p.Seq,
+		FromUID:  p.FromUID,
+		ToUID:    p.ToUID,
+	}
+}
