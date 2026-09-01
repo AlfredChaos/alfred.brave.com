@@ -1,15 +1,11 @@
 package api
 
 import (
-	"errors"
 	"math/rand"
 	"net/http"
 
-	"alfred.brave.com/common"
 	"alfred.brave.com/database"
 	"alfred.brave.com/internal/abort"
-	"alfred.brave.com/internal/etcd"
-	"alfred.brave.com/internal/http_client"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -20,14 +16,14 @@ type UserLogin struct {
 	Password string  `json:"password"`
 }
 
+// Login 网关登录（§3 0a-0c）：bcrypt 校验 → 签发 token → 经 etcd 服务表选 CS →
+// 下发 {token, ws_addr}。ws_addr 为 host:port，客户端拼 ws://ws_addr/ws/{uid} 直连。
 // 出于幂等和不改变服务器状态的原则，login本应使用GET方法，但brave暂未支持https所以无法保证安全性
 // 暂时使用POST方法传输
-// 注：T03 网关化将把本端点改造为返回 {token, ws_addr}，etcd 登录态随 T04 迁移到 PG kv。
 func (s *Server) Login(router *gin.RouterGroup) {
 
 	router.POST("/login", func(c *gin.Context) {
 		ul := &UserLogin{}
-		resp := &UserResponse{}
 
 		if err := c.BindJSON(&ul); err != nil {
 			abort.AbortBadRequest(c)
@@ -50,60 +46,46 @@ func (s *Server) Login(router *gin.RouterGroup) {
 			return
 		}
 
-		// 校验用户是否登录
-		ok, err := userLoginOrNot(user.UID)
+		// 经 etcd 服务表选 Chat Server；无可用节点时 503（§3 0b）
+		wsAddr := getServiceByRandom()
+		if wsAddr == "" {
+			log.Error("no chat server available in etcd service table")
+			abort.AbortServiceUnavailable(c)
+			return
+		}
+		tokenStr, err := s.tokenizer.Sign(user.UID, TokenTTL)
 		if err != nil {
-			log.Infof("user %s login failed", user.UID)
+			log.Errorf("sign token for %s failed: %v", user.UID, err)
 			abort.AbortUnexpected(c)
 			return
 		}
-		if ok == nil {
-			// 用户未登录
-			log.Infof("user %s ready login", user.UID)
-			if err := userLogin(c, user); err != nil {
-				log.Errorf("user %s login failed", user.UID)
-				abort.AbortLoginError(c)
-				return
-			}
-		} else {
-			// 用户已登录
-			ser := loginServiceExistOrNot(ok.LoginHost)
-			if ser == "" {
-				log.Warnf("user %s login service has down", ok.UserId)
-				if err := userLogin(c, user); err != nil {
-					log.Errorf("user %s login failed", user.UID)
-					abort.AbortLoginError(c)
-					return
-				}
-			}
-		}
-		loginUser, err := userLoginOrNot(user.UID)
-		if err != nil {
-			log.Infof("user %s login failed", user.UID)
-			abort.AbortUnexpected(c)
-			return
+		if err := s.users.UpdateLoginAt(c, user.UID); err != nil {
+			log.Errorf("update login_at for %s failed: %v", user.UID, err)
 		}
 
-		resp.UID = user.UID
-		resp.CreatedAt = user.CreatedAt
-		resp.UpdatedAt = user.UpdatedAt
-		resp.LoginAt = user.LoginAt
-		resp.UserName = user.UserName
-		resp.Email = user.Email
-		resp.Profile = user.Profile
-		resp.Avatar = user.Avatar
-		resp.Friends = make([]Friend, 0)
-		resp.LoginHost = loginUser.LoginHost
+		resp := &UserResponse{
+			UID:       user.UID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			LoginAt:   user.LoginAt,
+			UserName:  user.UserName,
+			Email:     user.Email,
+			Profile:   user.Profile,
+			Avatar:    user.Avatar,
+			Friends:   make([]Friend, 0),
+			Token:     tokenStr,
+			WsAddr:    wsAddr,
+		}
 		if err := s.AddFriends(c, resp); err != nil {
 			abort.AbortUnexpected(c)
 			return
 		}
-		log.Infof("user %s login success", user.UID)
+		log.Infof("user %s login success, ws_addr %s", user.UID, wsAddr)
 		c.JSON(http.StatusOK, resp)
 	})
 }
 
-// lookupLoginUser 按用户名/邮箱查用户；两者都给时必须指向同一账号（对齐原版语义）。
+// lookupLoginUser 按用户名/邮箱查用户；两者都给时必须指向同一账号。
 func (s *Server) lookupLoginUser(c *gin.Context, ul *UserLogin) (*database.User, error) {
 	if ul.UserName != nil {
 		user, err := s.users.GetByUserName(c, *ul.UserName)
@@ -118,7 +100,7 @@ func (s *Server) lookupLoginUser(c *gin.Context, ul *UserLogin) (*database.User,
 				return nil, err
 			}
 			if user.UID != byEmail.UID {
-				return nil, errors.New("user_name/email required")
+				return nil, errMismatch
 			}
 		}
 		return user, nil
@@ -131,8 +113,14 @@ func (s *Server) lookupLoginUser(c *gin.Context, ul *UserLogin) (*database.User,
 		}
 		return user, nil
 	}
-	return nil, errors.New("user_name/email required")
+	return nil, errMismatch
 }
+
+var errMismatch = &loginParamError{}
+
+type loginParamError struct{}
+
+func (*loginParamError) Error() string { return "user_name and email point to different users" }
 
 func verifyLoginParamter(ul *UserLogin) error {
 	if ul.UserName != nil {
@@ -146,52 +134,6 @@ func verifyLoginParamter(ul *UserLogin) error {
 		}
 	}
 	return VerifyPassword(ul.Password)
-}
-
-func userLoginOrNot(user_id string) (*etcd.User, error) {
-	userFactory := etcd.UserFactory{
-		Namespace: etcd.PrefixUsers,
-		User:      &etcd.User{UserId: user_id},
-	}
-	if err := userFactory.Get(); err != nil {
-		log.Errorf("get user %s from etcd error: %v", user_id, err)
-		return nil, err
-	}
-	if userFactory.User.LoginTime == "" {
-		log.Infof("user %s did not login", user_id)
-		return nil, nil
-	}
-	return userFactory.User, nil
-}
-
-func loginServiceExistOrNot(host string) string {
-	for _, v := range Services {
-		if v == host {
-			return host
-		}
-	}
-	return ""
-}
-
-func userLogin(c *gin.Context, user *database.User) error {
-	// 随机获取一个service
-	service := getServiceByRandom()
-	// 调用Joker接口登录
-	ul := http_client.UserLogin{
-		UserId:    user.UID,
-		LoginTime: user.LoginAt.Format(common.TimeFormat),
-	}
-	jokerClient := http_client.NewJokenClient(service)
-	if err := jokerClient.Login(c, ul, QueryParams(c)); err != nil {
-		log.Errorf("Joker http client login failed, err = %v", err)
-		return err
-	}
-	return nil
-}
-
-func QueryParams(c *gin.Context) map[string]string {
-	res := make(map[string]string)
-	return res
 }
 
 func getServiceByRandom() string {

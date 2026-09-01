@@ -4,9 +4,8 @@ import "os"
 
 // global constant
 const (
-	ProjectName   = "brave"
-	JokerName     = "joker"
-	CloudwareName = "cloudware"
+	ProjectName = "brave"
+	JokerName   = "joker"
 )
 
 // 中间件

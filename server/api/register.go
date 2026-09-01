@@ -22,6 +22,9 @@ type UserRegister struct {
 
 type UserResponse struct {
 	UID string `json:"uid"`
+	// 网关化新增：ws_addr 为选中 Chat Server 的 host:port；token 供后续 REST 鉴权
+	Token  string `json:"token"`
+	WsAddr string `json:"ws_addr"`
 	// 返回值是RFC3339格式，例如2022-12-26T14:35:03+08:00
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

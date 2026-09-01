@@ -42,3 +42,11 @@ func AbortDatabaseError(c *gin.Context) {
 func AbortLoginError(c *gin.Context) {
 	Abort(c, http.StatusUnauthorized, i18n.ErrLogin)
 }
+
+func AbortUnauthorized(c *gin.Context) {
+	Abort(c, http.StatusUnauthorized, i18n.ErrUnauthorized)
+}
+
+func AbortServiceUnavailable(c *gin.Context) {
+	Abort(c, http.StatusServiceUnavailable, i18n.ErrServiceUnavailable)
+}

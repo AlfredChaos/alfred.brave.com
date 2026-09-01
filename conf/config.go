@@ -43,6 +43,7 @@ func initDefaultConfig(name string) {
 	event.ConfigYaml.SetDefault("postgres.user", "brave")
 	event.ConfigYaml.SetDefault("postgres.password", "brave")
 	event.ConfigYaml.SetDefault("postgres.database", "brave")
+	event.ConfigYaml.SetDefault("auth.secret", "brave-dev-secret")
 	event.ConfigYaml.SetDefault("etcd.dial_timeout", 5)
 	event.ConfigYaml.SetDefault("etcd.endpoints", "0.0.0.0:2379,")
 
@@ -162,6 +163,14 @@ func (c *Config) GetHttpPort() int {
 		return 0
 	}
 	return c.options.HttpPort
+}
+
+// AuthSecret 返回网关鉴权签名密钥；未配置时用开发默认值（生产必须显式配置）。
+func (c *Config) AuthSecret() string {
+	if c.options == nil || c.options.AuthSecret == "" {
+		return "brave-dev-secret"
+	}
+	return c.options.AuthSecret
 }
 
 // GetAdvertiseHost 返回本节点对外可路由的主机地址（用于注册到 etcd 与回传给客户端）。

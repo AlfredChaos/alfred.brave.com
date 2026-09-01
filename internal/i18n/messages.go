@@ -7,6 +7,8 @@ const (
 	ErrPassword
 	ErrDatabase
 	ErrLogin
+	ErrUnauthorized
+	ErrServiceUnavailable
 
 	MsgUserRegistered
 	MsgUserLogin
@@ -14,12 +16,14 @@ const (
 
 var Messages = MessageMap{
 	// Error messages:
-	ErrUnexpected: "Unexpected error, please try again",
-	ErrBadRequest: "Invalid request",
-	ErrNotFound:   "Not found",
-	ErrPassword:   "Wrong password",
-	ErrDatabase:   "Database error",
-	ErrLogin:      "User or email wrong, please try again",
+	ErrUnexpected:         "Unexpected error, please try again",
+	ErrBadRequest:         "Invalid request",
+	ErrNotFound:           "Not found",
+	ErrPassword:           "Wrong password",
+	ErrDatabase:           "Database error",
+	ErrLogin:              "User or email wrong, please try again",
+	ErrUnauthorized:       "Unauthorized: invalid or expired token",
+	ErrServiceUnavailable: "Service temporarily unavailable",
 
 	MsgUserRegistered: "User %s register success.",
 	MsgUserLogin:      "User %s login success.",

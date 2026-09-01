@@ -14,6 +14,4 @@ var Braves = []cli.Command{
 	MigrationCommand,
 	// IM kernel service
 	JokerCommand,
-	// Service registration and discovery center
-	CloudwareCommand,
 }

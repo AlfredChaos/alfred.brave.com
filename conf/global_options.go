@@ -23,6 +23,7 @@ type Options struct {
 	DatabaseConnsIdle int      `json:"DatabaseConnsIdle"`
 	EtcdEndpoints     []string `json:"etcdEndpoints"`
 	EtcdDialTimeout   int64    `json:"EtcdDialTimeout"`
+	AuthSecret        string   `json:"AuthSecret"`
 	HttpHost          string   `json:"HttpHost"`
 	HttpPort          int      `json:"HttpPort"`
 	AdvertiseHost     string   `json:"AdvertiseHost"`
@@ -43,6 +44,7 @@ func NewOptions(ctx *cli.Context, service string) *Options {
 	c.HttpHost = event.ConfigYaml.GetString("bind_address")
 	c.HttpPort = event.ConfigYaml.GetInt("bind_port")
 	c.AdvertiseHost = event.ConfigYaml.GetString("advertise_host")
+	c.AuthSecret = event.ConfigYaml.GetString("auth.secret")
 	c.DatabaseDriver = event.ConfigYaml.GetString("database_driver")
 	c.DatabaseName = event.ConfigYaml.GetString("postgres.database")
 	c.DatabaseServer = event.ConfigYaml.GetString("postgres.server")

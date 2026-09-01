@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Server) GetUser(router *gin.RouterGroup) {
-	router.GET("/user/:id", func(c *gin.Context) {
+	router.GET("/user/:id", s.AuthRequired(), func(c *gin.Context) {
 		uid := c.Param("id")
 		user, err := s.users.Get(c, uid)
 		if err != nil {
