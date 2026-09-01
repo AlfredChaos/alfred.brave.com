@@ -27,6 +27,8 @@ type Manager struct {
 	online     OnlineKV // online:{uid} 写入器；nil = 本地模式（不维护在线状态）
 	onlineCs   string   // 本机 WS 服务地址（etcd services 表同格式）
 	onlineAddr string   // 本机 gRPC 投递地址
+
+	msgProducer MsgProducer // chat.msg 生产者；nil = 无 Kafka（消息链路不可用）
 }
 
 // SetOnline 注入 online kv 写入器（joker.Start 启动期一次性调用，运行期只读）。

@@ -34,13 +34,6 @@ type Client struct {
 	closeOnce  sync.Once    // 清理任务与 Pump 退出可能并发触发 Close，必须幂等
 }
 
-// MessageRequest 兼容旧 msg 帧的业务载荷（T05 重写为完整投递协议）。
-type MessageRequest struct {
-	From    string      `json:"from"`
-	To      string      `json:"to"`
-	Message interface{} `json:"message,omitempty"`
-}
-
 type MessageResponse struct {
 	Code    uint32      `json:"code"`
 	CodeMsg string      `json:"code_msg"`

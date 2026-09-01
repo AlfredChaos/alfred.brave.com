@@ -44,6 +44,7 @@ func initDefaultConfig(name string) {
 	event.ConfigYaml.SetDefault("postgres.password", "brave")
 	event.ConfigYaml.SetDefault("postgres.database", "brave")
 	event.ConfigYaml.SetDefault("auth.secret", "brave-dev-secret")
+	event.ConfigYaml.SetDefault("kafka.brokers", "127.0.0.1:9092")
 	event.ConfigYaml.SetDefault("etcd.dial_timeout", 5)
 	event.ConfigYaml.SetDefault("etcd.endpoints", "0.0.0.0:2379,")
 
@@ -171,6 +172,14 @@ func (c *Config) GetHttpPort() int {
 		return 0
 	}
 	return c.options.HttpPort
+}
+
+// KafkaBrokers 返回 Kafka broker 地址列表（逗号分隔配置）。
+func (c *Config) KafkaBrokers() []string {
+	if c.options == nil || len(c.options.KafkaBrokers) == 0 {
+		return []string{"127.0.0.1:9092"}
+	}
+	return c.options.KafkaBrokers
 }
 
 // AuthSecret 返回网关鉴权签名密钥；未配置时用开发默认值（生产必须显式配置）。

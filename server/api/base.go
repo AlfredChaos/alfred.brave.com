@@ -21,6 +21,8 @@ const TokenTTL = 7 * 24 * time.Hour
 type Server struct {
 	users     *database.UserStore
 	friends   *database.FriendStore
+	convs     *database.ConversationStore
+	msgs      *database.MessageStore
 	tokenizer *token.Tokenizer
 }
 
@@ -28,6 +30,8 @@ func NewServer(store *database.Store, authSecret string) *Server {
 	return &Server{
 		users:     database.NewUserStore(store),
 		friends:   database.NewFriendStore(store),
+		convs:     database.NewConversationStore(store),
+		msgs:      database.NewMessageStore(store),
 		tokenizer: token.New(authSecret),
 	}
 }

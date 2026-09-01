@@ -1,7 +1,12 @@
 package exchange
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"time"
+
+	"alfred.brave.com/internal/chat"
 )
 
 // 注册式消息路由（AGENTS §5.2 OCP）：新增 cmd 只需 RegisterCmd，不改分发主逻辑。
@@ -62,18 +67,64 @@ func handleHeartbeat(c *Client, data json.RawMessage) {
 	c.SendResponse(OK, "", nil)
 }
 
-// handleMsg 消息投递。T04 状态：etcd 登录态路径已随用户态迁移移除，
-// Kafka produce chat.msg 链路在 T05 落地——当前为声明的空窗，显式拒绝而不是假装成功。
+// MsgFrame cmd=msg 的业务载荷（§3 步骤 1）。
+type MsgFrame struct {
+	ConvID   string          `json:"conv_id"` // 首条消息可空（persist 按成员对兜底建会话）
+	ToUID    string          `json:"to_uid"`
+	CliMsgID string          `json:"cli_msg_id"` // 客户端消息 ID，ACK 匹配用
+	Content  json.RawMessage `json:"content"`
+}
+
+// handleMsg 消息入口（§3 步骤 1-2）：CS 是哑管道——快检后组 chat.msg produce，
+// 不做路由/落库/投递（D01/D02/D18）。from 取连接身份，不信任客户端上报。
 func handleMsg(c *Client, data json.RawMessage) {
-	request := &MessageRequest{}
-	if err := json.Unmarshal(data, request); err != nil {
+	frame := &MsgFrame{}
+	if err := json.Unmarshal(data, frame); err != nil {
 		log.Errorf("msg frame unmarshal error = %v", err)
 		c.SendResponse(ParameterIllegal, "", nil)
 		return
 	}
-	if request.From == "" || request.To == "" {
-		c.SendResponse(ParameterIllegal, "from/to required", nil)
+	if frame.ToUID == "" || len(frame.Content) == 0 {
+		c.SendResponse(ParameterIllegal, "to_uid/content required", nil)
 		return
 	}
-	c.SendResponse(OperationFailure, "delivery pipeline lands in T05", nil)
+	if err := quickCheckContent(frame.Content); err != nil {
+		c.SendResponse(ParameterIllegal, err.Error(), nil)
+		return
+	}
+
+	env := &chat.Msg{
+		ConvID:   frame.ConvID,
+		CliMsgID: frame.CliMsgID,
+		FromUID:  c.UserId,
+		ToUID:    frame.ToUID,
+		Type:     chat.TypeSingle,
+		Content:  json.RawMessage(frame.Content),
+		SentAt:   time.Now().Unix(),
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := c.manager.ProduceMsg(ctx, env); err != nil {
+		log.Errorf("produce chat.msg from %s to %s failed: %v", c.UserId, frame.ToUID, err)
+		c.SendResponse(OperationFailure, "message pipeline unavailable", nil)
+		return
+	}
+	// 200 = 已受理入队；送达回执走 chat.ack（T07），不是这里的 200
+	c.SendResponse(OK, "accepted", nil)
+}
+
+// quickCheckContent CS 格式快检（§5 @ 校验链的 CS 段）：mentions ≤50、mention_all 布尔。
+// 权威校验在 persist 事务内（T15 扩展群聊语义）。
+func quickCheckContent(content json.RawMessage) error {
+	var c struct {
+		Mentions   []string `json:"mentions"`
+		MentionAll *bool    `json:"mention_all"`
+	}
+	if err := json.Unmarshal(content, &c); err != nil {
+		return errors.New("content must be valid json object")
+	}
+	if len(c.Mentions) > 50 {
+		return errors.New("mentions exceed 50")
+	}
+	return nil
 }

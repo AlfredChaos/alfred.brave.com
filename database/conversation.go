@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 // SingleKey 单聊会话的规范化成员对 key：uid 字典序小者在前，与参数顺序无关。
@@ -81,6 +82,50 @@ func (cs *ConversationStore) Get(ctx context.Context, convID string) (*Conversat
 		return nil, wrapNoRows(err)
 	}
 	return conv, nil
+}
+
+// EnsureSingle find-or-create 单聊会话（事务内）：按 single_key 查，无则建会话 + 双方成员行。
+// 网关 API（POST /v1/conversations）与 persist（首条消息兜底）共用，天然幂等。
+func (cs *ConversationStore) EnsureSingle(ctx context.Context, uidA, uidB string) (*Conversation, error) {
+	if uidA == uidB {
+		return nil, ErrNotFound
+	}
+	tx, err := cs.store.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	sk := SingleKey(uidA, uidB)
+	var convID string
+	err = tx.QueryRow(ctx,
+		`SELECT conv_id FROM conversations WHERE single_key = $1 FOR UPDATE`, sk).Scan(&convID)
+	if err != nil {
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return nil, err
+		}
+		// 不存在则创建（FOR UPDATE 空结果不持锁；唯一约束兜底并发竞争）
+		convID = uuid.NewString()
+		members, merr := json.Marshal([]string{uidA, uidB})
+		if merr != nil {
+			return nil, merr
+		}
+		if _, err = tx.Exec(ctx,
+			`INSERT INTO conversations (conv_id, type, single_key, members) VALUES ($1, 'single', $2, $3::jsonb)`,
+			convID, sk, members); err != nil {
+			return nil, err
+		}
+		for _, uid := range []string{uidA, uidB} {
+			if _, err = tx.Exec(ctx,
+				`INSERT INTO conversation_members (conv_id, uid) VALUES ($1, $2)`, convID, uid); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return cs.Get(ctx, convID)
 }
 
 // AddMembers 写会话成员表（幂等）。

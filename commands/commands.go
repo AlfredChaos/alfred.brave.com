@@ -16,4 +16,6 @@ var Braves = []cli.Command{
 	JokerCommand,
 	// Online-status reconciliation worker
 	GhostCommand,
+	// Kafka persist worker
+	PersistCommand,
 }

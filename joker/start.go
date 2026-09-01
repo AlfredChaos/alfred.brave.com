@@ -10,6 +10,7 @@ import (
 	"alfred.brave.com/database"
 	"alfred.brave.com/event"
 	"alfred.brave.com/internal/etcd"
+	ibrave "alfred.brave.com/internal/kafka"
 	"alfred.brave.com/joker/exchange"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -50,6 +51,11 @@ func Start(ctx context.Context, config *conf.Config) {
 	log.Infof("server: listening on %s [%s]", ser.Addr, time.Since(start))
 	go StartHttp(ser)
 	go ServiceRegister(ctx, config)
+
+	// D02：CS 只 produce chat.msg；Kafka 未部署时保持本地模式（消息链路显式不可用）
+	msgProducer := ibrave.NewMsgProducer(config.KafkaBrokers())
+	exchange.Controller.SetMsgProducer(msgProducer)
+	defer msgProducer.Close()
 
 	// Init Websockets Manager
 	go exchange.Controller.Start()

@@ -6,6 +6,11 @@ import "os"
 const (
 	ProjectName = "brave"
 	JokerName   = "joker"
+	PersistName = "persist"
+	DeliverName = "deliver"
+	FanoutName  = "fanout"
+	PushName    = "push"
+	FeedName    = "feed"
 )
 
 // 中间件

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 // KvStore kv 表数据访问（D05：PG 兼作 KV）。
@@ -86,6 +88,23 @@ func (ks *KvStore) ScanPrefix(ctx context.Context, prefix string, limit int) ([]
 		entries = append(entries, e)
 	}
 	return entries, rows.Err()
+}
+
+// NextSeqTx 在给定事务内自增会话序号（persist 落库事务专用：seq 与 INSERT 同事务，
+// 这是 D08"PG kv 事务内自增"的落地）。初始值必须为 1（无冲突分支直接返回插入值）。
+func (ks *KvStore) NextSeqTx(ctx context.Context, tx pgx.Tx, convID string) (int64, error) {
+	var next int64
+	err := tx.QueryRow(ctx,
+		`INSERT INTO kv (k, v) VALUES ($1, '{"next":1}'::jsonb)
+		 ON CONFLICT (k) DO UPDATE
+		   SET v = jsonb_set(kv.v, '{next}', to_jsonb((kv.v->>'next')::bigint + 1)),
+		       version = kv.version + 1, updated_at = now()
+		 RETURNING (v->>'next')::bigint`,
+		"seq:"+convID).Scan(&next)
+	if err != nil {
+		return 0, fmt.Errorf("kv next seq tx %s: %w", convID, err)
+	}
+	return next, nil
 }
 
 // NextSeq 会话序号原子自增：首条消息得 1，之后严格递增。
