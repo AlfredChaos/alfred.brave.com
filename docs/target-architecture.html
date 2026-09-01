@@ -1,0 +1,1435 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Alfred Brave · 仿微信 IM + 朋友圈目标架构</title>
+<style>
+  /* ============== light design tokens ============== */
+  :root{
+    --bg:#ffffff;
+    --bg-2:#f6f8fc;
+    --bg-3:#eef1f8;
+    --bg-soft:#f9fafd;
+    --line:#e3e6ef;
+    --line-2:#cdd2dd;
+    --ink:#0d1117;
+    --ink-2:#4b5468;
+    --ink-3:#8a90a3;
+    --accent:#2563eb;
+    --accent-2:#7c3aed;
+    --good:#16a34a;
+    --warn:#d97706;
+    --bad:#dc2626;
+    --cyan:#0891b2;
+    --server:#2563eb;
+    --server-soft:#dbe7ff;
+    --joker:#7c3aed;
+    --joker-soft:#e9dffd;
+    --cloud:#16a34a;
+    --cloud-soft:#d5f3df;
+    --etcd:#d97706;
+    --etcd-soft:#fde7c8;
+    --db:#dc2626;
+    --db-soft:#ffd9d9;
+    --kafka:#be185d;
+    --kafka-soft:#fce0ef;
+    --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, "Courier New", monospace;
+    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  ::selection{background:#cfe0ff;color:var(--ink)}
+
+  .wrap{max-width:1280px;margin:0 auto;padding:48px 28px 96px}
+  header.hero{margin-bottom:32px;padding:28px;background:linear-gradient(180deg,var(--bg-2),var(--bg));border:1px solid var(--line);border-radius:18px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--ink-3);text-transform:uppercase}
+  h1{font-size:32px;line-height:1.2;margin:6px 0 14px;font-weight:700;letter-spacing:-.015em}
+  h1 .accent{color:var(--accent)}
+  .lede{color:var(--ink-2);max-width:880px;font-size:15px;margin:0 0 6px}
+  .lede code{font-family:var(--mono);font-size:13px;background:var(--bg-3);border:1px solid var(--line);padding:1px 6px;border-radius:5px}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .chip{font-family:var(--mono);font-size:11px;color:var(--ink-2);background:#fff;border:1px solid var(--line);padding:5px 11px;border-radius:999px}
+  .chip b{color:var(--ink);font-weight:600;margin-right:6px}
+
+  nav.toc{position:sticky;top:18px;z-index:5;background:rgba(255,255,255,.86);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:24px 0 32px;display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--mono);font-size:12px;color:var(--ink-2);box-shadow:0 2px 12px rgba(20,30,60,.04)}
+  nav.toc a{color:var(--ink-2)}
+  nav.toc a:hover{color:var(--accent);text-decoration:none}
+  nav.toc .sep{color:var(--ink-3)}
+
+  section{margin:48px 0;scroll-margin-top:80px}
+  h2{font-size:21px;font-weight:700;margin:0 0 6px;letter-spacing:-.01em}
+  h2 .num{font-family:var(--mono);color:var(--accent);margin-right:10px;font-size:14px;font-weight:600}
+  .sub{color:var(--ink-3);font-size:13px;margin-bottom:20px;font-family:var(--mono)}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(20,30,60,.03)}
+  .grid{display:grid;gap:18px}
+  .grid.cols-2{grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+  .grid.cols-3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+
+  .label{font-family:var(--mono);font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.14em;margin-bottom:10px;font-weight:600}
+  .kv{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;font-family:var(--mono);font-size:12.5px}
+  .kv .k{color:var(--ink-3)}
+  .kv .v{color:var(--ink);word-break:break-word}
+  .kv .v code{background:var(--bg-3);padding:1px 6px;border-radius:4px;border:1px solid var(--line)}
+
+  .diagram{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .diagram .inner{padding:18px;overflow:auto}
+  .diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 16px;padding:14px 18px;border-top:1px solid var(--line);background:var(--bg-2);font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
+
+  .svc{border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden;box-shadow:0 1px 2px rgba(20,30,60,.03)}
+  .svc .head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .svc .head .ttl{display:flex;align-items:center;gap:10px}
+  .svc .head .ttl .dot{width:10px;height:10px;border-radius:999px}
+  .svc .head .ttl h3{margin:0;font-size:15px;font-weight:700}
+  .svc .head .ttl small{font-family:var(--mono);color:var(--ink-3);font-size:11px;display:block;margin-top:1px}
+  .svc .head .cmd{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);background:var(--bg-2);border:1px solid var(--line);padding:3px 9px;border-radius:6px}
+  .svc .body{padding:16px}
+  .svc .body ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:13.5px}
+  .svc .body li{margin:4px 0}
+  .svc .body code{font-family:var(--mono);font-size:12px;background:var(--bg-3);border:1px solid var(--line);padding:1px 6px;border-radius:4px;color:var(--ink)}
+
+  .seq-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .seq-tabs button{font-family:var(--mono);font-size:12px;background:#fff;border:1px solid var(--line);color:var(--ink-2);padding:6px 12px;border-radius:8px;cursor:pointer;transition:.15s}
+  .seq-tabs button:hover{border-color:var(--accent);color:var(--ink)}
+  .seq-tabs button.active{color:var(--accent);border-color:var(--accent);background:var(--server-soft)}
+  .seq-note{margin-top:12px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+  .seq-note b{color:var(--accent)}
+
+  table.tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+  table.tbl th,table.tbl td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  table.tbl th{color:var(--ink-3);font-weight:600;font-size:11px;letter-spacing:.12em;text-transform:uppercase;background:var(--bg-2)}
+  table.tbl td.l{color:var(--ink);white-space:nowrap;font-weight:600}
+  table.tbl td.r{color:var(--ink-2)}
+  table.tbl tr:last-child td{border-bottom:none}
+  table.tbl tr:hover td{background:var(--bg-soft)}
+  table.tbl .tag{display:inline-block;font-size:10.5px;padding:2px 7px;border-radius:4px;background:var(--bg-3);border:1px solid var(--line);color:var(--ink-2);margin-right:6px;font-weight:500}
+
+  .kv-box{background:var(--bg-soft);border:1px dashed var(--line-2);border-radius:10px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--ink-2)}
+  .kv-box .key{color:var(--accent-2);font-weight:600}
+  .kv-box .val{color:var(--good);font-weight:600}
+  .kv-box .ttl{color:var(--warn);font-weight:600}
+  .kv-box .cm{color:var(--ink-3)}
+
+  .badge-status{font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-3);font-weight:500}
+  .badge-status.done{color:var(--good);border-color:#a8e4be;background:#e7f7ec}
+  .badge-status.partial{color:var(--warn);border-color:#f7d39a;background:#fdf2dd}
+  .badge-status.bug{color:var(--bad);border-color:#f5b5b5;background:#fde9e9}
+  .badge-status.new{color:var(--accent);border-color:#a8c8f5;background:#e7f0fd}
+
+  .footnote{color:var(--ink-3);font-family:var(--mono);font-size:11.5px;margin-top:14px}
+  pre{margin:0;font-family:var(--mono);font-size:12.5px;background:var(--bg-soft);border:1px solid var(--line);padding:12px 14px;border-radius:8px;color:var(--ink);overflow:auto}
+  ul.checklist{margin:0;padding-left:20px;color:var(--ink-2);font-size:13px;line-height:1.7}
+  ul.checklist li{margin:6px 0}
+  .callout{border-left:3px solid var(--accent);background:var(--bg-2);border-radius:0 10px 10px 0;padding:12px 16px;font-size:13px;color:var(--ink-2);margin:14px 0}
+  .callout b{color:var(--ink)}
+  footer{margin-top:80px;color:var(--ink-3);font-family:var(--mono);font-size:11.5px;text-align:center;padding-top:24px;border-top:1px solid var(--line)}
+
+  @media(max-width:780px){
+    .grid.cols-3{grid-template-columns:1fr 1fr}
+    h1{font-size:26px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">alfred.brave.com · docs/target-architecture.html · 目标设计（未实现）· v4 在线状态与通知系统版</div>
+    <h1>仿微信 IM + 朋友圈 — <span class="accent">目标架构设计</span></h1>
+    <p class="lede">
+      角色定位以原设计为准：<b>Web Server（<code>brave start</code>）是网关层</b>——统一 REST 入口、鉴权、服务路由，登录后下发 WebSocket 接入地址；
+      <b>Joker（<code>brave joker</code>）是 Chat Server</b>——直接与客户端建立长连接，负责连接管理与消息收发。
+      在此骨架上演进为完整仿微信系统：<b>聊天</b>（单聊/离线/ACK）+ <b>朋友圈</b>（push/pull hybrid 新闻流）。
+      存储迁移 <code>PostgreSQL</code>（JSONB kv 表兼作 KV），主干引入 <code>Kafka</code>，部署于 <b>3 台 4C16G</b>。<br>
+      群聊（&lt;500 成员 · 写扩散投递 · @ 与 @all · 群管理五件套）复用同一套链路，详见 §5；<b>在线/离线状态管理与离线通知系统见 §4</b>。<br>
+      配套文档：全部设计权衡的决策记录见 <code>docs/architecture-decisions.md</code>；WS 长连接内核调优与压测闭环见 <code>docs/kernel-tuning.md</code>。
+    </p>
+    <div class="meta-row">
+      <span class="chip"><b>网关</b>Web Server · brave start</span>
+      <span class="chip"><b>长连接</b>Chat Server · Joker ×3</span>
+      <span class="chip"><b>存储</b>PostgreSQL 15（SQL+KV）</span>
+      <span class="chip"><b>注册发现</b>etcd（仅服务表）</span>
+      <span class="chip"><b>消息队列</b>Kafka 3 节点 RF=3</span>
+      <span class="chip"><b>群聊</b>&lt;500 成员 · 投递写扩散</span>
+    <span class="chip"><b>通知</b>Push Worker · APNs/FCM</span>
+    <span class="chip"><b>部署</b>3 × 4C16G 混部</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <a href="#evolve">1. 当前→目标演进</a><span class="sep">·</span>
+    <a href="#topo">2. 总体架构</a><span class="sep">·</span>
+    <a href="#chat">3. 聊天链路</a><span class="sep">·</span>
+    <a href="#status">4. 在线状态与通知</a><span class="sep">·</span>
+    <a href="#group">5. 群聊系统设计</a><span class="sep">·</span>
+    <a href="#feed">6. 朋友圈链路</a><span class="sep">·</span>
+    <a href="#storage">7. 存储设计</a><span class="sep">·</span>
+    <a href="#kafka">8. Kafka Topic</a><span class="sep">·</span>
+    <a href="#deploy">9. 3×4C16G 部署</a><span class="sep">·</span>
+    <a href="#libs">10. 组件清单</a><span class="sep">·</span>
+    <a href="#roadmap">11. 实施路线</a>
+  </nav>
+
+  <!-- ==================== 1. 演进总览 ==================== -->
+  <section id="evolve">
+    <h2><span class="num">01</span>当前架构 → 目标架构</h2>
+    <div class="sub">保留 brave 的骨架与角色分工：Web Server=网关、Joker=Chat Server。演进只做三件事：网关补齐职责、存储换 PG、主干加 Kafka 与朋友圈域。</div>
+
+    <div class="card">
+      <table class="tbl">
+        <thead><tr><th style="width:15%">维度</th><th style="width:27%">当前 brave</th><th style="width:31%">目标架构</th><th>决策理由</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="l">网关层<br/>Web Server</td>
+            <td class="r">brave start :37001；注册/登录/用户查询；登录已返回 login_host（下发 WS 地址的雏形）</td>
+            <td class="r"><span class="tag">强化</span>正式网关化：统一 REST 入口 + 鉴权中间件（token）+ 路由 <code>/v1/feed/*</code>→feed-api + 会话/历史/离线拉取 API + 经 etcd 选节点下发 <code>ws_addr</code></td>
+            <td class="r">无状态入口层天然可水平扩展；客户端只认识一个 API 域名，内部拓扑对客户端透明</td>
+          </tr>
+          <tr>
+            <td class="l">长连接层<br/>Joker</td>
+            <td class="r">brave joker :37002；Manager(sync.Map)+Pump；SendMessage 投递分支为空</td>
+            <td class="r"><span class="tag">保持定位</span>仍是 Chat Server：WS 直连客户端；收消息→produce <code>chat.msg</code>；新增 gRPC :37012 接收投递；连接建立/断开维护 <code>online:{uid}</code> kv</td>
+            <td class="r">谁持有连接谁维护路由与收发，职责内聚；跨节点投递移到 Kafka 之后的 Worker，网关与 CS 都不做业务路由</td>
+          </tr>
+          <tr>
+            <td class="l">消息主干</td>
+            <td class="r">无（计划 gRPC 直连 relay，未实装）</td>
+            <td class="r"><span class="tag new">新增</span>Kafka：chat.msg → 落库 → chat.push → 投递</td>
+            <td class="r">解耦收与投、削峰、失败可重放；按 conv_id 分区保会话内有序</td>
+          </tr>
+          <tr>
+            <td class="l">关系存储</td>
+            <td class="r">MySQL 8 + jinzhu/gorm v1 + goose</td>
+            <td class="r"><span class="tag">迁移</span>PostgreSQL 15 + pgx v5 + goose(postgres)</td>
+            <td class="r">需求指定 PG；JSONB/UPSERT/COPY/LISTEN-NOTIFY 为 kv 与批量写提供原生能力</td>
+          </tr>
+          <tr>
+            <td class="l">KV / 在线态</td>
+            <td class="r">etcd users/{uid} 存登录态（无 TTL、大 value）</td>
+            <td class="r"><span class="tag">迁移</span>PG kv 表：online:{uid} → {cs, addr}；由 Chat Server 维护</td>
+            <td class="r">etcd 不适合高频写大 value，回归单一职责（仅服务注册表）</td>
+          </tr>
+          <tr>
+            <td class="l">服务发现</td>
+            <td class="r">etcd services/{uuid} + 60s lease + Watch（网关每 5s 刷新列表）</td>
+            <td class="r"><span class="tag">保留</span>原样复用 internal/etcd 的 Register/Discovery</td>
+            <td class="r">已实现且正确；网关用它选 Chat Server，Delivery Worker 用它找 gRPC 地址</td>
+          </tr>
+          <tr>
+            <td class="l">朋友圈域</td>
+            <td class="r">无</td>
+            <td class="r"><span class="tag new">新增</span>feed-api（brave feed）经网关路由 + feed.fanout + Fanout Worker + feed_inbox（push 为主，大 V pull）</td>
+            <td class="r">好友数有界（≤5000）→ push 收件箱读延迟最优；超阈值降级 pull</td>
+          </tr>
+          <tr>
+            <td class="l">群聊域</td>
+            <td class="r">无（conversations.type 已预留 group）</td>
+            <td class="r"><span class="tag new">新增</span>groups / group_members 两张表 + chat.push 逐成员扇出（写扩散投递）+ 群事件即消息 + @/@all 校验——<b>零新增服务</b>，全部复用现有链路</td>
+            <td class="r">群成员 ≤500 有界 → 在线扇出写扩散可控；存储不扩散（无未读/已读需求，按 seq 拉取即可）</td>
+          </tr>
+          <tr>
+            <td class="l">在线状态与<br/>离线通知</td>
+            <td class="r">无在线状态机；etcd users/{uid} 存登录态（无 TTL，宕机残留）</td>
+            <td class="r"><span class="tag new">新增</span>PG kv online:{uid} 状态机（Joker write-through + GHOST 对账）+ chat.notify topic + Push Worker（APNs/FCM，节流可退房）</td>
+            <td class="r">路由权威单点 PG + TTL 惰性失效，规避 etcd 多副本失效地狱；离线判定是投递查路由的免费副产品</td>
+          </tr>
+          <tr>
+            <td class="l">cloudware</td>
+            <td class="r">3 个空壳端点，无调用方</td>
+            <td class="r"><span class="tag">删除</span>服务发现已由 etcd + 网关承担</td>
+            <td class="r">消除死代码，避免面试叙事含糊</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <b>诚实性声明（对齐 AGENTS.md §1/§7）</b>：本文档是<b>目标设计</b>，当前代码未实现其中任何 Kafka/PG/Feed 逻辑。
+        交谈时表述为「brave 是我演进的基座，目标架构如下」，不得声称已实现。已实现清单见
+        <code>docs/architecture-visualization.html</code> §8。
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 2. 总体架构 ==================== -->
+  <section id="topo">
+    <h2><span class="num">02</span>总体架构</h2>
+    <div class="sub">两条客户端通道：REST 全部经网关（Web Server）；WebSocket 按网关下发的 ws_addr 直连 Chat Server（Joker），数据面不过网关。控制面（etcd）仅服务注册发现。</div>
+    <div class="diagram">
+      <div class="inner">
+      <svg viewBox="0 0 1280 1150" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,monospace">
+        <defs>
+          <marker id="t-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+          <marker id="t-jok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+          <marker id="t-kaf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#be185d"/></marker>
+          <marker id="t-dbr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+          <marker id="t-goo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+          <pattern id="tgrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#eef1f8" stroke-width="1"/></pattern>
+        </defs>
+
+        <rect width="1280" height="1150" fill="url(#tgrid)"/>
+        <text x="60" y="36" font-size="14" font-weight="700" fill="#0d1117">目标总体架构 · 网关(Web Server) + Chat Server(Joker) + Kafka 主干</text>
+        <text x="60" y="54" font-size="11" fill="#8a90a3">REST 走网关（蓝）· WS 直连 Chat Server（紫虚线）· 投递回程 gRPC（蓝虚线）· etcd 控制面不逐条连线</text>
+
+        <!-- Client -->
+        <g>
+          <rect x="520" y="75" width="240" height="80" rx="14" fill="#fff" stroke="#cdd2dd" stroke-width="1.5"/>
+          <rect x="520" y="75" width="240" height="26" rx="13" fill="#eef1f8"/><rect x="520" y="89" width="240" height="12" fill="#eef1f8"/>
+          <text x="536" y="93" font-size="11" fill="#8a90a3" font-weight="600" letter-spacing="2">CLIENT</text>
+          <text x="536" y="125" font-size="14" font-weight="700" fill="#0d1117">App / Web</text>
+          <text x="536" y="143" font-size="11" fill="#4b5468">REST→网关 · WS→Chat Server</text>
+        </g>
+
+        <!-- Gateway (Web Server) -->
+        <g>
+          <rect x="340" y="215" width="600" height="140" rx="14" fill="#dbe7ff" stroke="#2563eb" stroke-width="1.5"/>
+          <text x="356" y="239" font-size="11" fill="#2563eb" font-weight="600" letter-spacing="2">WEB SERVER · API GATEWAY</text>
+          <text x="356" y="261" font-size="13" font-weight="700" fill="#0d1117">brave start :37001 · 无状态 ×2 副本</text>
+          <g>
+            <rect x="356" y="272" width="176" height="66" rx="8" fill="#fff" stroke="#cdd2dd"/>
+            <text x="366" y="290" font-size="10.5" fill="#2563eb" font-weight="700">鉴权 / 用户域</text>
+            <text x="366" y="304" font-size="10" fill="#4b5468">注册登录 bcrypt·token</text>
+            <text x="366" y="318" font-size="10" fill="#4b5468">好友关系管理</text>
+          </g>
+          <g>
+            <rect x="542" y="272" width="176" height="66" rx="8" fill="#fff" stroke="#cdd2dd"/>
+            <text x="552" y="290" font-size="10.5" fill="#2563eb" font-weight="700">聊天 REST</text>
+            <text x="552" y="304" font-size="10" fill="#4b5468">会话列表/历史 seq 游标</text>
+            <text x="552" y="318" font-size="10" fill="#4b5468">离线增量拉取</text>
+          </g>
+          <g>
+            <rect x="728" y="272" width="196" height="66" rx="8" fill="#fff" stroke="#cdd2dd"/>
+            <text x="738" y="290" font-size="10.5" fill="#16a34a" font-weight="700">路由 /v1/feed/* → feed-api</text>
+            <text x="738" y="304" font-size="10" fill="#4b5468">etcd 发现 feed-api 副本</text>
+            <text x="738" y="318" font-size="10" fill="#4b5468">登录成功下发 ws_addr(选 CS)</text>
+          </g>
+        </g>
+
+        <!-- etcd vertical -->
+        <g>
+          <rect x="1010" y="215" width="210" height="640" rx="14" fill="#fde7c8" stroke="#d97706" stroke-width="1.5"/>
+          <text x="1026" y="241" font-size="11" fill="#d97706" font-weight="600" letter-spacing="2">ETCD · 控制面</text>
+          <text x="1026" y="263" font-size="12.5" font-weight="700" fill="#0d1117">仅服务注册表</text>
+          <text x="1026" y="289" font-size="11" fill="#4b5468">gateway/{uuid}=:37001</text>
+          <text x="1026" y="307" font-size="11" fill="#4b5468">cs/{uuid}=:37002,:37012</text>
+          <text x="1026" y="325" font-size="11" fill="#4b5468">feed-api/{uuid}=:37003</text>
+          <text x="1026" y="343" font-size="11" fill="#4b5468">worker/{uuid}</text>
+          <text x="1026" y="369" font-size="10.5" fill="#8a90a3">lease 60s + KeepAlive</text>
+          <text x="1026" y="385" font-size="10.5" fill="#8a90a3">WatchService(prefix) 增删</text>
+          <text x="1026" y="415" font-size="10.5" fill="#d97706">⚠ 不再存 users/{uid}</text>
+          <text x="1026" y="431" font-size="10.5" fill="#d97706">登录态迁移至 PG kv</text>
+          <text x="1026" y="461" font-size="10.5" fill="#8a90a3">复用 internal/etcd 现有</text>
+          <text x="1026" y="477" font-size="10.5" fill="#8a90a3">Register/Discovery 代码</text>
+        </g>
+
+        <!-- Chat Server (Joker) -->
+        <g>
+          <rect x="100" y="430" width="440" height="160" rx="14" fill="#e9dffd" stroke="#7c3aed" stroke-width="1.5"/>
+          <text x="116" y="454" font-size="11" fill="#7c3aed" font-weight="600" letter-spacing="2">CHAT SERVER · JOKER ×3 · brave joker</text>
+          <text x="116" y="476" font-size="12.5" font-weight="700" fill="#0d1117">WS :37002 直连客户端 · gRPC :37012 收投递</text>
+          <g>
+            <rect x="116" y="486" width="130" height="90" rx="8" fill="#fff" stroke="#cdd2dd"/>
+            <text x="126" y="504" font-size="11" fill="#7c3aed" font-weight="700">cs-1</text>
+            <text x="126" y="520" font-size="10" fill="#4b5468">Manager sync.Map</text>
+            <text x="126" y="534" font-size="10" fill="#4b5468">Read/WritePump</text>
+            <text x="126" y="548" font-size="10" fill="#4b5468">ticker 30s(修复)</text>
+            <text x="126" y="562" font-size="10" fill="#4b5468">超时清理</text>
+          </g>
+          <g>
+            <rect x="256" y="486" width="130" height="90" rx="8" fill="#fff" stroke="#cdd2dd"/>
+            <text x="266" y="504" font-size="11" fill="#7c3aed" font-weight="700">cs-2</text>
+            <text x="266" y="520" font-size="10" fill="#4b5468">收消息→produce</text>
+            <text x="266" y="534" font-size="10" fill="#4b5468">chat.msg / consume</text>
+            <text x="266" y="548" font-size="10" fill="#4b5468">chat.ack→推ACK</text>
+            <text x="266" y="562" font-size="10" fill="#4b5468">gRPC 收投递</text>
+          </g>
+          <g>
+            <rect x="396" y="486" width="130" height="90" rx="8" fill="#fff" stroke="#cdd2dd"/>
+            <text x="406" y="504" font-size="11" fill="#7c3aed" font-weight="700">cs-3</text>
+            <text x="406" y="520" font-size="10" fill="#4b5468">连接建立→upsert</text>
+            <text x="406" y="534" font-size="10" fill="#4b5468">online:{uid} kv</text>
+            <text x="406" y="548" font-size="10" fill="#4b5468">断开→del kv</text>
+            <text x="406" y="562" font-size="10" fill="#4b5468">宕机→对账清理</text>
+          </g>
+        </g>
+
+        <!-- Feed API -->
+        <g>
+          <rect x="640" y="430" width="280" height="110" rx="12" fill="#d5f3df" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="656" y="454" font-size="11" fill="#16a34a" font-weight="600" letter-spacing="2">FEED API · 内部服务</text>
+          <text x="656" y="476" font-size="12.5" font-weight="700" fill="#0d1117">brave feed :37003 ×2 副本</text>
+          <text x="656" y="494" font-size="10.5" fill="#4b5468">发布 → posts 落库 + produce fanout</text>
+          <text x="656" y="508" font-size="10.5" fill="#4b5468">读取 → inbox + big_v pull merge</text>
+          <text x="656" y="522" font-size="10.5" fill="#4b5468">hydrate 内容/作者/计数</text>
+        </g>
+
+        <!-- Kafka -->
+        <g>
+          <rect x="60" y="660" width="500" height="190" rx="14" fill="#fce0ef" stroke="#be185d" stroke-width="1.5"/>
+          <text x="76" y="684" font-size="11" fill="#be185d" font-weight="600" letter-spacing="2">KAFKA · 3 BROKER RF=3</text>
+          <text x="76" y="706" font-size="12" font-weight="700" fill="#0d1117">min.insync.replicas=2 · acks=all · lz4</text>
+          <g>
+            <circle cx="86" cy="728" r="5" fill="#2563eb"/><text x="98" y="732" font-size="11.5" fill="#0d1117">chat.msg <tspan fill="#8a90a3">· key=conv_id · 会话内有序 · 12P</tspan></text>
+            <circle cx="86" cy="750" r="5" fill="#0891b2"/><text x="98" y="754" font-size="11.5" fill="#0d1117">chat.push <tspan fill="#8a90a3">· key=to_uid · 投递扇出(群1:M) · 12P</tspan></text>
+            <circle cx="86" cy="772" r="5" fill="#7c3aed"/><text x="98" y="776" font-size="11.5" fill="#0d1117">feed.fanout <tspan fill="#8a90a3">· key=pub_uid · 朋友圈扩散 · 6P</tspan></text>
+            <circle cx="86" cy="794" r="5" fill="#8a90a3"/><text x="98" y="798" font-size="11.5" fill="#0d1117">chat.ack <tspan fill="#8a90a3">· key=from_uid · 回执 · 6P</tspan></text>
+            <circle cx="86" cy="814" r="5" fill="#d97706"/><text x="98" y="818" font-size="11.5" fill="#0d1117">chat.notify <tspan fill="#8a90a3">· key=to_uid · 离线推送 · 3P</tspan></text>
+            <text x="98" y="838" font-size="10.5" fill="#8a90a3">保留 3 天（投递类）/ 死信 *.dlq 重试 3 次</text>
+          </g>
+        </g>
+
+        <!-- Workers -->
+        <g>
+          <rect x="660" y="660" width="280" height="75" rx="12" fill="#fff" stroke="#2563eb" stroke-width="1.5"/>
+          <text x="676" y="684" font-size="11" fill="#2563eb" font-weight="600" letter-spacing="2">DELIVERY WORKER ×2（拆分部署）</text>
+          <text x="676" y="702" font-size="10.5" fill="#4b5468">persist 单元：chat.msg→落库→扇出</text>
+          <text x="676" y="716" font-size="10.5" fill="#4b5468">deliver 单元：chat.push→查 kv→gRPC</text>
+          <text x="676" y="730" font-size="10.5" fill="#8a90a3">离线→chat.notify · 送达→chat.ack</text>
+        </g>
+        <g>
+          <rect x="660" y="745" width="280" height="60" rx="12" fill="#fff" stroke="#d97706" stroke-width="1.5"/>
+          <text x="676" y="767" font-size="11" fill="#d97706" font-weight="600" letter-spacing="2">PUSH WORKER</text>
+          <text x="676" y="783" font-size="10.5" fill="#4b5468">brave push · 消费 chat.notify → APNs/FCM</text>
+          <text x="676" y="797" font-size="10.5" fill="#8a90a3">节流合并/夜间静默 · 失败重试独立</text>
+        </g>
+        <g>
+          <rect x="660" y="815" width="280" height="60" rx="12" fill="#fff" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="676" y="837" font-size="11" fill="#16a34a" font-weight="600" letter-spacing="2">FANOUT WORKER</text>
+          <text x="676" y="853" font-size="10.5" fill="#4b5468">brave fanout · 好友列表→批量写 feed_inbox</text>
+          <text x="676" y="867" font-size="10.5" fill="#8a90a3">大 V（好友&gt;5k）跳过，读时 pull</text>
+        </g>
+
+        <!-- PG -->
+        <g>
+          <rect x="60" y="950" width="880" height="140" rx="14" fill="#ffd9d9" stroke="#dc2626" stroke-width="1.5"/>
+          <text x="76" y="974" font-size="11" fill="#dc2626" font-weight="600" letter-spacing="2">POSTGRESQL 15 · 1 PRIMARY + 2 REPLICA（流复制）</text>
+          <text x="76" y="996" font-size="12" font-weight="700" fill="#0d1117">单一存储承担 SQL + KV 双职责（网关 / Chat Server / feed-api 直连）</text>
+          <g>
+            <rect x="76" y="1008" width="200" height="30" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="88" y="1028" font-size="11" fill="#dc2626" font-weight="600">primary @node-1</text>
+            <rect x="286" y="1008" width="200" height="30" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="298" y="1028" font-size="11" fill="#4b5468">replica @node-2</text>
+            <rect x="496" y="1008" width="200" height="30" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="508" y="1028" font-size="11" fill="#4b5468">replica @node-3</text>
+            <rect x="706" y="1008" width="216" height="30" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="718" y="1028" font-size="11" fill="#4b5468">pgbouncer（可选）</text>
+          </g>
+          <text x="76" y="1064" font-size="11" fill="#4b5468">users · friends · conversations · messages · posts · feed_inbox · <tspan fill="#7c3aed" font-weight="700">kv(JSONB)</tspan></text>
+          <text x="76" y="1080" font-size="10.5" fill="#8a90a3">kv 表承担：online:{uid} 路由（CS 维护）· per-conv seq · unread 游标 · feed 读游标</text>
+        </g>
+
+        <!-- ===== connections (zero-crossing layout) ===== -->
+        <!-- 1. Client → Gateway REST -->
+        <path d="M 640 155 L 640 211" fill="none" stroke="#2563eb" stroke-width="1.8" marker-end="url(#t-acc)"/>
+        <g><rect x="552" y="171" width="176" height="18" rx="4" fill="#fff" stroke="#cdd2dd"/><text x="640" y="184" font-size="10.5" fill="#2563eb" font-weight="600" text-anchor="middle">HTTPS REST · 统一入口</text></g>
+
+        <!-- 2. Client → Chat Server WS (direct) -->
+        <path d="M 518 115 L 180 115 L 180 424" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-dasharray="7 4" marker-end="url(#t-jok)"/>
+        <g><rect x="60" y="270" width="112" height="32" rx="4" fill="#fff" stroke="#cdd2dd"/><text x="116" y="283" font-size="10.5" fill="#7c3aed" font-weight="600" text-anchor="middle">WebSocket 直连</text><text x="116" y="296" font-size="9.5" fill="#4b5468" text-anchor="middle">ws_addr 由网关下发</text></g>
+
+        <!-- 3. Gateway → Feed API route -->
+        <path d="M 740 357 L 740 426" fill="none" stroke="#16a34a" stroke-width="1.5" marker-end="url(#t-goo)"/>
+        <g><rect x="752" y="378" width="128" height="18" rx="4" fill="#fff" stroke="#cdd2dd"/><text x="816" y="391" font-size="10.5" fill="#16a34a" font-weight="600" text-anchor="middle">路由 /v1/feed/*</text></g>
+
+        <!-- 4. Chat Server → Kafka -->
+        <path d="M 320 592 L 320 656" fill="none" stroke="#2563eb" stroke-width="1.5" marker-end="url(#t-kaf)"/>
+        <g><rect x="176" y="612" width="140" height="18" rx="4" fill="#fff" stroke="#cdd2dd"/><text x="246" y="625" font-size="10.5" fill="#2563eb" font-weight="600" text-anchor="middle">chat.msg / chat.ack</text></g>
+
+        <!-- 5. Feed API → Kafka -->
+        <path d="M 700 542 L 700 600 L 500 600 L 500 656" fill="none" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#t-kaf)"/>
+        <g><rect x="540" y="576" width="96" height="18" rx="4" fill="#fff" stroke="#cdd2dd"/><text x="588" y="589" font-size="10.5" fill="#7c3aed" font-weight="600" text-anchor="middle">feed.fanout</text></g>
+
+        <!-- 6. Kafka → Delivery -->
+        <path d="M 562 700 L 654 700" fill="none" stroke="#0891b2" stroke-width="1.8" marker-end="url(#t-kaf)"/>
+
+        <!-- 6b. Kafka → Push -->
+        <path d="M 562 775 L 654 775" fill="none" stroke="#d97706" stroke-width="1.8" marker-end="url(#t-kaf)"/>
+
+        <!-- 7. Kafka → Fanout -->
+        <path d="M 562 845 L 654 845" fill="none" stroke="#7c3aed" stroke-width="1.8" marker-end="url(#t-kaf)"/>
+
+        <!-- 8. Delivery → Chat Server gRPC (big detour) -->
+        <path d="M 800 658 L 800 615 L 960 615 L 960 395 L 130 395 L 130 424" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="6 3" marker-end="url(#t-acc)"/>
+        <g><rect x="460" y="372" width="180" height="18" rx="4" fill="#fff" stroke="#cdd2dd"/><text x="550" y="385" font-size="10.5" fill="#2563eb" font-weight="600" text-anchor="middle">gRPC Deliver → 目标 Chat Server</text></g>
+
+        <!-- 9. Delivery → PG routing kv -->
+        <path d="M 942 720 L 975 720 L 975 1010 L 944 1010" fill="none" stroke="#dc2626" stroke-width="1.5" marker-end="url(#t-dbr)"/>
+        <g><rect x="812" y="900" width="106" height="18" rx="4" fill="#fff" stroke="#cdd2dd"/><text x="865" y="913" font-size="10.5" fill="#dc2626" font-weight="600" text-anchor="middle">查 online:{uid}</text></g>
+
+        <!-- 10. Fanout → PG write inbox -->
+        <path d="M 800 877 L 800 946" fill="none" stroke="#16a34a" stroke-width="1.5" marker-end="url(#t-goo)"/>
+        <g><rect x="748" y="898" width="104" height="18" rx="4" fill="#fff" stroke="#cdd2dd"/><text x="800" y="911" font-size="10.5" fill="#16a34a" font-weight="600" text-anchor="middle">写 feed_inbox</text></g>
+
+      </svg>
+      </div>
+      <div class="legend">
+        <span><i style="background:#2563eb"></i>Gateway（Web Server · REST 入口）</span>
+        <span><i style="background:#7c3aed"></i>Chat Server（Joker · WS 长连接）</span>
+        <span><i style="background:#16a34a"></i>Feed API / Fanout</span>
+        <span><i style="background:#d97706"></i>Push Worker（离线通知）</span>
+        <span><i style="background:#be185d"></i>Kafka</span>
+        <span><i style="background:#dc2626"></i>PostgreSQL（SQL+KV）</span>
+        <span><i style="background:#d97706"></i>etcd（控制面）</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 3. 聊天链路 ==================== -->
+  <section id="chat">
+    <h2><span class="num">03</span>聊天链路 · 接入与消息投递</h2>
+    <div class="sub">接入（经网关）：REST 登录 → 网关经 etcd 选 Chat Server → 下发 ws_addr → WS 直连 → CS 维护 online kv。投递（Kafka 主干）：收→保序落库→扇出→gRPC→ACK。</div>
+
+    <div class="card" style="margin-bottom:18px">
+      <div class="label">接入握手 · 0a-0d（网关的入口职责）</div>
+      <div class="kv">
+        <div class="k">0a. POST /login</div><div class="v">Client → 网关：账号密码（bcrypt 校验，签发 token）</div>
+        <div class="k">0b. 选节点</div><div class="v">网关从 etcd 服务表（每 5s 刷新，复用现有 StartListenService）按负载/随机选一个 Chat Server</div>
+        <div class="k">0c. 下发 ws_addr</div><div class="v">响应携带 <code>{ws_addr: "cs-2:37002", token}</code>（即现有 login_host 机制的正式化）</div>
+        <div class="k">0d. WS 直连</div><div class="v">Client → Chat Server：<code>GET /ws/:id</code> 升级长连接；CS <code>upsert online:{uid}={cs,addr}</code> 到 PG kv</div>
+      </div>
+    </div>
+
+    <div class="diagram">
+      <div class="inner">
+      <svg viewBox="0 0 1200 700" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,monospace">
+        <defs>
+          <marker id="c-jok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+          <marker id="c-kaf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#be185d"/></marker>
+          <marker id="c-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+          <marker id="c-dbr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+          <marker id="c-goo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+        </defs>
+
+        <g fill="#f6f8fc">
+          <rect x="30"  y="46" width="150" height="600"/><rect x="180" y="46" width="150" height="600"/>
+          <rect x="330" y="46" width="150" height="600"/><rect x="480" y="46" width="150" height="600"/>
+          <rect x="630" y="46" width="150" height="600"/><rect x="780" y="46" width="150" height="600"/>
+          <rect x="930" y="46" width="150" height="600"/><rect x="1080" y="46" width="90" height="600"/>
+        </g>
+
+        <g stroke="#cdd2dd" stroke-dasharray="3 5">
+          <line x1="105" y1="46" x2="105" y2="646"/><line x1="255" y1="46" x2="255" y2="646"/>
+          <line x1="405" y1="46" x2="405" y2="646"/><line x1="555" y1="46" x2="555" y2="646"/>
+          <line x1="705" y1="46" x2="705" y2="646"/><line x1="855" y1="46" x2="855" y2="646"/>
+          <line x1="1005" y1="46" x2="1005" y2="646"/><line x1="1125" y1="46" x2="1125" y2="646"/>
+        </g>
+
+        <g font-size="11" font-weight="700">
+          <rect x="30"  y="20" width="150" height="22" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="105"  y="35" text-anchor="middle">Sender</text>
+          <rect x="180" y="20" width="150" height="22" rx="6" fill="#e9dffd" stroke="#7c3aed"/><text x="255" y="35" text-anchor="middle" fill="#7c3aed">CS-A (joker)</text>
+          <rect x="330" y="20" width="150" height="22" rx="6" fill="#fce0ef" stroke="#be185d"/><text x="405" y="35" text-anchor="middle" fill="#be185d">Kafka</text>
+          <rect x="480" y="20" width="150" height="22" rx="6" fill="#dbe7ff" stroke="#2563eb"/><text x="555" y="35" text-anchor="middle" fill="#2563eb">Worker(delivery)</text>
+          <rect x="630" y="20" width="150" height="22" rx="6" fill="#ffd9d9" stroke="#dc2626"/><text x="705" y="35" text-anchor="middle" fill="#dc2626">PG (msg+kv)</text>
+          <rect x="780" y="20" width="150" height="22" rx="6" fill="#e9dffd" stroke="#7c3aed"/><text x="855" y="35" text-anchor="middle" fill="#7c3aed">CS-B (joker)</text>
+          <rect x="930" y="20" width="150" height="22" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="1005" y="35" text-anchor="middle">Receiver</text>
+          <rect x="1080" y="20" width="90" height="22" rx="6" fill="#eef1f8" stroke="#cdd2dd"/><text x="1125" y="35" text-anchor="middle">注释</text>
+        </g>
+
+        <g font-size="11" fill="#0d1117">
+          <line x1="105" y1="66" x2="253" y2="66" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#c-jok)"/>
+          <text x="115" y="58">1. WS {conv_id, to, content, cli_msg_id}</text>
+
+          <line x1="255" y1="98" x2="403" y2="98" stroke="#2563eb" stroke-width="1.5" marker-end="url(#c-kaf)"/>
+          <text x="265" y="90">2. produce chat.msg (key=conv_id)</text>
+
+          <line x1="405" y1="130" x2="553" y2="130" stroke="#0891b2" stroke-width="1.5" marker-end="url(#c-kaf)"/>
+          <text x="415" y="122">3. consume (group=persist)</text>
+
+          <line x1="555" y1="162" x2="703" y2="162" stroke="#dc2626" stroke-width="1.5" marker-end="url(#c-dbr)"/>
+          <text x="565" y="154">4. 事务: seq=next(conv) → INSERT messages</text>
+
+          <line x1="703" y1="194" x2="557" y2="194" stroke="#16a34a" stroke-width="1.2" marker-end="url(#c-goo)"/>
+          <text x="565" y="186">5. ok (UNIQUE(conv_id,seq) 幂等)</text>
+
+          <line x1="555" y1="226" x2="407" y2="226" stroke="#0891b2" stroke-width="1.5" marker-end="url(#c-kaf)"/>
+          <text x="415" y="218">6. produce chat.push (key=to_uid)</text>
+
+          <line x1="405" y1="262" x2="553" y2="262" stroke="#0891b2" stroke-width="1.5" marker-end="url(#c-kaf)"/>
+          <text x="415" y="254">7. consume (group=deliver)</text>
+
+          <line x1="555" y1="294" x2="703" y2="294" stroke="#dc2626" stroke-width="1.5" marker-end="url(#c-dbr)"/>
+          <text x="565" y="286">8. get kv online:{to} → cs-B</text>
+
+          <line x1="557" y1="326" x2="853" y2="326" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#c-acc)"/>
+          <text x="575" y="318">9. gRPC Deliver(msg) → 目标 Chat Server</text>
+
+          <line x1="855" y1="358" x2="1003" y2="358" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#c-jok)"/>
+          <text x="865" y="350">10. 本地连接表 → Send chan → WS frame</text>
+
+          <line x1="1003" y1="390" x2="857" y2="390" stroke="#16a34a" stroke-width="1.2" marker-end="url(#c-goo)"/>
+          <text x="865" y="382">11. client ACK(cli_msg_id)</text>
+
+          <line x1="853" y1="422" x2="557" y2="422" stroke="#2563eb" stroke-width="1.2" stroke-dasharray="5 3" marker-end="url(#c-acc)"/>
+          <text x="575" y="414">12. gRPC resp: delivered</text>
+
+          <line x1="555" y1="454" x2="407" y2="454" stroke="#0891b2" stroke-width="1.5" marker-end="url(#c-kaf)"/>
+          <text x="415" y="446">13. produce chat.ack (key=from_uid)</text>
+
+          <line x1="405" y1="486" x2="257" y2="486" stroke="#0891b2" stroke-width="1.5" marker-end="url(#c-kaf)"/>
+          <text x="265" y="478">14. CS-A consume ack</text>
+
+          <line x1="255" y1="518" x2="107" y2="518" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#c-jok)"/>
+          <text x="115" y="510">15. WS {ack, cli_msg_id} → UI 打勾</text>
+        </g>
+
+        <g font-size="10.5" fill="#8a90a3">
+          <rect x="1092" y="92" width="76" height="34" rx="6" fill="#fff" stroke="#cdd2dd"/>
+          <text x="1100" y="106" fill="#4b5468">会话内有序:</text>
+          <text x="1100" y="119" fill="#4b5468">同 key 同分区</text>
+
+          <rect x="1092" y="286" width="76" height="48" rx="6" fill="#fff" stroke="#cdd2dd"/>
+          <text x="1100" y="300" fill="#dc2626">离线分支:</text>
+          <text x="1100" y="313" fill="#4b5468">kv 无记录/节点</text>
+          <text x="1100" y="326" fill="#4b5468">失联→标 unread</text>
+
+          <rect x="1092" y="500" width="76" height="62" rx="6" fill="#fff" stroke="#cdd2dd"/>
+          <text x="1100" y="514" fill="#4b5468">上线拉取:</text>
+          <text x="1100" y="527" fill="#4b5468">WS notify →</text>
+          <text x="1100" y="540" fill="#4b5468">REST /msgs?</text>
+          <text x="1100" y="553" fill="#4b5468">after=last_seq</text>
+        </g>
+
+        <g>
+          <rect x="60" y="560" width="560" height="70" rx="10" fill="#fdf2dd" stroke="#d97706" stroke-width="1.2"/>
+          <text x="76" y="582" font-size="11" fill="#d97706" font-weight="700">离线与重连（端到端最终一致）</text>
+          <text x="76" y="600" font-size="10.5" fill="#4b5468">· Receiver 上线 → CS-B 查 unread 标记 → WS push 通知 → 客户端经网关 REST 按 seq 游标拉增量（分页 50 条）</text>
+          <text x="76" y="616" font-size="10.5" fill="#4b5468">· 重放安全：chat.push 消费失败重试 3 次入 *.dlq；客户端按 msg_id 去重，服务端 UNIQUE(conv_id,seq) 兜底</text>
+        </g>
+
+        <text x="660" y="582" font-size="11" fill="#8a90a3">语义：at-least-once × 客户端幂等 = 效果恰好一次</text>
+        <text x="660" y="600" font-size="11" fill="#8a90a3">延迟预算：produce→consume P99 &lt; 50ms（3×4C16G 负载&lt;10%）</text>
+        <text x="660" y="618" font-size="11" fill="#8a90a3">顺序：单会话 strictly ordered；跨会话 best-effort</text>
+      </svg>
+      </div>
+      <div class="legend">
+        <span><i style="background:#7c3aed"></i>WS 通道（Client↔Chat Server 直连）</span>
+        <span><i style="background:#2563eb"></i>gRPC 投递（Worker→Chat Server）</span>
+        <span><i style="background:#be185d"></i>Kafka</span>
+        <span><i style="background:#dc2626"></i>PG 事务</span>
+        <span><i style="background:#16a34a"></i>ACK/成功</span>
+      </div>
+    </div>
+
+    <div class="grid cols-3" style="margin-top:18px">
+      <div class="card">
+        <div class="label">会话内顺序保证</div>
+        <ul class="checklist">
+          <li>Kafka 按 <code>key=conv_id</code> 哈希分区 → 同会话同分区，分区内严格有序</li>
+          <li>Persist Worker 单 goroutine 消费每分区；seq 由 PG <code>kv[seq:{conv}]</code> 事务内原子自增</li>
+          <li><code>messages UNIQUE(conv_id, seq)</code> 双保险，重放不产生重复行</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="label">在线路由（PG kv · CS 维护）</div>
+        <ul class="checklist">
+          <li>WS 建立：Chat Server <code>upsert online:{uid}={cs,addr}</code></li>
+          <li>WS 断开：CS 删 kv；宕机场景由对账任务兜底清理（lease 思路改在 PG 上实现）</li>
+          <li>加分项：PG <code>LISTEN/NOTIFY</code> 广播路由变更，Worker 本地缓存 30s TTL</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="label">网关与 CS 的职责分界</div>
+        <ul class="checklist">
+          <li>网关：鉴权、REST 聚合、选点下发 ws_addr —— <b>不接触消息数据面</b></li>
+          <li>Chat Server：连接生命周期、收发、投递接收 —— <b>不做跨节点路由决策</b></li>
+          <li>跨节点路由统一在 Delivery Worker（查 kv + gRPC），单一位置可测试可观测</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 4. 在线状态与通知系统 ==================== -->
+  <section id="status">
+    <h2><span class="num">04</span>在线状态与通知系统</h2>
+    <div class="sub">路由权威单点 PG · Joker write-through · TTL 惰性失效 + not-found 兑底 + 对账清理。离线判定是投递查路由的免费副产品，顺势驱动 Push Worker。</div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="label">在线状态生命周期 · 四态状态机</div>
+        <div class="diagram"><div class="inner">
+        <svg viewBox="0 0 560 210" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,monospace">
+          <defs>
+            <marker id="s-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4b5468"/></marker>
+            <marker id="s-ar-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+          </defs>
+          <g>
+            <rect x="20" y="80" width="100" height="50" rx="10" fill="#fff" stroke="#cdd2dd" stroke-width="1.5"/>
+            <text x="70" y="100" font-size="12" font-weight="700" fill="#0d1117" text-anchor="middle">OFFLINE</text>
+            <text x="70" y="116" font-size="9.5" fill="#8a90a3" text-anchor="middle">无 kv 记录</text>
+          </g>
+          <g>
+            <rect x="230" y="15" width="130" height="50" rx="10" fill="#e9dffd" stroke="#7c3aed" stroke-width="1.5"/>
+            <text x="295" y="35" font-size="12" font-weight="700" fill="#7c3aed" text-anchor="middle">ONLINE</text>
+            <text x="295" y="51" font-size="9.5" fill="#4b5468" text-anchor="middle">kv: online:{uid}={cs,addr}</text>
+          </g>
+          <g>
+            <rect x="230" y="145" width="130" height="50" rx="10" fill="#fde7c8" stroke="#d97706" stroke-width="1.5" stroke-dasharray="5 3"/>
+            <text x="295" y="165" font-size="12" font-weight="700" fill="#d97706" text-anchor="middle">GHOST（残留）</text>
+            <text x="295" y="181" font-size="9.5" fill="#4b5468" text-anchor="middle">kv 在 · CS 已下线</text>
+          </g>
+          <g>
+            <rect x="450" y="80" width="100" height="50" rx="10" fill="#dbe7ff" stroke="#2563eb" stroke-width="1.5"/>
+            <text x="500" y="100" font-size="12" font-weight="700" fill="#2563eb" text-anchor="middle">切换漂移</text>
+            <text x="500" y="116" font-size="9.5" fill="#4b5468" text-anchor="middle">重连到其他 CS</text>
+          </g>
+          <path d="M 120 88 L 228 42" stroke="#4b5468" stroke-width="1.5" marker-end="url(#s-ar)"/>
+          <text x="150" y="52" font-size="9.5" fill="#4b5468">WS 建立→upsert</text>
+          <path d="M 230 55 L 125 95" stroke="#4b5468" stroke-width="1.5" marker-end="url(#s-ar)"/>
+          <text x="128" y="135" font-size="9.5" fill="#4b5468">断开→del</text>
+          <path d="M 360 42 L 455 45 C 470 45 470 88 480 88" stroke="#4b5468" stroke-width="1.3" stroke-dasharray="4 3" fill="none" marker-end="url(#s-ar)"/>
+          <path d="M 500 130 C 500 170 470 170 450 170 C 380 170 365 90 362 43" stroke="#4b5468" stroke-width="1.3" stroke-dasharray="4 3" fill="none" marker-end="url(#s-ar)"/>
+          <path d="M 295 67 C 295 100 300 120 295 143" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#s-ar-bad)"/>
+          <text x="305" y="110" font-size="9.5" fill="#dc2626">CS 宕机（来不及 del）</text>
+          <path d="M 228 172 L 122 125" stroke="#dc2626" stroke-width="1.5" marker-end="url(#s-ar-bad)"/>
+          <text x="128" y="168" font-size="9.5" fill="#dc2626">对账任务清理 → OFFLINE</text>
+        </svg>
+        </div></div>
+        <div class="kv" style="margin-top:10px">
+          <div class="k">优雅断开</div><div class="v">CS 收到 close → 删本机连接表 + del kv（先删本机，后删 kv；投递失败有 not-found 兑底）</div>
+          <div class="k">异常残留</div><div class="v">CS 宕机/断电 → kv 残留成 GHOST → 对账任务比对 <code>kv.cs ∈ etcd 存活服务表</code>，不等则清</div>
+          <div class="k">漂移窗口</div><div class="v">重连到新 CS 先 upsert 新值（覆盖旧值）→ 旧 CS 的 del 晚到也不删新记录（version 比较或幂等覆盖）</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="label">读写职责与三道失效防线（规避失效地狱）</div>
+        <table class="tbl">
+          <thead><tr><th>角色</th><th>对 online:{uid}</th><th>本地缓存</th></tr></thead>
+          <tbody>
+            <tr><td class="l">Joker (CS)</td><td class="r"><b>唯一写者</b>：建立 upsert / 断开 del</td><td class="r">仅本机连接表 sync.Map（权威子集，无失效问题）</td></tr>
+            <tr><td class="l">PG kv</td><td class="r">权威单点存储</td><td class="r">—</td></tr>
+            <tr><td class="l">Delivery Worker</td><td class="r">只读（投递前查路由）</td><td class="r">30s TTL（副本方 N=2，全系统仅此两份）</td></tr>
+            <tr><td class="l">网关 / feed-api</td><td class="r">不接触</td><td class="r">—</td></tr>
+          </tbody>
+        </table>
+        <div class="callout" style="margin-bottom:0">
+          <b>三道防线</b>（事件可丢、缓存可旧，但过期有上界）：
+          ① <b>TTL 上界 30s</b>——Worker 缓存最旧不超 30s，不依赖事件可靠；
+          ② <b>not-found 即时校正</b>——投到已断开的 CS → 回 not-found → Worker 强制查权威值重投，错误视图存活 = 一次失败投递；
+          ③ <b>LISTEN/NOTIFY 加速（可选）</b>——只用来缩短窗口，丢了无害，不是正确性依赖。
+          对比 etcd 方案：watch 断线重连需全量重建、多副本事件乱序不可判定——副本方越多地狱越深，本设计副本方 N=2 且有兑底。
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <div class="label">对账兑底（双端两条）</div>
+      <div class="grid cols-2">
+        <div>
+          <div class="label" style="color:var(--accent)">服务端 · GHOST 清理任务（每 60s）</div>
+          <ul class="checklist">
+            <li>扫描 kv <code>online:*</code> → 解析 cs 标识 → 比对 etcd 存活服务表（lease 60s）</li>
+            <li>cs 不在存活表 → 该记录为 GHOST → 删除（用户重连会重新 upsert）</li>
+            <li>窗口最坏 = lease 过期(60s) + 扫描周期(60s) ≈ 2 分钟，投递错误由防线②即时修正</li>
+          </ul>
+        </div>
+        <div>
+          <div class="label" style="color:var(--accent)">客户端 · seq gap 检查（心跳携带）</div>
+          <ul class="checklist">
+            <li>客户端每 30s 心跳带 <code>{conv_id, last_seq}</code> → CS 比对 PG/kv 的最新 seq</li>
+            <li>发现 gap → 推「有新消息」信号 → 客户端经网关 REST 按 seq 游标补拉</li>
+            <li>这是推/拉两种投递模式共同的终极兑底：任何丢推/乱序/重连都能自愈</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="diagram" style="margin-top:18px">
+      <div class="inner">
+      <svg viewBox="0 0 1200 330" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,monospace">
+        <defs>
+          <marker id="n-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+          <marker id="n-kaf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#be185d"/></marker>
+          <marker id="n-psh" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d97706"/></marker>
+        </defs>
+        <g fill="#f6f8fc">
+          <rect x="30" y="46" width="180" height="240"/><rect x="210" y="46" width="160" height="240"/>
+          <rect x="370" y="46" width="160" height="240"/><rect x="530" y="46" width="160" height="240"/>
+          <rect x="690" y="46" width="160" height="240"/><rect x="850" y="46" width="180" height="240"/><rect x="1030" y="46" width="140" height="240"/>
+        </g>
+        <g stroke="#cdd2dd" stroke-dasharray="3 5">
+          <line x1="120" y1="46" x2="120" y2="286"/><line x1="290" y1="46" x2="290" y2="286"/>
+          <line x1="450" y1="46" x2="450" y2="286"/><line x1="610" y1="46" x2="610" y2="286"/>
+          <line x1="770" y1="46" x2="770" y2="286"/><line x1="940" y1="46" x2="940" y2="286"/><line x1="1100" y1="46" x2="1100" y2="286"/>
+        </g>
+        <g font-size="10.5" font-weight="700">
+          <rect x="30" y="20" width="180" height="22" rx="6" fill="#dbe7ff" stroke="#2563eb"/><text x="120" y="35" text-anchor="middle" fill="#2563eb">Deliver Worker</text>
+          <rect x="210" y="20" width="160" height="22" rx="6" fill="#ffd9d9" stroke="#dc2626"/><text x="290" y="35" text-anchor="middle" fill="#dc2626">PG kv</text>
+          <rect x="370" y="20" width="160" height="22" rx="6" fill="#fce0ef" stroke="#be185d"/><text x="450" y="35" text-anchor="middle" fill="#be185d">Kafka</text>
+          <rect x="530" y="20" width="160" height="22" rx="6" fill="#fde7c8" stroke="#d97706"/><text x="610" y="35" text-anchor="middle" fill="#d97706">Push Worker</text>
+          <rect x="690" y="20" width="160" height="22" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="770" y="35" text-anchor="middle">节流队列</text>
+          <rect x="850" y="20" width="180" height="22" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="940" y="35" text-anchor="middle">APNs / FCM / 厂商</text>
+          <rect x="1030" y="20" width="140" height="22" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="1100" y="35" text-anchor="middle">离线客户端</text>
+        </g>
+        <g font-size="10.5" fill="#0d1117">
+          <line x1="120" y1="66" x2="288" y2="66" stroke="#dc2626" stroke-width="1.5" marker-end="url(#n-acc)"/>
+          <text x="132" y="58">1. 查 online:{to}（30s 缓存）</text>
+          <line x1="290" y1="100" x2="122" y2="100" stroke="#dc2626" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#n-acc)"/>
+          <text x="132" y="92">2. miss = 离线（免费副产品，零额外查询）</text>
+          <line x1="120" y1="134" x2="448" y2="134" stroke="#d97706" stroke-width="1.5" marker-end="url(#n-kaf)"/>
+          <text x="140" y="126">3. produce chat.notify (key=to_uid, badge 文案)</text>
+          <line x1="450" y1="168" x2="608" y2="168" stroke="#d97706" stroke-width="1.5" marker-end="url(#n-psh)"/>
+          <text x="462" y="160">4. consume (group=push)</text>
+          <line x1="610" y1="202" x2="768" y2="202" stroke="#4b5468" stroke-width="1.2" marker-end="url(#n-acc)"/>
+          <text x="622" y="194">5. 节流判定（同人合并/夜间静默）</text>
+          <line x1="770" y1="236" x2="938" y2="236" stroke="#d97706" stroke-width="1.5" marker-end="url(#n-psh)"/>
+          <text x="782" y="228">6. 调厂商通道 API（失败独立重试）</text>
+          <line x1="940" y1="266" x2="1098" y2="266" stroke="#4b5468" stroke-width="1.2" marker-end="url(#n-acc)"/>
+          <text x="952" y="258">7. 系统级推送到终端</text>
+        </g>
+        <text x="30" y="312" font-size="10.5" fill="#8a90a3">在线分支走 gRPC→CS（§3 第 9 步）；通道慢/挂不影响 IM 主链路；通知内容不含消息原文（隐私 + 免登点击拉取）</text>
+      </svg>
+      </div>
+      <div class="legend">
+        <span><i style="background:#2563eb"></i>投递侧判定</span>
+        <span><i style="background:#be185d"></i>Kafka chat.notify</span>
+        <span><i style="background:#d97706"></i>Push Worker + 厂商通道</span>
+        <span><i style="background:#16a34a"></i>在线分支（§3）</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <div class="label">Push Worker 节流策略（可退房）</div>
+      <table class="tbl">
+        <thead><tr><th>策略</th><th>规则</th><th>目的</th></tr></thead>
+        <tbody>
+          <tr><td class="l">同人合并</td><td class="r">同一 to_uid 60s 窗口内多条通知合并为一条（badge 累加）</td><td class="r">防轰炸</td></tr>
+          <tr><td class="l">夜间静默</td><td class="r">23:00–08:00 除 @ 我/置顶会话外不推送（客户端时区）</td><td class="r">体验</td></tr>
+          <tr><td class="l">频控</td><td class="r">单设备 ≤20 条/小时，超限只保 badge</td><td class="r">厂商配额 + 防封</td></tr>
+          <tr><td class="l">失败退避</td><td class="r">厂商通道 429/5xx → 指数退避，3 次后入 notify.dlq</td><td class="r">隔离故障</td></tr>
+        </tbody>
+      </table>
+      <p class="footnote">容量：离线占比按 30% 估算 → 峰值 ~180 TPS 通知 → 单 Push Worker 余量充足；topic 仅 3P（key=to_uid 合并友好）。</p>
+    </div>
+  </section>
+
+  <!-- ==================== 5. 群聊系统设计 ==================== -->
+  <section id="group">
+    <h2><span class="num">05</span>群聊系统设计</h2>
+    <div class="sub">约束驱动的极简设计：≤500 成员 · 投递层写扩散 · 群内 seq 自增 · @ + 群主@all · 群管理五件套。零新增服务，群语义终结在 Delivery Worker 之前，Chat Server 仍是傻管道。</div>
+
+    <div class="card">
+      <div class="label">9 条约束 → 设计映射</div>
+      <table class="tbl">
+        <thead><tr><th style="width:34%">约束</th><th>落地设计</th></tr></thead>
+        <tbody>
+          <tr><td class="l">① 成员 &lt; 500</td><td class="r">拉人时事务内 <code>COUNT(group_members)</code> 校验上限；500 在线成员的扇出在容量账内（§7）</td></tr>
+          <tr><td class="l">② 写扩散</td><td class="r"><b>投递层写扩散</b>：persist 落库 1 份 → 批量查 online kv → 对在线成员逐个 produce <code>chat.push</code>（1:M）；<b>存储不扩散</b>——无未读/已读需求，读取按会话 seq 拉取，避免 500 倍存储放大</td></tr>
+          <tr><td class="l">③ 未读数不实现</td><td class="r">无 unread 表与计数；客户端用本地 last_seq 自行渲染红点（服务端不背账）</td></tr>
+          <tr><td class="l">④ 已读/撤回不实现</td><td class="r">无已读回执、无 revoke 标记；ACK 语义止步于「送达」（复用单聊 chat.ack）</td></tr>
+          <tr><td class="l">⑤ 仅群主/普通成员</td><td class="r"><code>role ∈ {owner, member}</code> 二值；管理操作 owner-only 白名单（见权限矩阵）</td></tr>
+          <tr><td class="l">⑥ @ + 群主@all</td><td class="r"><code>content.mentions=[uid]</code>，<code>mention_all</code> 布尔；persist 事务内权威校验 @all → role=owner（CS 仅做格式快检）</td></tr>
+          <tr><td class="l">⑦ 新成员只看加入后</td><td class="r"><code>group_members.joined_at</code>；历史拉取 <code>WHERE created_at ≥ joined_at</code>（被踢者以 <code>left_at</code> 截止）</td></tr>
+          <tr><td class="l">⑧ 群内消息 ID 自增</td><td class="r">复用单聊机制零改动：<code>kv seq:{gid}</code> 事务内自增 + <code>messages UNIQUE(gid, seq)</code>；seq 即群内消息 ID</td></tr>
+          <tr><td class="l">⑨ 群管理五件套</td><td class="r">踢人/解散/改名/公告/置顶全部走网关 REST；<b>群事件即消息</b>（type=system_event 写入消息流，同链路扇出，seq 保序）</td></tr>
+        </tbody>
+      </table>
+      <div class="callout" style="border-left-color:var(--bad)">
+        <b>明确不做（诚实边界，写进 README）</b>：未读数 · 已读回执 · 消息撤回 · 管理员角色 · 普通成员拉人（假设：入群仅群主操作，可调）· 群主退群（只能解散，不做转让）· 禁言/入群审批/群头像。约束 ③④ 省掉的是群聊最贵的两块状态——已读矩阵（N×M 写入）与撤回回溯，这是本设计敢在 3×4C16G 上跑群聊的前提。
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div class="card">
+        <div class="label">数据模型 · 新增 2 表 + 复用 2 处</div>
+        <div class="kv-box">
+          <span class="key">groups</span> <span class="cm">新增</span><br/>
+          <span class="cm">(gid PK, name, announcement, announcement_at,<br/>&nbsp;owner_uid, <span class="val">pinned_msg_id</span> NULL,<br/>&nbsp;status [<span class="val">active|dismissed</span>], member_count, created_at)</span><br/><br/>
+          <span class="key">group_members</span> <span class="cm">新增</span><br/>
+          <span class="cm">(gid, uid, role [<span class="val">owner|member</span>],<br/>&nbsp;joined_at, <span class="val">left_at</span> NULL) PK(gid, uid)<br/>&nbsp;索引 (uid) → 用户群列表</span>
+        </div>
+        <div class="kv" style="margin-top:12px">
+          <div class="k">复用 messages</div><div class="v">conv_id=gid，type ∈ {group, system_event}；存储零扩散（每条 1 份）</div>
+          <div class="k">复用 kv</div><div class="v">seq:{gid} —— 与单聊 seq:{conv_id} 同一机制，群内 ID 即 seq</div>
+          <div class="k">软删</div><div class="v">解散=status 标记（tombstone），persist 校验拒收后续消息</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="label">权限矩阵 · 二值角色</div>
+        <table class="tbl">
+          <thead><tr><th>操作</th><th>群主</th><th>成员</th></tr></thead>
+          <tbody>
+            <tr><td class="l">发消息 / @个人</td><td class="r">✓</td><td class="r">✓</td></tr>
+            <tr><td class="l">@所有人</td><td class="r">✓</td><td class="r">✗</td></tr>
+            <tr><td class="l">建群 / 拉人</td><td class="r">✓</td><td class="r">✗（假设）</td></tr>
+            <tr><td class="l">踢人</td><td class="r">✓（不可踢自己/群主）</td><td class="r">✗</td></tr>
+            <tr><td class="l">改名 / 公告 / 置顶</td><td class="r">✓</td><td class="r">✗</td></tr>
+            <tr><td class="l">退群</td><td class="r">✗（仅解散）</td><td class="r">✓</td></tr>
+            <tr><td class="l">解散</td><td class="r">✓</td><td class="r">✗</td></tr>
+          </tbody>
+        </table>
+        <p class="footnote">校验位置：网关做 token 身份 → persist 事务做群内权威校验（成员身份/角色/群状态原子判定，并发管理操作天然串行化）。</p>
+      </div>
+    </div>
+
+    <div class="diagram" style="margin-top:18px">
+      <div class="inner">
+      <svg viewBox="0 0 1200 560" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,monospace">
+        <defs>
+          <marker id="g-jok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c3aed"/></marker>
+          <marker id="g-kaf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#be185d"/></marker>
+          <marker id="g-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+          <marker id="g-dbr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+        </defs>
+
+        <g fill="#f6f8fc">
+          <rect x="30" y="46" width="140" height="420"/><rect x="170" y="46" width="140" height="420"/>
+          <rect x="310" y="46" width="140" height="420"/><rect x="450" y="46" width="140" height="420"/>
+          <rect x="590" y="46" width="140" height="420"/><rect x="730" y="46" width="140" height="420"/>
+          <rect x="870" y="46" width="140" height="420"/><rect x="1010" y="46" width="150" height="420"/>
+        </g>
+        <g stroke="#cdd2dd" stroke-dasharray="3 5">
+          <line x1="100" y1="46" x2="100" y2="466"/><line x1="240" y1="46" x2="240" y2="466"/>
+          <line x1="380" y1="46" x2="380" y2="466"/><line x1="520" y1="46" x2="520" y2="466"/>
+          <line x1="660" y1="46" x2="660" y2="466"/><line x1="800" y1="46" x2="800" y2="466"/>
+          <line x1="940" y1="46" x2="940" y2="466"/><line x1="1085" y1="46" x2="1085" y2="466"/>
+        </g>
+        <g font-size="10.5" font-weight="700">
+          <rect x="30" y="20" width="140" height="22" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="100" y="35" text-anchor="middle">Sender</text>
+          <rect x="170" y="20" width="140" height="22" rx="6" fill="#e9dffd" stroke="#7c3aed"/><text x="240" y="35" text-anchor="middle" fill="#7c3aed">CS-A (joker)</text>
+          <rect x="310" y="20" width="140" height="22" rx="6" fill="#fce0ef" stroke="#be185d"/><text x="380" y="35" text-anchor="middle" fill="#be185d">Kafka</text>
+          <rect x="450" y="20" width="140" height="22" rx="6" fill="#dbe7ff" stroke="#2563eb"/><text x="520" y="35" text-anchor="middle" fill="#2563eb">Worker(persist+deliver)</text>
+          <rect x="590" y="20" width="140" height="22" rx="6" fill="#ffd9d9" stroke="#dc2626"/><text x="660" y="35" text-anchor="middle" fill="#dc2626">PG (msg+kv)</text>
+          <rect x="730" y="20" width="140" height="22" rx="6" fill="#e9dffd" stroke="#7c3aed"/><text x="800" y="35" text-anchor="middle" fill="#7c3aed">CS-M×N</text>
+          <rect x="870" y="20" width="140" height="22" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="940" y="35" text-anchor="middle">成员 Clients</text>
+          <rect x="1010" y="20" width="150" height="22" rx="6" fill="#eef1f8" stroke="#cdd2dd"/><text x="1085" y="35" text-anchor="middle">注释</text>
+        </g>
+
+        <g font-size="10.5" fill="#0d1117">
+          <line x1="100" y1="66" x2="238" y2="66" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#g-jok)"/>
+          <text x="110" y="58">1. WS {gid, content, mentions, mention_all}</text>
+
+          <line x1="240" y1="98" x2="378" y2="98" stroke="#2563eb" stroke-width="1.5" marker-end="url(#g-kaf)"/>
+          <text x="250" y="90">2. produce chat.msg (key=gid) → 群内有序</text>
+
+          <line x1="380" y1="130" x2="518" y2="130" stroke="#0891b2" stroke-width="1.5" marker-end="url(#g-kaf)"/>
+          <text x="390" y="122">3. consume (persist)</text>
+
+          <line x1="520" y1="162" x2="658" y2="162" stroke="#dc2626" stroke-width="1.5" marker-end="url(#g-dbr)"/>
+          <text x="530" y="154">4. 事务：成员/状态/@all 校验 → seq=next → INSERT×1</text>
+
+          <line x1="658" y1="194" x2="522" y2="194" stroke="#16a34a" stroke-width="1.2" marker-end="url(#g-dbr)"/>
+          <text x="530" y="186">5. ok {msg_id, seq}（存储仅 1 份）</text>
+
+          <line x1="520" y1="226" x2="658" y2="226" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#g-dbr)"/>
+          <text x="530" y="218">6. 批量 get online:{member}（IN 查询 ≤500）</text>
+
+          <line x1="658" y1="258" x2="522" y2="258" stroke="#16a34a" stroke-width="1.2" marker-end="url(#g-dbr)"/>
+          <text x="530" y="250">7. 在线成员表 M 条 {uid, cs_addr}</text>
+
+          <line x1="520" y1="290" x2="378" y2="290" stroke="#0891b2" stroke-width="1.5" marker-end="url(#g-kaf)"/>
+          <text x="390" y="282">8. produce chat.push ×M (key=uid, mention)</text>
+
+          <line x1="380" y1="322" x2="518" y2="322" stroke="#0891b2" stroke-width="1.5" marker-end="url(#g-kaf)"/>
+          <text x="390" y="314">9. consume (deliver) — 分区并行</text>
+
+          <line x1="522" y1="354" x2="798" y2="354" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#g-acc)"/>
+          <text x="540" y="346">10. gRPC Deliver（M 并行，跨 CS 复用单聊通道）</text>
+
+          <line x1="800" y1="386" x2="938" y2="386" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#g-jok)"/>
+          <text x="810" y="378">11. WS frame（客户端按 seq 排序去重）</text>
+        </g>
+
+        <g font-size="10" fill="#8a90a3">
+          <rect x="1020" y="150" width="130" height="62" rx="6" fill="#fff" stroke="#cdd2dd"/>
+          <text x="1028" y="164" fill="#4b5468">写扩散只发生在</text>
+          <text x="1028" y="177" fill="#4b5468">投递层(Kafka)：</text>
+          <text x="1028" y="190" fill="#4b5468">存储 1 份 / 推 M 份</text>
+          <text x="1028" y="203" fill="#4b5468">M=在线成员数</text>
+
+          <rect x="1020" y="280" width="130" height="62" rx="6" fill="#fff" stroke="#cdd2dd"/>
+          <text x="1028" y="294" fill="#dc2626">离线成员：</text>
+          <text x="1028" y="307" fill="#4b5468">不扇出不标记</text>
+          <text x="1028" y="320" fill="#4b5468">上线按 seq 游标</text>
+          <text x="1028" y="333" fill="#4b5468">经网关拉增量</text>
+        </g>
+
+        <g>
+          <rect x="60" y="400" width="1100" height="60" rx="10" fill="#f6f8fc" stroke="#cdd2dd"/>
+          <text x="76" y="422" font-size="11" fill="#0d1117" font-weight="700">为什么 chat.msg 用 key=gid 而扇出后的 chat.push 用 key=uid</text>
+          <text x="76" y="440" font-size="10.5" fill="#4b5468">入队按 gid：同群消息进同一分区 → persist 串行消费 → seq 严格递增无空洞（约束⑧的根基）；扇出按 uid：同一成员的消息队列有序 → 客户端收到的群消息不乱序。两个顺序域一次 Kafka 写入完成切换。</text>
+        </g>
+      </svg>
+      </div>
+      <div class="legend">
+        <span><i style="background:#7c3aed"></i>WS 通道</span>
+        <span><i style="background:#2563eb"></i>gRPC 投递（复用单聊通道）</span>
+        <span><i style="background:#be185d"></i>Kafka（蓝=chat.msg 青=push×M）</span>
+        <span><i style="background:#dc2626"></i>PG 事务</span>
+      </div>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div class="card">
+        <div class="label">群管理 API · 网关 REST（管理面，不碰数据面）</div>
+        <table class="tbl">
+          <thead><tr><th>端点</th><th>操作</th><th>事件消息</th></tr></thead>
+          <tbody>
+            <tr><td class="l">POST /v1/groups</td><td class="r">建群（name, members[]≤499）</td><td class="r">group_create</td></tr>
+            <tr><td class="l">POST /:gid/members</td><td class="r">拉人（owner；COUNT&lt;500）</td><td class="r">member_join</td></tr>
+            <tr><td class="l">DELETE /:gid/members/:uid</td><td class="r">踢人（owner；写 left_at）</td><td class="r">member_kick</td></tr>
+            <tr><td class="l">POST /:gid/quit</td><td class="r">退群（member；owner 拒绝）</td><td class="r">member_quit</td></tr>
+            <tr><td class="l">PATCH /v1/groups/:gid</td><td class="r">改名（owner）</td><td class="r">group_rename</td></tr>
+            <tr><td class="l">PUT /:gid/announcement</td><td class="r">群公告（owner，更新 announcement_at）</td><td class="r">announcement_set</td></tr>
+            <tr><td class="l">PUT /:gid/pinned</td><td class="r">置顶 msg_id（owner；null 取消）</td><td class="r">pin_set / pin_unset</td></tr>
+            <tr><td class="l">DELETE /v1/groups/:gid</td><td class="r">解散（status=dismissed）</td><td class="r">group_dismiss（末条消息）</td></tr>
+          </tbody>
+        </table>
+        <div class="callout" style="margin-bottom:0">
+          <b>群事件即消息</b>：管理操作在事务里同时 ①改 group 表 ②INSERT 一条 <code>type=system_event</code> 消息（content={event, actor, ...}）→ 走同一条 persist→push 扇出链路。
+          成员打开会话即见「xxx 把 xxx 移出了群聊」，且事件与普通消息共享 seq 流天然保序——不用发明第二条通知通道。解散是特例：发完 dismiss 事件后 persist 拒收该 gid 一切后续消息。
+        </div>
+      </div>
+      <div class="card">
+        <div class="label">@ 机制 · 数据结构与校验链</div>
+        <div class="kv-box">
+          <span class="cm">messages.content JSONB（群消息）:</span><br/>
+          {<br/>
+          &nbsp;&nbsp;<span class="key">"text"</span>: "@张三 周末爬山吗",<br/>
+          &nbsp;&nbsp;<span class="key">"mentions"</span>: [<span class="val">"uid-zhang"</span>],<br/>
+          &nbsp;&nbsp;<span class="key">"mention_all"</span>: <span class="val">false</span><br/>
+          }
+        </div>
+        <ul class="checklist" style="margin-top:12px">
+          <li><b>CS 快检</b>（格式层）：mentions 数组长度 ≤50、mention_all 布尔——非法直接回 ParameterIllegal，不进 Kafka</li>
+          <li><b>persist 权威校验</b>（事务层）：mention_all=true → sender.role=owner；mentions 中每个 uid ∈ 当前群成员——失败整条拒绝（不留半条消息）</li>
+          <li><b>投递展开</b>：mention_all → 扇出时全员 mention=true；被 @ 成员的 chat.push 带 <code>mention:true</code>，客户端 UI 强提醒（无额外推送通道）</li>
+        </ul>
+        <div class="label" style="margin-top:14px">边界场景速查</div>
+        <ul class="checklist">
+          <li>新成员历史：created_at ∈ [joined_at, left_at|now)——加入前的消息、被踢后的消息都不可见</li>
+          <li>被踢瞬间在途消息：persist 校验按事务串行——left_at 已写则该成员不再进入扇出列表，无「被踢还收到消息」</li>
+          <li>500 上限：拉人事务内 COUNT 校验，超限回 409</li>
+          <li>@all 大群风暴：500 在线 ×1KB = 500KB/条扇出，容量账（§7）覆盖；@all 不额外放大（本来就是全员扇出）</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 5. 朋友圈链路 ==================== -->
+  <section id="feed">
+    <h2><span class="num">06</span>朋友圈链路 · 新闻流系统</h2>
+    <div class="sub">双流切分：写路径（经网关路由到 feed-api：发布→落库→异步 fanout）与读路径（inbox+pull merge→hydrate）独立。好友数有界 → push 为主；超阈值 big_v 降级 pull。</div>
+
+    <div class="seq-tabs" id="feedTabs">
+      <button data-tab="pub" class="active">发布 · Fanout 写路径</button>
+      <button data-tab="read">读取 · Merge 读路径</button>
+    </div>
+
+    <div class="diagram">
+      <div class="inner">
+      <svg id="feed-pub" viewBox="0 0 1200 540" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,monospace">
+        <defs>
+          <marker id="f-goo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+          <marker id="f-kaf" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#be185d"/></marker>
+          <marker id="f-dbr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+          <marker id="f-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+        </defs>
+
+        <g fill="#f6f8fc">
+          <rect x="30"  y="46" width="140" height="430"/><rect x="170" y="46" width="140" height="430"/>
+          <rect x="310" y="46" width="140" height="430"/><rect x="450" y="46" width="140" height="430"/>
+          <rect x="590" y="46" width="140" height="430"/><rect x="730" y="46" width="140" height="430"/>
+          <rect x="870" y="46" width="140" height="430"/><rect x="1010" y="46" width="150" height="430"/>
+        </g>
+        <g stroke="#cdd2dd" stroke-dasharray="3 5">
+          <line x1="100"  y1="46" x2="100"  y2="476"/><line x1="240" y1="46" x2="240" y2="476"/>
+          <line x1="380"  y1="46" x2="380"  y2="476"/><line x1="520" y1="46" x2="520" y2="476"/>
+          <line x1="660"  y1="46" x2="660"  y2="476"/><line x1="800" y1="46" x2="800" y2="476"/>
+          <line x1="940"  y1="46" x2="940"  y2="476"/><line x1="1085" y1="46" x2="1085" y2="476"/>
+        </g>
+        <g font-size="10.5" font-weight="700">
+          <rect x="30"  y="20" width="140" height="22" rx="6" fill="#fff" stroke="#cdd2dd"/><text x="100"  y="35" text-anchor="middle">Publisher</text>
+          <rect x="170" y="20" width="140" height="22" rx="6" fill="#dbe7ff" stroke="#2563eb"/><text x="240" y="35" text-anchor="middle" fill="#2563eb">Gateway</text>
+          <rect x="310" y="20" width="140" height="22" rx="6" fill="#d5f3df" stroke="#16a34a"/><text x="380" y="35" text-anchor="middle" fill="#16a34a">Feed API</text>
+          <rect x="450" y="20" width="140" height="22" rx="6" fill="#ffd9d9" stroke="#dc2626"/><text x="520" y="35" text-anchor="middle" fill="#dc2626">PG posts</text>
+          <rect x="590" y="20" width="140" height="22" rx="6" fill="#fce0ef" stroke="#be185d"/><text x="660" y="35" text-anchor="middle" fill="#be185d">Kafka</text>
+          <rect x="730" y="20" width="140" height="22" rx="6" fill="#d5f3df" stroke="#16a34a"/><text x="800" y="35" text-anchor="middle" fill="#16a34a">Fanout Worker</text>
+          <rect x="870" y="20" width="140" height="22" rx="6" fill="#ffd9d9" stroke="#dc2626"/><text x="940" y="35" text-anchor="middle" fill="#dc2626">PG inbox</text>
+          <rect x="1010" y="20" width="150" height="22" rx="6" fill="#eef1f8" stroke="#cdd2dd"/><text x="1085" y="35" text-anchor="middle">注释</text>
+        </g>
+
+        <g font-size="10.5" fill="#0d1117">
+          <line x1="100" y1="66" x2="238" y2="66" stroke="#2563eb" stroke-width="1.5" marker-end="url(#f-acc)"/>
+          <text x="110" y="58">1. POST /v1/feed {text, media[]}</text>
+
+          <line x1="240" y1="98" x2="378" y2="98" stroke="#16a34a" stroke-width="1.5" marker-end="url(#f-goo)"/>
+          <text x="250" y="90">2. 鉴权 token → 路由到 feed-api 副本</text>
+
+          <line x1="380" y1="130" x2="518" y2="130" stroke="#dc2626" stroke-width="1.5" marker-end="url(#f-dbr)"/>
+          <text x="390" y="122">3. INSERT posts（is_big_v = 好友&gt;5000）</text>
+
+          <line x1="518" y1="162" x2="382" y2="162" stroke="#16a34a" stroke-width="1.2" marker-end="url(#f-goo)"/>
+          <text x="390" y="154">4. post_id</text>
+
+          <line x1="380" y1="194" x2="102" y2="194" stroke="#16a34a" stroke-width="1.5" marker-end="url(#f-goo)"/>
+          <text x="112" y="186">5. 200 {post_id}（经网关同步返回，不等 fanout）</text>
+
+          <line x1="380" y1="226" x2="658" y2="226" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#f-kaf)"/>
+          <text x="400" y="218">6. produce feed.fanout (key=pub_uid)</text>
+
+          <line x1="660" y1="258" x2="798" y2="258" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#f-kaf)"/>
+          <text x="670" y="250">7. consume (group=fanout)</text>
+
+          <line x1="800" y1="290" x2="522" y2="290" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#f-dbr)"/>
+          <text x="540" y="282">8. SELECT friends(pub_uid)（30s 本地缓存）</text>
+
+          <line x1="800" y1="322" x2="938" y2="322" stroke="#16a34a" stroke-width="1.5" marker-end="url(#f-goo)"/>
+          <text x="810" y="314">9. 批量 INSERT feed_inbox (COPY 500/批)</text>
+
+          <line x1="800" y1="354" x2="658" y2="354" stroke="#7c3aed" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#f-kaf)"/>
+          <text x="670" y="346">10. (可选) produce feed.notify → 红点</text>
+        </g>
+
+        <g font-size="10" fill="#8a90a3">
+          <rect x="1020" y="60" width="130" height="34" rx="6" fill="#fff" stroke="#cdd2dd"/>
+          <text x="1028" y="74" fill="#4b5468">网关只做鉴权+转发</text>
+          <text x="1028" y="87" fill="#4b5468">feed-api 无状态 ×2</text>
+
+          <rect x="1020" y="210" width="130" height="34" rx="6" fill="#fff" stroke="#cdd2dd"/>
+          <text x="1028" y="224" fill="#4b5468">fanout 异步：</text>
+          <text x="1028" y="237" fill="#4b5468">发布 P99 不受影响</text>
+        </g>
+
+        <g>
+          <rect x="60" y="400" width="1100" height="60" rx="10" fill="#f6f8fc" stroke="#cdd2dd"/>
+          <text x="76" y="422" font-size="11" fill="#0d1117" font-weight="700">Hybrid 边界（一条规则，不搞复杂策略）</text>
+          <text x="76" y="440" font-size="10.5" fill="#4b5468">普通用户（好友 ≤ 5000）：写扩散 push → 收件箱；big_v：发布时只标记，读取时在线 pull 其最近 N 条 merge。删除：posts 软删 tombstone，inbox 不物理清理，读取时过滤。</text>
+        </g>
+      </svg>
+
+      <svg id="feed-read" viewBox="0 0 1200 400" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Menlo,monospace" style="display:none">
+        <defs>
+          <marker id="r-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/></marker>
+          <marker id="r-goo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#16a34a"/></marker>
+          <marker id="r-dbr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/></marker>
+        </defs>
+
+        <g>
+          <rect x="60" y="50" width="190" height="80" rx="12" fill="#fff" stroke="#cdd2dd" stroke-width="1.5"/>
+          <text x="76" y="76" font-size="11" fill="#8a90a3" font-weight="600" letter-spacing="2">CLIENT</text>
+          <text x="76" y="96" font-size="13" font-weight="700" fill="#0d1117">GET /v1/feed</text>
+          <text x="76" y="114" font-size="10.5" fill="#4b5468">?cursor=&amp;limit=20（下拉刷新）</text>
+        </g>
+
+        <g>
+          <rect x="330" y="50" width="170" height="80" rx="12" fill="#dbe7ff" stroke="#2563eb" stroke-width="1.5"/>
+          <text x="346" y="76" font-size="11" fill="#2563eb" font-weight="600" letter-spacing="2">GATEWAY</text>
+          <text x="346" y="96" font-size="12.5" font-weight="700" fill="#0d1117">鉴权 + 路由</text>
+          <text x="346" y="114" font-size="10.5" fill="#4b5468">轮询 feed-api 副本</text>
+        </g>
+
+        <g>
+          <rect x="580" y="50" width="190" height="80" rx="12" fill="#d5f3df" stroke="#16a34a" stroke-width="1.5"/>
+          <text x="596" y="76" font-size="11" fill="#16a34a" font-weight="600" letter-spacing="2">FEED API · merge</text>
+          <text x="596" y="96" font-size="12.5" font-weight="700" fill="#0d1117">聚合读取编排</text>
+          <text x="596" y="114" font-size="10.5" fill="#4b5468">无状态，任一副本可服务</text>
+        </g>
+
+        <g>
+          <rect x="850" y="26" width="250" height="64" rx="10" fill="#ffd9d9" stroke="#dc2626"/>
+          <text x="866" y="48" font-size="11" fill="#dc2626" font-weight="600">PG · feed_inbox (uid)</text>
+          <text x="866" y="66" font-size="10.5" fill="#4b5468">push 收件箱：post_id 列表倒序（读走 replica）</text>
+        </g>
+        <g>
+          <rect x="850" y="102" width="250" height="64" rx="10" fill="#ffd9d9" stroke="#dc2626"/>
+          <text x="866" y="124" font-size="11" fill="#dc2626" font-weight="600">PG · posts (big_v)</text>
+          <text x="866" y="142" font-size="10.5" fill="#4b5468">pull：关注大V最近 N 条</text>
+        </g>
+        <g>
+          <rect x="850" y="178" width="250" height="64" rx="10" fill="#ffd9d9" stroke="#dc2626"/>
+          <text x="866" y="200" font-size="11" fill="#dc2626" font-weight="600">PG · posts + counters</text>
+          <text x="866" y="218" font-size="10.5" fill="#4b5468">hydrate 内容/作者/计数（批量 IN）</text>
+        </g>
+
+        <path d="M 252 90 L 326 90" stroke="#2563eb" stroke-width="1.5" marker-end="url(#r-acc)"/>
+        <path d="M 502 90 L 576 90" stroke="#16a34a" stroke-width="1.5" marker-end="url(#r-goo)"/>
+        <path d="M 772 70 L 846 58"  stroke="#dc2626" stroke-width="1.5" marker-end="url(#r-dbr)"/>
+        <path d="M 772 90 L 846 122" stroke="#dc2626" stroke-width="1.5" marker-end="url(#r-dbr)"/>
+        <path d="M 772 110 L 846 198" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#r-dbr)"/>
+
+        <g font-size="10" fill="#4b5468">
+          <text x="266" y="82">①入口</text>
+          <text x="512" y="82">②路由</text>
+        </g>
+
+        <g>
+          <rect x="60" y="280" width="1040" height="90" rx="10" fill="#f6f8fc" stroke="#cdd2dd"/>
+          <text x="76" y="302" font-size="11" fill="#0d1117" font-weight="700">读路径 9 步（Feed API 内部，经网关透明转发）</text>
+          <text x="76" y="320" font-size="10.5" fill="#4b5468">1.解析 cursor → 2.查 inbox(游标分页倒序) → 3.pull bigV 近况 → 4.merge 去重(post_id+时间排序) → 5.过滤 tombstone → 6.批量 hydrate posts → 7.合并 counters(点赞/评论) → 8.作者信息 → 9.返回+新 cursor</text>
+          <text x="76" y="340" font-size="10.5" fill="#8a90a3">性能：inbox 命中 &gt;95% 时仅 2 次 SQL（inbox + hydrate 批量 IN）；P99 目标 &lt; 150ms；counters 异步聚合（action→kv 缓存→定时落库）</text>
+          <text x="76" y="358" font-size="10.5" fill="#8a90a3">读扩展：feed 读固定走 node-2/node-3 replica，与 chat 写（primary）物理隔离</text>
+        </g>
+      </svg>
+      </div>
+      <div class="legend">
+        <span><i style="background:#2563eb"></i>Gateway（鉴权/路由，不碰数据面）</span>
+        <span><i style="background:#16a34a"></i>Feed API（发布同步返回）</span>
+        <span><i style="background:#7c3aed"></i>Kafka 异步 fanout</span>
+        <span><i style="background:#dc2626"></i>PG 写/读</span>
+        <span><i style="background:#d97706"></i>big_v pull 降级</span>
+      </div>
+    </div>
+    <div class="seq-note" id="feedNote">当前显示：<b>发布写路径</b> · 点赞/评论计数走异步聚合，不在发布链路。</div>
+  </section>
+
+  <!-- ==================== 5. 存储设计 ==================== -->
+  <section id="storage">
+    <h2><span class="num">07</span>存储设计 · PostgreSQL 一库双角</h2>
+    <div class="sub">PG 同时承担关系存储与 KV 存储（JSONB kv 表）。etcd 退回纯服务注册。迁移工具沿用 goose（postgres 方言）。</div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="label">核心表 · 聊天域</div>
+        <div class="kv-box">
+          <span class="key">users</span> <span class="cm">(uid PK, username, email, password_hash, avatar, created_at)</span><br/>
+          <span class="key">friends</span> <span class="cm">(owner_uid, friend_uid, status) PK(owner_uid, friend_uid)</span><br/>
+          <span class="key">conversations</span> <span class="cm">(conv_id PK, type [<span class="val">single|group</span>], members JSONB, last_seq)</span><br/>
+          <span class="key">conversation_members</span> <span class="cm">(conv_id, uid, last_read_seq, muted) PK(conv_id, uid)</span><br/>
+          <span class="key">groups</span> <span class="cm">新增 (gid PK, name, announcement, owner_uid, pinned_msg_id, status[active|dismissed], member_count)</span><br/>
+          <span class="key">group_members</span> <span class="cm">新增 (gid, uid, role[owner|member], joined_at, left_at NULL) PK(gid, uid)</span><br/>
+          <span class="key">messages</span> <span class="cm">(msg_id PK, conv_id, <span class="val">seq</span>, from_uid, type, content JSONB, created_at)</span><br/>
+          <span class="cm">&nbsp;&nbsp;UNIQUE(conv_id, seq) 全局有效 · <b>暂不分区</b>（触发：>2 亿行或归档 DELETE 阻塞时再选边：created_at RANGE 或雪花 conv_id RANGE，互斥，见 D16）· 索引 (conv_id, seq DESC)</span>
+        </div>
+        <div class="label" style="margin-top:14px">核心表 · 朋友圈域</div>
+        <div class="kv-box">
+          <span class="key">posts</span> <span class="cm">(post_id PK, uid, content JSONB, media JSONB, <span class="val">is_big_v</span>, is_deleted<tspan> </tspan>tombstone, created_at)</span><br/>
+          <span class="key">feed_inbox</span> <span class="cm">(uid, post_id, created_at) PK(uid, post_id) · push 收件箱，保留 30 天</span><br/>
+          <span class="key">post_actions</span> <span class="cm">(post_id, uid, action[like|comment], created_at) PK(post_id, uid, action)</span><br/>
+          <span class="key">post_counters</span> <span class="cm">(post_id PK, like_cnt, comment_cnt) · 异步聚合落库</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="label">kv 表 · JSONB 通用 KV（替代 etcd 用户态）</div>
+<pre>CREATE TABLE kv (
+  k         TEXT PRIMARY KEY,
+  v         JSONB  NOT NULL,
+  version   BIGINT NOT NULL DEFAULT 1,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);</pre>
+        <div class="kv-box" style="margin-top:12px">
+          <div><span class="key">online:{uid}</span> = <span class="val">{"cs":"cs-2","addr":"10.0.0.2:37012"}</span> <span class="cm">← Chat Server 维护</span></div>
+          <div style="margin-top:4px"><span class="key">seq:{conv_id}</span> = <span class="val">{"next": 1048577}</span> <span class="cm">← 事务内自增，会话序号源</span></div>
+          <div style="margin-top:4px"><span class="key">unread:{uid}</span> = <span class="val">{"conv_a": 12, "conv_b": 3}</span> <span class="cm">← 上线通知</span></div>
+          <div style="margin-top:4px"><span class="key">feedcur:{uid}</span> = <span class="val">{"last_post_id": "..."}</span> <span class="cm">← 读游标缓存</span></div>
+        </div>
+        <div class="label" style="margin-top:14px">职责边界对比</div>
+        <table class="tbl">
+          <thead><tr><th>数据</th><th>当前 brave</th><th>目标</th></tr></thead>
+          <tbody>
+            <tr><td class="l">服务表</td><td class="r">etcd services/*</td><td class="r">etcd services/*（保留）</td></tr>
+            <tr><td class="l">登录态/路由</td><td class="r">etcd users/{uid}（无 TTL）</td><td class="r">PG kv online:{uid}（CS 维护）</td></tr>
+            <tr><td class="l">消息序号</td><td class="r">—</td><td class="r">PG kv seq:{conv}（事务原子）</td></tr>
+            <tr><td class="l">关系/内容</td><td class="r">MySQL users/friends</td><td class="r">PG 全部关系表</td></tr>
+          </tbody>
+        </table>
+        <p class="footnote">写入路径都过 PG → 一处事务、一处备份（pg_dump / 流复制），无跨存储一致性问题；高频 kv 读加 30s 进程内缓存。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 6. Kafka topic ==================== -->
+  <section id="kafka">
+    <h2><span class="num">08</span>Kafka Topic 设计</h2>
+    <div class="sub">4 个业务 topic + 死信。分区键决定顺序域；消费组隔离职责；保留策略按用途区分。</div>
+    <div class="card">
+      <table class="tbl">
+        <thead><tr><th>Topic</th><th>Key</th><th>分区</th><th>生产者 → 消费组</th><th>语义 / 保留</th></tr></thead>
+        <tbody>
+          <tr><td class="l"><span class="tag" style="color:#2563eb">chat.msg</span></td><td class="r">conv_id</td><td class="r">12</td><td class="r">Chat Server → persist（Delivery Worker 内）</td><td class="r">落库前缓冲；同会话有序；保留 3 天</td></tr>
+          <tr><td class="l"><span class="tag" style="color:#0891b2">chat.push</span></td><td class="r">to_uid（群聊扇出后逐成员）</td><td class="r">12</td><td class="r">persist → deliver（Delivery Worker 内）</td><td class="r">落库后投递扇出：单聊 1:1 / 群聊 1:M 在线成员（写扩散）；同接收者串行；保留 3 天</td></tr>
+          <tr><td class="l"><span class="tag" style="color:#7c3aed">feed.fanout</span></td><td class="r">pub_uid</td><td class="r">6</td><td class="r">Feed API → fanout（Fanout Worker）</td><td class="r">朋友圈写扩散；同发布者串行；保留 3 天</td></tr>
+          <tr><td class="l"><span class="tag" style="color:#8a90a3">chat.ack</span></td><td class="r">from_uid</td><td class="r">6</td><td class="r">deliver → 各 Chat Server 消费</td><td class="r">回执推回发送者所在 CS；保留 1 天</td></tr>
+          <tr><td class="l"><span class="tag" style="color:#d97706">chat.notify</span></td><td class="r">to_uid</td><td class="r">3</td><td class="r">deliver → push（Push Worker）</td><td class="r">离线系统推送（不含原文）；60s 同人合并；保留 1 天</td></tr>
+          <tr><td class="l"><span class="tag" style="color:#dc2626">*.dlq</span></td><td class="r">原 key</td><td class="r">同源</td><td class="r">人工 / 对账任务</td><td class="r">重试 3 次失败入死信；保留 7 天</td></tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <b>容量账（3×4C16G · 混部 Kafka RF=3）</b>：单聊练手目标 1 万 DAU × 50 msg/天 = 50 万条/天 ≈ 平均 6 TPS、峰值 ×20 = 120 TPS ×1KB ≈ 120KB/s ——
+        单 broker 顺序写 ~200MB/s，余量 3 个数量级。<b>投递总量口径（修正）</b>：单聊投递 35 万/天（平均 4 TPS）+ 群聊扇出 225 万/天（15 万条 × 50 人 × 30% 在线）= 260 万 push/天 ≈ 平均 30 TPS，峰值 ×20 ≈ <b>600 TPS ≈ 600KB/s</b> —— 仍余量充足；persist 落库峰值 ≈ 120 TPS（50 万条总量，群聊存储不扩散）；500 人大群极限场景 1000 条/天 × 150 在线 ≈ 15 万 push/天，单条峰值 500KB 扇出可承受。
+        feed.fanout 放大 100 好友 → 峰值 1.2 万行/秒批量写 PG（COPY 500/批）。
+        磁盘：单聊 0.35GB + 群扇出 2.3GB + fanout 0.1GB（/天）× 3 天 × RF3 ≈ 25GB，每台 200GB SSD 绰绰有余。<b>瓶颈不在 Kafka，在「敢不敢把数字跑出来」</b>（对应 AGENTS.md 压测任务，闭环见 kernel-tuning.md）。
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 7. 部署 ==================== -->
+  <section id="deploy">
+    <h2><span class="num">09</span>3 × 4C16G 部署拓扑</h2>
+    <div class="sub">混部原则：每台 = 1 etcd + 1 kafka broker + 1 Chat Server + 网关/业务服务；PG 一主两从分跨三台；关键 Worker 拆分部署且 ≥2 实例跨节点（消费组 rebalance 自动接管）。</div>
+
+    <div class="grid cols-3">
+      <div class="svc">
+        <div class="head" style="background:var(--server-soft)"><div class="ttl"><span class="dot" style="background:var(--server)"></span><div><h3>node-1</h3><small>4C16G · 200G SSD</small></div></div><span class="cmd">PG primary + 网关</span></div>
+        <div class="body">
+          <ul>
+            <li><code>etcd-1</code> / <code>kafka-broker-1</code></li>
+            <li><b>gateway</b> = <code>brave start</code>（:37001，×2 之一）</li>
+            <li><b>cs-1</b> = <code>brave joker</code>（WS :37002 / gRPC :37012）</li>
+            <li><b>PG primary</b>（persist 亲和：落库写走本机）</li>
+            <li><code>persist-worker</code>（delivery 拆分单元之一）</li>
+          </ul>
+          <div class="kv" style="margin-top:8px">
+            <div class="k">CPU 预算</div><div class="v">etcd .3 + kafka 1 + gw .5 + cs .5 + pg 1.2 + 余 .5</div>
+            <div class="k">内存预算</div><div class="v">.5 + 6(含cache) + .5 + .5 + 3 + OS 5.5</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="svc">
+        <div class="head" style="background:var(--cloud-soft)"><div class="ttl"><span class="dot" style="background:var(--cloud)"></span><div><h3>node-2</h3><small>4C16G · 200G SSD</small></div></div><span class="cmd">Feed 域 + 网关</span></div>
+        <div class="body">
+          <ul>
+            <li><code>etcd-2</code> / <code>kafka-broker-2</code></li>
+            <li><b>gateway</b> = <code>brave start</code>（:37001，×2 之二）</li>
+            <li><b>cs-2</b> = <code>brave joker</code>（WS :37002 / gRPC :37012）</li>
+            <li><code>brave feed</code> feed-api（:37003，×2 之一）</li>
+            <li><code>persist-worker</code> ×2 副本之二 + <code>fanout-worker</code></li>
+            <li><b>PG replica</b>（流复制 + feed 读分担）</li>
+          </ul>
+          <div class="kv" style="margin-top:8px">
+            <div class="k">读分流</div><div class="v">feed 读走本机 replica；chat 强一致走 primary</div>
+            <div class="k">故障</div><div class="v">node-1 宕 → replica 升主（patroni 可选）</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="svc">
+        <div class="head" style="background:var(--joker-soft)"><div class="ttl"><span class="dot" style="background:var(--joker)"></span><div><h3>node-3</h3><small>4C16G · 200G SSD</small></div></div><span class="cmd">投递 + 观测</span></div>
+        <div class="body">
+          <ul>
+            <li><code>etcd-3</code> / <code>kafka-broker-3</code></li>
+            <li><b>cs-3</b> = <code>brave joker</code>（WS :37002 / gRPC :37012）</li>
+            <li><code>brave feed</code> feed-api（:37003，×2 之二）</li>
+            <li><code>deliver-worker</code> ×2 + <code>push-worker</code>（×2 之二在 node-2 可选）</li>
+            <li><b>PG replica</b>（kv 读缓存源 + 备份）</li>
+            <li><code>prometheus + grafana</code>（可选，1C1G）</li>
+          </ul>
+          <div class="kv" style="margin-top:8px">
+            <div class="k">关键指标</div><div class="v">topic lag / 投递 P99 / ws 连接数 / kv 命中率</div>
+            <div class="k">告警</div><div class="v">lag &gt; 10k · broker down · PG 复制延迟 &gt; 5s</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <div class="label">容量估算 · 练手目标 → 上限</div>
+      <table class="tbl">
+        <thead><tr><th>指标</th><th>目标（练手）</th><th>3×4C16G 理论余量</th><th>依据</th></tr></thead>
+        <tbody>
+          <tr><td class="l">同时在线 WS</td><td class="r">3,000</td><td class="r">~100,000（3K×50KB=150MB；10 万≈5G/集群）</td><td class="r">gorilla conn ~27KB + 读写缓冲</td></tr>
+          <tr><td class="l">消息落库峰值</td><td class="r">120 TPS（50 万条/天总量 ×20，含群聊，存储不扩散）</td><td class="r">PG 简单事务 1-3 万 TPS</td><td class="r">每条 1 次单行事务</td></tr>
+          <tr><td class="l">PG 消息量</td><td class="r">0.5 GB/天</td><td class="r">200G 盘 × 90 天保留 · 单表月分区轻松承载</td><td class="r">1KB/条 × 50 万条/天</td></tr>
+          <tr><td class="l">投递总量峰值</td><td class="r">600 TPS（单聊 81 + 群聊扇出 520）</td><td class="r">&lt;1% broker 能力；12 分区槽 50 TPS/分区</td><td class="r">260 万 push/天 ×20</td></tr>
+          <tr><td class="l">离线通知峰值</td><td class="r">~180 TPS（离线占比 30%）</td><td class="r">单 Push Worker 余量充足</td><td class="r">60s 同人合并后更低</td></tr>
+          <tr><td class="l">群聊扇出放大</td><td class="r">225 万 push/天（30%群聊·均50人·在线30%）</td><td class="r">含在 600 TPS 投递总量内</td><td class="r">写扩散仅投递层；存储 1 份</td></tr>
+          <tr><td class="l">fanout 写放大</td><td class="r">200 万行/天（100 好友）</td><td class="r">COPY 批量写 &gt; 5 万行/s</td><td class="r">inbox 仅存 (uid, post_id) 引用</td></tr>
+          <tr><td class="l">feed 读 P99</td><td class="r">&lt; 150ms</td><td class="r">inbox 命中路径 2 条 SQL</td><td class="r">读走 node-2/3 replica</td></tr>
+        </tbody>
+      </table>
+      <p class="footnote">规模假设：注册 10 万 / DAU 1 万 / 人均好友 100 / 日均 50 消息 / 群聊占 30%·均群 50 人·在线率 30%。若 DAU 冲到 10 万+，先扩 Kafka 分区与 PG 读副本，再谈加机器 —— 与「聊天系统」会话的 MQ 容量方法论一致（1M DAU 峰值 3-6K TPS 1v1，本集群仍有 &gt;3 倍余量）。</p>
+    </div>
+  </section>
+
+  <!-- ==================== 8. 组件清单 ==================== -->
+  <section id="libs">
+    <h2><span class="num">10</span>开发组件清单（Go 技术栈）</h2>
+    <div class="sub">保留 brave 现有已验证组件，替换数据库访问层，新增 Kafka 与 gRPC。</div>
+    <div class="card">
+      <table class="tbl">
+        <thead><tr><th style="width:30%">组件</th><th style="width:14%">版本基线</th><th>角色 / 变更说明</th></tr></thead>
+        <tbody>
+          <tr><td class="l"><span class="tag">保留</span>gin-gonic/gin</td><td>v1.8+</td><td class="r">网关与 feed-api 的 REST 框架；沿用现有路由注册模式</td></tr>
+          <tr><td class="l"><span class="tag">保留</span>gorilla/websocket</td><td>v1.5.1</td><td class="r">Chat Server WS 内核；ReadPump/WritePump 结构保留，修 30s ticker</td></tr>
+          <tr><td class="l"><span class="tag">保留</span>go.etcd.io/etcd/client/v3</td><td>v3.5.5</td><td class="r">服务注册发现；网关选 CS、Worker 找 gRPC 地址都靠它</td></tr>
+          <tr><td class="l"><span class="tag">保留</span>spf13/viper + fsnotify</td><td>v1.7+</td><td class="r">配置加载 + 热重载；etc/*.yaml 模板 envsubst 流程不变</td></tr>
+          <tr><td class="l"><span class="tag">保留</span>urfave/cli</td><td>v1.22</td><td class="r">子命令扩展：feed / delivery / fanout</td></tr>
+          <tr><td class="l"><span class="tag">保留</span>sirupsen/logrus</td><td>v1.9</td><td class="r">日志；可选升级 log/slog（go1.21 原生）</td></tr>
+          <tr><td class="l"><span class="tag">替换</span>jackc/pgx</td><td>v5</td><td class="r"><b>jinzhu/gorm → pgx</b>：JSONB / COPY 批量 / LISTEN-NOTIFY / 事务内 kv 自增，pgx 支持最完整</td></tr>
+          <tr><td class="l"><span class="tag">保留</span>pressly/goose</td><td>v3（升级）</td><td class="r">迁移工具换 postgres 方言；goose v3 原生支持 embedded SQL</td></tr>
+          <tr><td class="l"><span class="tag new">新增</span>segmentio/kafka-go</td><td>latest</td><td class="r">纯 Go Kafka 客户端（无 cgo）；Producer/ConsumerGroup API 简洁，练手友好；生产可换 franz-go</td></tr>
+          <tr><td class="l"><span class="tag new">新增</span>google.golang.org/grpc</td><td>v1.60+</td><td class="r">Delivery Worker → Chat Server 投递通道；joker.proto：RelayMessage(is_local 防回环) —— 落实 AGENTS.md §2 计划</td></tr>
+          <tr><td class="l"><span class="tag">替换</span>google/uuid</td><td>latest</td><td class="r">satori/go.uuid 已归档 → google/uuid</td></tr>
+          <tr><td class="l"><span class="tag">保留</span>golang.org/x/crypto</td><td>latest</td><td class="r">bcrypt 密码散列</td></tr>
+          <tr><td class="l"><span class="tag">保留</span>moul.io/http2curl</td><td>v1.0</td><td class="r">网关→feed-api 出站请求调试日志</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ==================== 9. 路线 ==================== -->
+  <section id="roadmap">
+    <h2><span class="num">11</span>实施路线 · 从当前代码出发</h2>
+    <div class="sub">对齐 AGENTS.md §6 分阶段原则：每阶段独立可编译、可运行、可验证，先修地基再拓功能。全部决策依据见 architecture-decisions.md。</div>
+
+    <div class="grid cols-3">
+      <div class="card">
+        <div class="label">P0 · 地基（先修后建）</div>
+        <ul class="checklist">
+          <li>修 <code>ticker 1ns</code> → 30s；<code>rand.Seed</code> 移除 <span class="badge-status bug">当前 bug</span></li>
+          <li>网关化 brave start：token 鉴权中间件 + login 正式返回 <code>ws_addr</code></li>
+          <li>MySQL → PG：goose postgres 迁移 + pgx 连接层 + 现有 GORM 调用改写</li>
+          <li>etcd users/{uid} → PG kv；Joker 连接生命周期维护 online kv；cloudware 删除</li>
+          <li>Kafka 接入：chat.msg / chat.push + Delivery Worker</li>
+          <li>joker.proto gRPC：RelayMessage 投递闭环（Worker→Chat Server，含 is_local）</li>
+          <li>回归：docker-compose 单机跑通「登录→连 CS→发→落库→投递→ACK」</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="label">P1 · 朋友圈</div>
+        <ul class="checklist">
+          <li>posts / feed_inbox / post_actions / counters 表 + 迁移</li>
+          <li>brave feed 服务 + 网关 /v1/feed/* 路由</li>
+          <li>发布（同步落库 + 异步 fanout）、读取（inbox+pull merge）</li>
+          <li>fanout worker：好友批量 COPY 写 inbox；big_v 阈值跳过</li>
+          <li>tombstone 软删 + 读过滤；点赞计数异步聚合</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="label">P2 · 体验与工程</div>
+        <ul class="checklist">
+          <li>离线拉取：unread 标记 + WS notify + 经网关 REST seq 游标分页；客户端 seq gap 对账（心跳携带，双模式终极兑底）</li>
+          <li>群聊（详见 §5 设计）：groups 表 + persist 扇出 + 群事件消息 + @/@all 校验 + 管理 API 五件套</li>
+          <li>Push Worker + chat.notify：APNs/FCM 接入、节流合并、独立重试</li>
+          <li>压测：tools/stress（N 连接 + 消息风暴），遵循 kernel-tuning.md 的「压测→调优→压测记录」闭环，产出真实 TPS/延迟/连接数/资源数字</li>
+          <li>Prometheus 指标：lag / P99 / 连接数；Grafana 面板</li>
+          <li>README 按 AGENTS.md §7 诚实标注「已实现 vs 设计中」</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <b>面试叙事锚点</b>（与 <code>docs/distributed-im-system-design-interview-reference.md</code> 及 <code>docs/architecture-decisions.md</code> 互链）：这套设计的五个可讲权衡 ——
+      ① 网关(Web Server)与 Chat Server(Joker) 分层：控制面（鉴权/路由/选点）与数据面（长连接收发）分离，WS 直连避免网关成为转发瓶颈；
+      ② 消息主干走 Kafka 而非 CS 间直连 gRPC：解耦 + 削峰 + 可回放，代价是多一跳（P99 +~20ms）；
+      ③ 在线路由放 PG kv 而非 etcd：etcd 是服务注册表不是高频数据存储，谁持有连接谁维护路由；
+      ④ 朋友圈 push 为主 pull 兜底：好友数有界时写扩散换读延迟，big_v 一条阈值规则降级 —— 正是「新闻流系统」会话中 push/pull/hybrid 的工程落地；
+        ⑤ 群聊「投递层写扩散、存储读扩散」：成员 ≤500 有界 → 在线扇出可控；砍掉已读矩阵与撤回（约束③④）才敢在 3×4C16G 混部上跑群聊；chat.msg 按 gid 分区、chat.push 按 uid 分区，两个顺序域一次写入完成切换。
+    </div>
+  </section>
+
+  <footer>
+    Generated from <code>alfred.brave.com</code> 目标设计 v4（v3 群聊 + 在线状态机与通知系统；容量口径修正为 600 TPS 全量）· 单文件 HTML · 2026-09-01<br/>
+    配套：architecture-decisions.md（决策记录）· kernel-tuning.md（内核调优与压测闭环）· 数字为估算，需压测验证
+  </footer>
+
+</div>
+
+<script>
+  const ftabs = document.querySelectorAll('#feedTabs button');
+  const fsvgs = { pub: document.getElementById('feed-pub'), read: document.getElementById('feed-read') };
+  const fnote = document.getElementById('feedNote');
+  const flabels = {
+    pub:  '<b>发布写路径</b> · 网关路由 → 同步落库返回 + 异步 fanout 扩散。',
+    read: '<b>读取路径</b> · 网关透明转发 → inbox push + big_v pull → merge → hydrate。'
+  };
+  ftabs.forEach(b => b.addEventListener('click', () => {
+    ftabs.forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    Object.values(fsvgs).forEach(s => s.style.display = 'none');
+    fsvgs[b.dataset.tab].style.display = '';
+    fnote.innerHTML = '当前显示：' + flabels[b.dataset.tab];
+  }));
+</script>
+</body>
+</html>
