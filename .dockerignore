@@ -1,0 +1,9 @@
+# 构建上下文排除项：缩小镜像构建上下文、避免把无关大文件送进 builder。
+.git
+.gitignore
+.vscode
+picture
+**/*.md
+**/*_test.go
+
+# 注意：不排除 docker/ etc/ template/ —— 它们是镜像必需的。

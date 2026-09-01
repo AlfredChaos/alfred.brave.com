@@ -1,0 +1,14 @@
+debug: false
+version: "v1"
+log:
+  level: "debug"
+  output: "stdout"
+  file_path: "/var/log/brave/joker.log"
+bind_address: "0.0.0.0"
+bind_port: 37002
+# 注册到 etcd 与回传客户端的可路由地址 = 容器名（由 ADVERTISE_HOST 注入，envsubst 渲染）
+advertise_host: "${ADVERTISE_HOST}"
+etcd:
+  dial_timeout: 5
+  # joker 连同容器内的本地 etcd 成员（127.0.0.1:2379），集群内部同步登录态/服务表
+  endpoints: "127.0.0.1:2379"

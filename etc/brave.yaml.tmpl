@@ -1,0 +1,19 @@
+debug: false
+version: "v1"
+log:
+  level: "debug"
+  output: "stdout"
+  file_path: "/var/log/brave/brave.log"
+bind_address: "0.0.0.0"
+bind_port: 37001
+database_driver: "mysql"
+mysql:
+  user: "${MYSQL_USER}"
+  password: "${MYSQL_PASSWORD}"
+  server: "${MYSQL_HOST}"
+  port: 3306
+  database: "${MYSQL_DATABASE}"
+etcd:
+  dial_timeout: 5
+  # 连 etcd 集群（任一成员即可读到全集群数据）
+  endpoints: "${ETCD_ENDPOINTS}"
