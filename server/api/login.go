@@ -196,6 +196,11 @@ func QueryParams(c *gin.Context) map[string]string {
 
 func getServiceByRandom() string {
 	serviceNum := len(Services)
+	// 服务发现列表可能为空（joker 尚未注册完成），rand.Intn(0) 会 panic。
+	// 返回空串由调用方作为“无可用节点”错误处理，避免进程崩溃。
+	if serviceNum == 0 {
+		return ""
+	}
 	rand.Seed(time.Now().Unix())
 	return Services[rand.Intn(serviceNum)]
 }
