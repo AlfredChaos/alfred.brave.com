@@ -1,9 +1,18 @@
 package exchange
 
 import (
+	"context"
 	"sync"
 	"time"
+
+	"alfred.brave.com/database"
 )
+
+// kvOnline Online hooks 所需的最小 kv 能力。
+type kvOnline interface {
+	Put(ctx context.Context, key string, value interface{}) error
+	DeleteIfMatch(ctx context.Context, key, field, self string) error
+}
 
 // Manager 连接表与连接生命周期事件循环。
 // Users 为本机权威连接子集（sync.Map 并发安全）；清理任务每分钟扫一次超时连接。
@@ -14,6 +23,22 @@ type Manager struct {
 	Broadcast   chan []byte
 	ServiceId   string
 	ServiceHost string
+
+	online     OnlineKV // online:{uid} 写入器；nil = 本地模式（不维护在线状态）
+	onlineCs   string   // 本机 WS 服务地址（etcd services 表同格式）
+	onlineAddr string   // 本机 gRPC 投递地址
+}
+
+// SetOnline 注入 online kv 写入器（joker.Start 启动期一次性调用，运行期只读）。
+func (manager *Manager) SetOnline(kv OnlineKV) {
+	manager.online = kv
+}
+
+// SetOnlineIdentity 声明本机服务地址：cs 为 WS host:port（GHOST 对账比对用），
+// addr 为 gRPC 投递地址（deliver worker 用）。
+func (manager *Manager) SetOnlineIdentity(cs, addr string) {
+	manager.onlineCs = cs
+	manager.onlineAddr = addr
 }
 
 func NewManager() *Manager {
@@ -27,12 +52,30 @@ func NewManager() *Manager {
 
 func (manager *Manager) EventRegister(client *Client) {
 	manager.Users.Store(client.UserId, client)
+	// D06：连接建立 → upsert online:{uid}（Joker 是唯一写者）。失败只告警不阻断连接。
+	if manager.online != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if err := manager.online.Upsert(ctx, client.UserId, manager.onlineCs, manager.onlineAddr); err != nil {
+			log.Errorf("upsert online:%s failed: %v", client.UserId, err)
+		}
+	}
 }
 
-// EventUnregister 从连接表移除；重复移除（清理任务先踢 + Pump 退出再报）幂等无害。
+// EventUnregister 从连接表移除并条件清理 online kv；重复移除幂等无害。
 func (manager *Manager) EventUnregister(client *Client) {
 	manager.Users.Delete(client.UserId)
+	if manager.online != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		// 先删本机连接表，后删 kv；条件删除防漂移误删（§4）
+		if err := manager.online.DeleteIfMatch(ctx, client.UserId, manager.onlineCs); err != nil {
+			log.Errorf("delete online:%s failed: %v", client.UserId, err)
+		}
+	}
 }
+
+var _ kvOnline = (*database.KvStore)(nil)
 
 func (manager *Manager) GetAllClients() []*Client {
 	result := make([]*Client, 0)

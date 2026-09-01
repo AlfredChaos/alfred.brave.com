@@ -11,8 +11,6 @@ func registerRoutes(router *gin.Engine, config *conf.Config) {
 	v1 := router.Group(config.BaseUri(""))
 
 	{
-		api.Login(v1)
-		api.Logout(v1)
 		api.Websocket(v1)
 	}
 }

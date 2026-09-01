@@ -1,8 +1,6 @@
 package etcd
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -11,17 +9,16 @@ import (
 )
 
 const (
-	PrefixUsers = iota + 1
-	PrefixService
+	PrefixService = iota + 1
 )
 
 var etcdConn *clientv3.Client
 
 var Schemes = map[int]string{
-	PrefixUsers:   "users",
 	PrefixService: "services",
 }
 
+// Factory etcd 键值访问的抽象（当前仅服务表；用户登录态已迁移 PG kv，见 D05/D06）。
 type Factory interface {
 	Update() error
 	Get() error
@@ -32,6 +29,7 @@ func RegisterEtcdConn(conn *clientv3.Client) {
 	etcdConn = conn
 }
 
+// dbClient 取 etcd 连接；未注册时按配置自建（历史懒加载路径，保持现状不重构）。
 func dbClient() *clientv3.Client {
 	if etcdConn == nil {
 		endpoints := strings.Split(viper.GetString("etcd.endpoints"), ",")
@@ -39,49 +37,6 @@ func dbClient() *clientv3.Client {
 		etcdConn = NewEtcdClient(endpoints, dialTimeout)
 	}
 	return etcdConn
-}
-
-type User struct {
-	UserId         string `json:"user_id"`
-	UserToken      string `json:"user_token"`
-	JokerServiceId string `json:"joken_service_id"`
-	LoginHost      string `json:"login_host"`
-	LoginTime      string `json:"login_time"`
-}
-
-type UserFactory struct {
-	Namespace int
-	User      *User
-}
-
-func (u *UserFactory) Update() error {
-	bData, _ := json.Marshal(u.User)
-	ns := generateNamespace(u.Namespace, u.User.UserId)
-	if _, err := dbClient().Put(context.Background(), ns, string(bData)); err != nil {
-		return errorHandler(err)
-	}
-	return nil
-}
-
-func (u *UserFactory) Get() error {
-	ns := generateNamespace(u.Namespace, u.User.UserId)
-	resp, err := dbClient().Get(context.Background(), ns)
-	if err != nil {
-		return errorHandler(err)
-	}
-	for _, ev := range resp.Kvs {
-		json.Unmarshal(ev.Value, u.User)
-		return nil
-	}
-	return nil
-}
-
-func (u *UserFactory) Delete() error {
-	ns := generateNamespace(u.Namespace, u.User.UserId)
-	if _, err := dbClient().Delete(context.Background(), ns, clientv3.WithPrefix()); err != nil {
-		return errorHandler(err)
-	}
-	return nil
 }
 
 func generateNamespace(prefix int, id string) string {

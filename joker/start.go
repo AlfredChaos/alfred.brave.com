@@ -7,15 +7,16 @@ import (
 	"time"
 
 	"alfred.brave.com/conf"
+	"alfred.brave.com/database"
 	"alfred.brave.com/event"
 	"alfred.brave.com/internal/etcd"
 	"alfred.brave.com/joker/exchange"
 	"github.com/gin-gonic/gin"
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 )
 
 var log = event.Log
-var ServiceId = uuid.NewV4().String()
+var ServiceId = uuid.NewString()
 
 // Start the REST API server using the configuration provided
 func Start(ctx context.Context, config *conf.Config) {
@@ -40,7 +41,12 @@ func Start(ctx context.Context, config *conf.Config) {
 	}
 	// 注册到 etcd 与回传客户端用的 host 必须是对外可路由地址（advertise_host），
 	// 而非监听地址 ser.Addr（监听通常是 0.0.0.0，外部无法连接）。
-	exchange.RegisterServiceHost(fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetHttpPort()))
+	wsAddr := fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetHttpPort())
+	grpcAddr := fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetGrpcPort())
+	exchange.RegisterServiceHost(wsAddr)
+	// D06：Joker 作为 online:{uid} 唯一写者，PG kv 经构造注入
+	exchange.Controller.SetOnline(exchange.NewPgOnlineKV(database.NewKvStore(config.Db())))
+	exchange.Controller.SetOnlineIdentity(wsAddr, grpcAddr)
 	log.Infof("server: listening on %s [%s]", ser.Addr, time.Since(start))
 	go StartHttp(ser)
 	go ServiceRegister(ctx, config)

@@ -157,6 +157,14 @@ func (c *Config) GetHttpHost() string {
 	return c.options.HttpHost
 }
 
+// GetGrpcPort 返回 gRPC 投递监听端口（joker 专用，默认 37012）。
+func (c *Config) GetGrpcPort() int {
+	if c.options == nil || c.options.GrpcPort == 0 {
+		return 37012
+	}
+	return c.options.GrpcPort
+}
+
 func (c *Config) GetHttpPort() int {
 	if c.options == nil || (c.options != nil && c.options.HttpPort == 0) {
 		log.Debug("http port not set")

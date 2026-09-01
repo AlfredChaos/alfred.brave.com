@@ -26,6 +26,7 @@ type Options struct {
 	AuthSecret        string   `json:"AuthSecret"`
 	HttpHost          string   `json:"HttpHost"`
 	HttpPort          int      `json:"HttpPort"`
+	GrpcPort          int      `json:"GrpcPort"`
 	AdvertiseHost     string   `json:"AdvertiseHost"`
 	LogFilename       string   `json:"LogFilename"`
 	SiteUrl           string   `json:"SiteUrl"`
@@ -43,6 +44,7 @@ func NewOptions(ctx *cli.Context, service string) *Options {
 	c.LogFilename = event.ConfigYaml.GetString("log.file_path")
 	c.HttpHost = event.ConfigYaml.GetString("bind_address")
 	c.HttpPort = event.ConfigYaml.GetInt("bind_port")
+	c.GrpcPort = event.ConfigYaml.GetInt("grpc_port")
 	c.AdvertiseHost = event.ConfigYaml.GetString("advertise_host")
 	c.AuthSecret = event.ConfigYaml.GetString("auth.secret")
 	c.DatabaseDriver = event.ConfigYaml.GetString("database_driver")

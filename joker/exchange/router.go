@@ -62,7 +62,8 @@ func handleHeartbeat(c *Client, data json.RawMessage) {
 	c.SendResponse(OK, "", nil)
 }
 
-// handleMsg 消息投递（T01 保留旧逻辑，T05 重写为 produce chat.msg）。
+// handleMsg 消息投递。T04 状态：etcd 登录态路径已随用户态迁移移除，
+// Kafka produce chat.msg 链路在 T05 落地——当前为声明的空窗，显式拒绝而不是假装成功。
 func handleMsg(c *Client, data json.RawMessage) {
 	request := &MessageRequest{}
 	if err := json.Unmarshal(data, request); err != nil {
@@ -74,5 +75,5 @@ func handleMsg(c *Client, data json.RawMessage) {
 		c.SendResponse(ParameterIllegal, "from/to required", nil)
 		return
 	}
-	c.SendMessage(request)
+	c.SendResponse(OperationFailure, "delivery pipeline lands in T05", nil)
 }

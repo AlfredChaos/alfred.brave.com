@@ -64,5 +64,6 @@ func jokerAction(ctx *cli.Context) error {
 func registerJokerMiddlewares() []int {
 	return []int{
 		common.MiddlewareEtcd,
+		common.MiddlewareDatabase,
 	}
 }

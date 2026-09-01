@@ -14,4 +14,6 @@ var Braves = []cli.Command{
 	MigrationCommand,
 	// IM kernel service
 	JokerCommand,
+	// Online-status reconciliation worker
+	GhostCommand,
 }

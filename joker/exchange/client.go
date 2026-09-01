@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"alfred.brave.com/event"
-	"alfred.brave.com/internal/etcd"
 	"github.com/gorilla/websocket"
 )
 
@@ -167,27 +166,6 @@ func (c *Client) ReadPump() {
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		log.Debugf("==> Get Message: %s", message)
 		poccessMessage(c, message)
-	}
-}
-
-// SendMessage 旧消息投递路径（T01 仅保留现状：etcd 登录态检查，投递分支为空）。
-// T05 起重写为 produce chat.msg。
-func (c *Client) SendMessage(request *MessageRequest) {
-	answer := request.To
-	// 判断收信人是否在线（T04 起迁移到 PG kv online:{uid}）
-	userFactory := etcd.UserFactory{
-		Namespace: etcd.PrefixUsers,
-		User:      &etcd.User{UserId: answer},
-	}
-	if err := userFactory.Get(); err != nil {
-		log.Errorf("check answer %s login status fail, err = %v", answer, err)
-		c.SendResponse(NotLoggedIn, "", nil)
-		return
-	}
-	if ServiceHost == userFactory.User.LoginHost {
-		// 收信人在本地登录
-	} else {
-		// 收信人在异地登录
 	}
 }
 

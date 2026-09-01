@@ -6,9 +6,16 @@ log:
   file_path: "/var/log/brave/joker.log"
 bind_address: "0.0.0.0"
 bind_port: 37002
+grpc_port: 37012
 # advertise_host 是本节点对外暴露的可路由地址（注册到 etcd、回传给客户端）。
 # 多副本/容器部署时设为容器可达名（如 work-1）；留空则回退到 bind_address，保证本地裸跑不回归。
 advertise_host: ""
+postgres:
+  user: "brave"
+  password: "brave"
+  server: "127.0.0.1"
+  port: 5432
+  database: "brave"
 etcd:
   dial_timeout: 5
   endpoints: "172.31.248.51:2379"
