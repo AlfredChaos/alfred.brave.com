@@ -98,14 +98,14 @@ func (fs *FeedStore) GetPosts(ctx context.Context, postIDs []string) (map[string
 	return result, rows.Err()
 }
 
-// PullByAuthors big_v 读取：给定作者集合的最近 N 条（含 big_v 标记的帖）。
-func (fs *FeedStore) PullByAuthors(ctx context.Context, uids []string, limit int) ([]Post, error) {
+// PullRecentByAuthors pull 读取：给定作者集合（big_v 好友 + 自己）的最近 N 条。
+func (fs *FeedStore) PullRecentByAuthors(ctx context.Context, uids []string, limit int) ([]Post, error) {
 	if len(uids) == 0 || limit <= 0 {
 		return nil, nil
 	}
 	rows, err := fs.store.pool.Query(ctx,
 		`SELECT post_id, uid, content, media, is_big_v, is_deleted, created_at
-		 FROM posts WHERE uid = ANY($1) AND is_big_v AND NOT is_deleted
+		 FROM posts WHERE uid = ANY($1) AND NOT is_deleted
 		 ORDER BY created_at DESC LIMIT $2`, uids, limit)
 	if err != nil {
 		return nil, err
@@ -165,6 +165,34 @@ func (fs *FeedStore) PageInbox(ctx context.Context, uid string, before time.Time
 		entries = append(entries, e)
 	}
 	return entries, rows.Err()
+}
+
+// GetCounters 批量取计数（hydrate 用）。
+func (fs *FeedStore) GetCounters(ctx context.Context, postIDs []string) (map[string]*PostCounter, error) {
+	result := make(map[string]*PostCounter, len(postIDs))
+	if len(postIDs) == 0 {
+		return result, nil
+	}
+	rows, err := fs.store.pool.Query(ctx,
+		`SELECT post_id, like_cnt, comment_cnt, updated_at FROM post_counters WHERE post_id = ANY($1)`, postIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var c PostCounter
+		if err := rows.Scan(&c.PostID, &c.LikeCnt, &c.CommentCnt, &c.UpdatedAt); err != nil {
+			return nil, err
+		}
+		result[c.PostID] = &c
+	}
+	return result, rows.Err()
+}
+
+// SoftDeletePost 帖子 tombstone（读取时过滤，inbox 不物理清理）。
+func (fs *FeedStore) SoftDeletePost(ctx context.Context, postID string) error {
+	_, err := fs.store.pool.Exec(ctx, `UPDATE posts SET is_deleted = true WHERE post_id = $1`, postID)
+	return err
 }
 
 // CountFriendsByOwner 好友数（is_big_v 判定用；D07 双边行，owner 侧计数即好友数）。

@@ -126,6 +126,28 @@ func (us *UserStore) List(ctx context.Context, filters *UserFilters) ([]User, er
 	return users, rows.Err()
 }
 
+// GetMany 批量取用户（feed hydrate 作者信息用）。
+func (us *UserStore) GetMany(ctx context.Context, uids []string) (map[string]*User, error) {
+	result := make(map[string]*User, len(uids))
+	if len(uids) == 0 {
+		return result, nil
+	}
+	rows, err := us.store.pool.Query(ctx,
+		`SELECT `+userColumns+` FROM users WHERE uid = ANY($1)`, uids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var u User
+		if err := scanUser(rows, &u); err != nil {
+			return nil, err
+		}
+		result[u.UID] = &u
+	}
+	return result, rows.Err()
+}
+
 // UpdateLoginAt 登录成功后刷新 login_at/updated_at（原版 Update 全字段更新收窄为实际用途）。
 func (us *UserStore) UpdateLoginAt(ctx context.Context, uid string) error {
 	_, err := us.store.pool.Exec(ctx,
