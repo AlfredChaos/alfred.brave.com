@@ -210,37 +210,27 @@ func sendFrame(conn *websocket.Conn, frame interface{}) {
 	}
 }
 
-// readFrame 读一帧并解析；跳过心跳/受理回执类帧，只认 ack/msg。
-// recover：服务端断开与 deadline 到期并发时 gorilla 内部可能 panic，按超时处理。
-func readFrame(conn *websocket.Conn, timeout time.Duration) (result map[string]interface{}) {
+// readFrame 阻塞读一帧目标帧（cmd=msg/ack）。
+// gorilla 语义：ReadMessage 一旦返回错误（含 deadline），读侧即失败、再次读会 panic——
+// 因此不做"出错后重试"循环，一次读拿满整个超时窗口；仅对成功读到的非目标帧（受理回执）跳过续读。
+func readFrame(conn *websocket.Conn, timeout time.Duration) map[string]interface{} {
 	deadline := time.Now().Add(timeout)
-	defer func() {
-		if r := recover(); r != nil {
-			fatalf("read frame panicked (conn closed concurrently): %v", r)
-		}
-	}()
-	for time.Now().Before(deadline) {
-		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	for {
+		conn.SetReadDeadline(deadline)
 		_, raw, err := conn.ReadMessage()
 		if err != nil {
-			continue
+			fatalf("read frame: %v (no target frame within %s)", err, timeout)
 		}
 		var frame struct {
 			Cmd  string                 `json:"cmd"`
 			Code *uint32                `json:"code"`
 			Data map[string]interface{} `json:"data"`
 		}
-		if json.Unmarshal(raw, &frame) != nil {
-			continue
+		if json.Unmarshal(raw, &frame) != nil || frame.Cmd == "" {
+			continue // 受理回执 {code:200} 等非目标帧：连接仍健康，续读
 		}
-		if frame.Cmd == "" {
-			continue // 受理回执 {code:200} 跳过
-		}
-		out := map[string]interface{}{"cmd": frame.Cmd, "data": frame.Data}
-		return out
+		return map[string]interface{}{"cmd": frame.Cmd, "data": frame.Data}
 	}
-	fatalf("no frame within %s", timeout)
-	return nil
 }
 
 func drainFrames(conn *websocket.Conn, window time.Duration) {

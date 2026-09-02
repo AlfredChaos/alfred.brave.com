@@ -44,15 +44,13 @@ func TestGhostSweepIntegration(t *testing.T) {
 		t.Fatalf("upsert dead: %v", err)
 	}
 
+	// 共享测试库可能有其他用例遗留的 online 记录——按本用例的键断言，
+	// 不断言全局清理数（sweep 清掉别家遗留属正确行为）
 	r := NewReconciler(kv, func() map[string]bool {
 		return map[string]bool{"cs-alive:37002": true}
 	})
-	removed, err := r.Sweep(ctx)
-	if err != nil {
+	if _, err := r.Sweep(ctx); err != nil {
 		t.Fatalf("sweep: %v", err)
-	}
-	if removed != 1 {
-		t.Fatalf("removed = %d, want 1", removed)
 	}
 
 	var v exchange.OnlineValue

@@ -2,7 +2,7 @@
 
 > 依据 `docs/dev-task-prompt.md` §10 启动指令产出：先盘点当前代码与 `target-architecture.html` v4 的差距，再按 T01-T19 逐任务四阶段（SDD→TDD→验收→Review）推进。每任务一份 `T<NN>-<slug>.md` 规格。
 
-## 1. 现状盘点（2026-09-01，基线 commit 8708c5c）
+## 1. 现状盘点（2026-09-01 基线 commit 8708c5c；T01-T19 已全部落地，见 FINAL-REPORT.md）
 
 ### 已有框架（沿用，不重写）
 
