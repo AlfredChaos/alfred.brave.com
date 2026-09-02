@@ -62,6 +62,7 @@ $ go run ./tools/e2e -gateway http://127.0.0.1:37001     # 连续 3 次稳定通
 5. **D15 心跳 seq 对账服务端段**：客户端按 seq 补拉/去重已实现；心跳携带 last_seqs 的服务端比对未实现（设计项）。
 6. **PG 读写分流 / patroni 自动切换 / 网关 LB**：生产简化项（deploy/prod README 列明 5 条）。
 7. **DLQ 死信 topic**：毒消息策略为 log+skip+commit；*.dlq 未实现（T05/T16 spec 声明的全局遗留）。
+8. **Send chan 缓冲**：保持现有 1000；kernel-tuning.md §5 目标 16~32 属压测阶段联动项（本阶段该文档只读不用）。
 
 ## 5. 红灯修复记录（TDD 有效性抽样）
 
