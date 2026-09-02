@@ -17,8 +17,13 @@
 ## 2. 验收记录
 
 - API 级全流程（本地栈真实运行）：feed 发布（经网关代理）→ 加好友 → fanout 收件箱 → B 时间线见 A 的帖 → 点赞；建群 → 成员看到 system_event 流；`/web/` 静态资源 200×3 ✅
-- `go run ./tools/e2e` 回归 PASS ✅
+- `go run ./tools/e2e` 回归 PASS（3/3 稳定）✅
 - 压测骨架：`go build ./tools/stress` 通过；**未执行**（明示）✅
+- **真实浏览器验证（自动化 IAB）**：设置页/注册/自动登录/带 token 的用户列表在真实浏览器渲染与调用全部正常 ✅；
+  WebSocket 腿被自动化环境封锁——页面内 `new WebSocket` 对两个 CS 端口均 error+close 1006、CS 日志无到达记录，
+  而同 URL 的 Go 客户端握手/心跳/在线 kv 全部成功 ⇒ 属 webview 环境限制而非代码缺陷（证据留档）。
+  **浏览器双人 WS 全流程仍未完成**，由 e2e（双 Go WS 连不同 CS）+ API 级检查作协议等价覆盖。
+- 浏览器尝试的真实收益：暴露并修复 `joker/api/websocket.go` 升级后 `c.JSON` 写 hijacked 连接的 panic（每次升级必触发）。
 
 ## 3. Review 记录
 

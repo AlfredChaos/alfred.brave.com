@@ -58,7 +58,10 @@ $ go run ./tools/e2e -gateway http://127.0.0.1:37001     # 连续 3 次稳定通
 1. **生产脚本**（deploy/prod）：服务器未购买，bootstrap/verify 从未在真实环境跑过。
 2. **压测**：tools/stress 仅骨架；**零性能数字**（无 TPS/延迟/连接容量结论；架构文档容量表是推导假设）。
 3. **厂商推送通道**：push worker 到 mock（日志）为止，"演示级"。
-4. **浏览器双人验收**：Web 客户端未做真人双窗口操作，以 API/协议级等价验收覆盖（e2e 双 WS + 群/feed API 检查）。
+4. **浏览器双人验收**：真实浏览器（自动化 IAB）验证了设置页/注册/自动登录/带鉴权的用户列表；
+  WebSocket 腿被该 webview 环境封锁（页面内对两 CS 端口均 error+close 1006、CS 无到达记录；同 URL Go 客户端成功）——
+  以 e2e（双 Go WS 连不同 CS 全流程）+ 群/feed API 级检查作协议等价覆盖。浏览器尝试暴露并修复了 WS 升级后
+  `c.JSON` 写 hijacked 连接的 panic（每次升级必触发，T19 提交）。
 5. **D15 心跳 seq 对账服务端段**：客户端按 seq 补拉/去重已实现；心跳携带 last_seqs 的服务端比对未实现（设计项）。
 6. **PG 读写分流 / patroni 自动切换 / 网关 LB**：生产简化项（deploy/prod README 列明 5 条）。
 7. **DLQ 死信 topic**：毒消息策略为 log+skip+commit；*.dlq 未实现（T05/T16 spec 声明的全局遗留）。

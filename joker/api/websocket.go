@@ -1,8 +1,6 @@
 package api
 
 import (
-	"net/http"
-
 	"alfred.brave.com/joker/exchange"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -17,8 +15,9 @@ func Websocket(router *gin.RouterGroup) {
 
 	router.GET("/ws/:id", func(c *gin.Context) {
 		user := c.Param("id")
+		// 升级后连接已被劫持，不能再写 HTTP 响应（原 c.JSON 会触发
+		// "http: connection has been hijacked" panic——浏览器实测暴露）
 		UpgradeWebsockets(user, c)
-		c.JSON(http.StatusOK, nil)
 	})
 }
 
