@@ -48,8 +48,9 @@ func Start(ctx context.Context, config *conf.Config) {
 	}
 	// 注册到 etcd 与回传客户端用的 host 必须是对外可路由地址（advertise_host），
 	// 而非监听地址 ser.Addr（监听通常是 0.0.0.0，外部无法连接）。
-	wsAddr := fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetHttpPort())
-	grpcAddr := fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetGrpcPort())
+	// wsAddr：浏览器可直连（宿主机视角）；grpcAddr：compose 网络内 deliver 可达
+	wsAddr := fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetAdvertisePort())
+	grpcAddr := fmt.Sprintf("%s:%d", config.GetGrpcAdvertiseHost(), config.GetGrpcPort())
 	exchange.RegisterServiceHost(wsAddr)
 	// D06：Joker 作为 online:{uid} 唯一写者，PG kv 经构造注入
 	exchange.Controller.SetOnline(exchange.NewPgOnlineKV(database.NewKvStore(config.Db())))
@@ -116,7 +117,7 @@ func StartHttp(s *http.Server) {
 func ServiceRegister(cctx context.Context, config *conf.Config) {
 	lease := setServiceLease()
 	// 注册进 etcd 的服务地址同样用 advertise_host，供 server 发现与调用。
-	host := fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetHttpPort())
+	host := fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetAdvertisePort())
 	server, err := etcd.NewServiceRegister(ServiceId, host, lease, config.EtcdClient)
 	if err != nil {
 		log.Errorf("service %s register error: %v", ServiceId, err)

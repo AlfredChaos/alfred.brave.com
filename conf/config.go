@@ -190,8 +190,8 @@ func (c *Config) AuthSecret() string {
 	return c.options.AuthSecret
 }
 
-// GetAdvertiseHost 返回本节点对外可路由的主机地址（用于注册到 etcd 与回传给客户端）。
-// 未配置 advertise_host 时回退到监听地址 bind_address，保证本地裸跑行为不变。
+// GetAdvertiseHost 返回对外可路由主机（注册 etcd / 回传 ws_addr 用）；
+// 未配置时回退监听地址，保证本地裸跑行为不变。
 func (c *Config) GetAdvertiseHost() string {
 	if c.options == nil {
 		return ""
@@ -200,6 +200,26 @@ func (c *Config) GetAdvertiseHost() string {
 		return c.options.AdvertiseHost
 	}
 	return c.GetHttpHost()
+}
+
+// GetAdvertisePort 对外 WS 端口：本地双节点把不同容器映射到宿主机不同端口时
+// 需要覆盖（容器内监听一致，对外暴露不同）。
+func (c *Config) GetAdvertisePort() int {
+	if c.options == nil || c.options.AdvertisePort == 0 {
+		return c.GetHttpPort()
+	}
+	return c.options.AdvertisePort
+}
+
+// GetGrpcAdvertiseHost gRPC 对内地址（deliver worker 拨接用）。
+// 浏览器直连走宿主机映射（advertise_host），worker 走 compose 网络名——两者解耦。
+func (c *Config) GetGrpcAdvertiseHost() string {
+	if c.options == nil || c.options.GrpcAdvertiseHost != "" {
+		if c.options != nil && c.options.GrpcAdvertiseHost != "" {
+			return c.options.GrpcAdvertiseHost
+		}
+	}
+	return c.GetAdvertiseHost()
 }
 
 func (c *Config) Shutdown() {

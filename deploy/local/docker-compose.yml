@@ -1,0 +1,230 @@
+# 本地开发栈（§4 规格）：单节点中间件 + 双 Joker（验证跨 CS 投递）。
+# 原则：本地跑通即可，不做高可用，不做内核调优。
+# 启动：docker compose up -d --build （或 make local-up）
+name: brave-local
+
+x-brave-common: &brave-common
+  build:
+    context: ../..
+    dockerfile: Dockerfile
+  image: brave:local
+  environment: &brave-env
+    PROJECT_PATH: /app
+    POSTGRES_USER: brave
+    POSTGRES_PASSWORD: brave
+    POSTGRES_DB: brave
+    POSTGRES_HOST: postgres
+    KAFKA_BROKERS: kafka:9092
+    ETCD_ENDPOINTS: "etcd:2379"
+    AUTH_SECRET: "local-dev-secret"
+  restart: unless-stopped
+  networks: [brave-net]
+
+services:
+  # ---------- 存储：PG 15 单实例 ----------
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: brave
+      POSTGRES_PASSWORD: brave
+      POSTGRES_DB: brave
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brave -d brave"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    networks: [brave-net]
+
+  # ---------- 注册发现：etcd 单节点 ----------
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    environment:
+      ETCD_NAME: etcd-local
+      ETCD_DATA_DIR: /data/etcd
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
+      ETCD_INITIAL_CLUSTER: etcd-local=http://etcd:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: brave-local
+    volumes:
+      - etcd-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "etcdctl --endpoints=127.0.0.1:2379 endpoint health >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    networks: [brave-net]
+
+  # ---------- 消息主干：Kafka 单 broker（KRaft） ----------
+  kafka:
+    image: apache/kafka:3.7.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_HEAP_OPTS: "-Xmx512m -Xms512m"
+      # 本地显式建 topic（关闭自动创建），分区数按 §8 规范
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server 127.0.0.1:9092 >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 20s
+    networks: [brave-net]
+
+  # ---------- topic 初始化：按 §8 分区数显式建 topic ----------
+  kafka-init:
+    image: apache/kafka:3.7.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        BS="kafka:9092"
+        # chat.msg/chat.push 12P · feed.fanout/chat.ack 6P · chat.notify 3P
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$BS --create --if-not-exists --topic chat.msg    --partitions 12 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$BS --create --if-not-exists --topic chat.push   --partitions 12 --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$BS --create --if-not-exists --topic feed.fanout --partitions 6  --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$BS --create --if-not-exists --topic chat.ack   --partitions 6  --replication-factor 1
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$BS --create --if-not-exists --topic chat.notify --partitions 3  --replication-factor 1
+        echo "[kafka-init] topics ready"
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server $$BS --list
+    restart: "no"
+    networks: [brave-net]
+
+  # ---------- DB 迁移（一次性） ----------
+  migrate:
+    <<: *brave-common
+    command: ["migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # ---------- 网关 ----------
+  gateway:
+    <<: *brave-common
+    command: ["gateway"]
+    ports:
+      - "37001:37001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  # ---------- Chat Server ×2：本地双节点唯一目的是验证跨 CS 投递 ----------
+  # 浏览器直连走宿主机端口（advertise=127.0.0.1:37x02）；deliver 走内网名（grpc_advertise）
+  cs-1:
+    <<: *brave-common
+    command: ["joker"]
+    environment:
+      <<: *brave-env
+      ADVERTISE_HOST: "127.0.0.1"
+      ADVERTISE_PORT: "37002"
+      GRPC_ADVERTISE_HOST: "cs-1"
+      JOKER_GRPC_PORT: "37012"
+    ports:
+      - "37002:37002"
+      - "37012:37012"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
+  cs-2:
+    <<: *brave-common
+    command: ["joker"]
+    environment:
+      <<: *brave-env
+      ADVERTISE_HOST: "127.0.0.1"
+      ADVERTISE_PORT: "37202"
+      GRPC_ADVERTISE_HOST: "cs-2"
+      JOKER_GRPC_PORT: "37012"
+    ports:
+      - "37202:37002"
+      - "37212:37012"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
+  # ---------- workers ----------
+  persist:
+    <<: *brave-common
+    command: ["persist"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
+  deliver:
+    <<: *brave-common
+    command: ["deliver"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
+  ghost:
+    <<: *brave-common
+    command: ["ghost"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+networks:
+  brave-net:
+
+volumes:
+  pg-data:
+  etcd-data:
+  kafka-data:

@@ -1,0 +1,14 @@
+# 无状态 worker（persist/deliver/ghost）共用模板：PG + Kafka，无 HTTP 端口
+debug: false
+version: "v1"
+log:
+  level: "info"
+  output: "stdout"
+kafka:
+  brokers: "${KAFKA_BROKERS}"
+postgres:
+  user: "${POSTGRES_USER}"
+  password: "${POSTGRES_PASSWORD}"
+  server: "${POSTGRES_HOST}"
+  port: 5432
+  database: "${POSTGRES_DB}"

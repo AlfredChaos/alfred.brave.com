@@ -29,6 +29,8 @@ type Options struct {
 	HttpPort          int      `json:"HttpPort"`
 	GrpcPort          int      `json:"GrpcPort"`
 	AdvertiseHost     string   `json:"AdvertiseHost"`
+	AdvertisePort     int      `json:"AdvertisePort"`
+	GrpcAdvertiseHost string   `json:"GrpcAdvertiseHost"`
 	LogFilename       string   `json:"LogFilename"`
 	SiteUrl           string   `json:"SiteUrl"`
 }
@@ -47,6 +49,8 @@ func NewOptions(ctx *cli.Context, service string) *Options {
 	c.HttpPort = event.ConfigYaml.GetInt("bind_port")
 	c.GrpcPort = event.ConfigYaml.GetInt("grpc_port")
 	c.AdvertiseHost = event.ConfigYaml.GetString("advertise_host")
+	c.AdvertisePort = event.ConfigYaml.GetInt("advertise_port")
+	c.GrpcAdvertiseHost = event.ConfigYaml.GetString("grpc_advertise_host")
 	c.AuthSecret = event.ConfigYaml.GetString("auth.secret")
 	c.DatabaseDriver = event.ConfigYaml.GetString("database_driver")
 	c.DatabaseName = event.ConfigYaml.GetString("postgres.database")

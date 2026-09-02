@@ -1,12 +1,4 @@
-# AI coding agent guidance — keep local only, do not commit/push.
-# .gitignore only blocks git tracking; coding agents still read/write via filesystem.
-AGENTS.md
-
-# Go build artifacts
-/cmd/brave
-*.exe
+# binaries
+e2e
+brave
 *.test
-*.out
-
-# OS
-.DS_Store

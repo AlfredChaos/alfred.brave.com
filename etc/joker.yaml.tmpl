@@ -7,8 +7,12 @@ log:
 bind_address: "0.0.0.0"
 bind_port: 37002
 grpc_port: ${JOKER_GRPC_PORT}
-# 注册到 etcd 与回传客户端的可路由地址 = 容器名（由 ADVERTISE_HOST 注入，envsubst 渲染）
+# 注册到 etcd 与回传客户端的可路由地址（浏览器直连视角，由 ADVERTISE_HOST 注入）
 advertise_host: "${ADVERTISE_HOST}"
+# 宿主机映射端口（本地双节点各映射不同宿主端口时覆盖；容器内监听不变）
+advertise_port: ${ADVERTISE_PORT}
+# gRPC 对内地址（compose 网络名，deliver worker 拨接用；缺省同 advertise_host）
+grpc_advertise_host: "${GRPC_ADVERTISE_HOST}"
 postgres:
   user: "${POSTGRES_USER}"
   password: "${POSTGRES_PASSWORD}"
@@ -19,5 +23,4 @@ kafka:
   brokers: "${KAFKA_BROKERS}"
 etcd:
   dial_timeout: 5
-  # joker 连同容器内的本地 etcd 成员（127.0.0.1:2379），集群内部同步服务表
-  endpoints: "127.0.0.1:2379"
+  endpoints: "${ETCD_ENDPOINTS}"
