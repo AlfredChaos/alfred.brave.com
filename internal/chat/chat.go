@@ -72,6 +72,14 @@ type ContentText struct {
 	Text string `json:"text"`
 }
 
+// Notify chat.notify 载荷（D12）：离线通知最小要素，不含原文。
+type Notify struct {
+	ToUID   string `json:"to_uid"`
+	FromUID string `json:"from_uid"`
+	ConvID  string `json:"conv_id"`
+	Seq     int64  `json:"seq"`
+}
+
 // AckFromPush 从送达的 push 构造回执（deliver 送达后 produce chat.ack，key=from_uid）。
 func AckFromPush(p *Push) *Ack {
 	return &Ack{

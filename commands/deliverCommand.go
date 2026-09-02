@@ -35,11 +35,13 @@ func deliverAction(ctx *cli.Context) error {
 		log.Warnf("ensure topics failed (broker not up?): %v", err)
 	}
 
-	// onDelivered → chat.ack（T07 接线）；onOffline → chat.notify（T16 接线）
-	var ackProducer *ibrave.Producer
+	// onDelivered → chat.ack；onOffline → chat.notify（D12：离线判定副产品驱动通知链路）
+	var ackProducer, notifyProducer *ibrave.Producer
 	if len(config.KafkaBrokers()) > 0 {
 		ackProducer = ibrave.NewProducer(config.KafkaBrokers(), chat.TopicAck)
 		defer ackProducer.Close()
+		notifyProducer = ibrave.NewProducer(config.KafkaBrokers(), chat.TopicNotify)
+		defer notifyProducer.Close()
 	}
 
 	worker := deliver.New(config.Db(), config.KafkaBrokers(), "deliver",
@@ -57,8 +59,24 @@ func deliverAction(ctx *cli.Context) error {
 			}
 		},
 		func(ctx context.Context, push *chat.Push) {
-			// T16：produce chat.notify；当前阶段离线静默（补拉兜底），日志留痕
-			log.Debugf("offline push skipped: to=%s conv=%s seq=%d", push.ToUID, push.ConvID, push.Seq)
+			if notifyProducer == nil {
+				return
+			}
+			// 通知不含原文（隐私 + 免登拉取，D12），只带最小要素
+			notify := chat.Notify{
+				ToUID:   push.ToUID,
+				FromUID: push.FromUID,
+				ConvID:  push.ConvID,
+				Seq:     push.Seq,
+			}
+			raw, err := json.Marshal(notify)
+			if err != nil {
+				log.Errorf("marshal notify: %v", err)
+				return
+			}
+			if err := notifyProducer.Write(ctx, push.ToUID, raw); err != nil {
+				log.Errorf("produce chat.notify for %s failed: %v", push.ToUID, err)
+			}
 		},
 	)
 

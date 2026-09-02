@@ -24,4 +24,6 @@ var Braves = []cli.Command{
 	FeedCommand,
 	// Feed fanout worker
 	FanoutCommand,
+	// Offline notification worker (mock vendor channel)
+	PushCommand,
 }
