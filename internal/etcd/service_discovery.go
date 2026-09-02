@@ -21,9 +21,10 @@ func NewServiceDiscovery(client *clientv3.Client) *ServiceDiscovery {
 	}
 }
 
-// 初始化服务列表和监视
-func (s *ServiceDiscovery) WatchService(service_id string) error {
-	prefix := generateNamespace(PrefixService, service_id)
+// WatchService 订阅某类服务（kind 为 "" 时订阅全部，仅调试用）。
+// key 结构 services/{kind}/{uuid}，watch 前缀 services/{kind}/。
+func (s *ServiceDiscovery) WatchService(kind string) error {
+	prefix := generateNamespace(PrefixService, kind) + "/"
 	resp, err := s.client.Get(context.Background(), prefix, clientv3.WithPrefix())
 	if err != nil {
 		log.Errorf("service_discory get with prefix %s error, %v", prefix, err)

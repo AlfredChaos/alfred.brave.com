@@ -118,7 +118,7 @@ func ServiceRegister(cctx context.Context, config *conf.Config) {
 	lease := setServiceLease()
 	// 注册进 etcd 的服务地址同样用 advertise_host，供 server 发现与调用。
 	host := fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetAdvertisePort())
-	server, err := etcd.NewServiceRegister(ServiceId, host, lease, config.EtcdClient)
+	server, err := etcd.NewServiceRegister(etcd.KindCS, ServiceId, host, lease, config.EtcdClient)
 	if err != nil {
 		log.Errorf("service %s register error: %v", ServiceId, err)
 		return

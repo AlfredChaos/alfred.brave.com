@@ -25,5 +25,6 @@ func registerRoutes(router *gin.Engine, config *conf.Config) {
 		srv.Users(v1)
 		srv.Friends(v1)
 		srv.Conversations(v1)
+		srv.FeedProxy(v1)
 	}
 }

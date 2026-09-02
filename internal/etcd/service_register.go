@@ -14,8 +14,8 @@ type ServiceRegister struct {
 	value         string
 }
 
-func NewServiceRegister(service_id, host string, lease int64, client *clientv3.Client) (*ServiceRegister, error) {
-	key := generateNamespace(PrefixService, service_id)
+func NewServiceRegister(kind, service_id, host string, lease int64, client *clientv3.Client) (*ServiceRegister, error) {
+	key := ServiceKey(kind, service_id)
 	service := &ServiceRegister{
 		client: client,
 		key:    key,

@@ -1,0 +1,21 @@
+debug: false
+version: "v1"
+log:
+  level: "info"
+  output: "stdout"
+bind_address: "0.0.0.0"
+bind_port: 37003
+advertise_host: "${ADVERTISE_HOST}"
+auth:
+  secret: "${AUTH_SECRET}"
+kafka:
+  brokers: "${KAFKA_BROKERS}"
+postgres:
+  user: "${POSTGRES_USER}"
+  password: "${POSTGRES_PASSWORD}"
+  server: "${POSTGRES_HOST}"
+  port: 5432
+  database: "${POSTGRES_DB}"
+etcd:
+  dial_timeout: 5
+  endpoints: "${ETCD_ENDPOINTS}"

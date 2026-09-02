@@ -20,4 +20,6 @@ var Braves = []cli.Command{
 	PersistCommand,
 	// Kafka deliver worker
 	DeliverCommand,
+	// Feed api server
+	FeedCommand,
 }

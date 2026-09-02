@@ -34,7 +34,7 @@ func ghostAction(ctx *cli.Context) error {
 	// 服务表视图：watch 常驻维护本地列表，对账时快照
 	discovery := etcd.NewServiceDiscovery(config.EtcdClient)
 	defer discovery.Close()
-	if err := discovery.WatchService(""); err != nil {
+	if err := discovery.WatchService(etcd.KindCS); err != nil {
 		return err
 	}
 

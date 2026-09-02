@@ -38,6 +38,7 @@ func Start(ctx context.Context, config *conf.Config) {
 	log.Infof("server: listening on %s [%s]", ser.Addr, time.Since(start))
 	go StartHttp(ser)
 	go StartListenService(config)
+	go StartListenFeedService(config)
 
 	// Graceful HTTP server shutdown
 	<-ctx.Done()
@@ -58,16 +59,28 @@ func StartHttp(s *http.Server) {
 	}
 }
 
-// Start listening joker services
+// StartListenService 监听 Chat Server 服务表（登录选点下发 ws_addr 用）。
 func StartListenService(config *conf.Config) {
-	server := etcd.NewServiceDiscovery(config.EtcdClient)
-	defer server.Close()
-	server.WatchService("")
+	watch(config, etcd.KindCS, &api.Services)
+}
+
+// StartListenFeedService 监听 feed-api 服务表（/v1/feed/* 转发选点用）。
+func StartListenFeedService(config *conf.Config) {
+	watch(config, etcd.KindFeed, &api.FeedServices)
+}
+
+func watch(config *conf.Config, kind string, sink *[]string) {
+	discovery := etcd.NewServiceDiscovery(config.EtcdClient)
+	defer discovery.Close()
+	if err := discovery.WatchService(kind); err != nil {
+		log.Errorf("watch %s services failed: %v", kind, err)
+		return
+	}
 	for {
 		select {
 		case <-time.Tick(5 * time.Second):
-			api.Services = server.GetServices()
-			log.Infof("services = %v", api.Services)
+			*sink = discovery.GetServices()
+			log.Debugf("%s services = %v", kind, *sink)
 		}
 	}
 }

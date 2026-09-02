@@ -12,6 +12,13 @@ const (
 	PrefixService = iota + 1
 )
 
+// 服务类型（注册 key 前缀 services/{kind}/{uuid}）：发现方按 kind 订阅自己的依赖，
+// 网关选 CS 与 feed 代理互不干扰。
+const (
+	KindCS   = "cs"
+	KindFeed = "feed"
+)
+
 var etcdConn *clientv3.Client
 
 var Schemes = map[int]string{
@@ -41,4 +48,9 @@ func dbClient() *clientv3.Client {
 
 func generateNamespace(prefix int, id string) string {
 	return fmt.Sprintf("%s/%s", Schemes[prefix], id)
+}
+
+// ServiceKey 服务注册 key：services/{kind}/{uuid}。
+func ServiceKey(kind, serviceID string) string {
+	return generateNamespace(PrefixService, kind) + "/" + serviceID
 }
