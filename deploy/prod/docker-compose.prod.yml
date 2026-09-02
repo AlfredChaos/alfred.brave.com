@@ -1,0 +1,363 @@
+# ============================================================
+# Alfred Brave 生产三节点 compose（§9 部署拓扑）
+# ⚠️ 写好未执行：服务器未购买，本文件从未在真实环境验证（README.md）
+#
+# 用法（每节点）：
+#   cp .env.example .env && 填 IP/密码
+#   NODE_ROLE=node1 docker compose -f docker-compose.prod.yml --profile node1 up -d
+# 节点角色（§9）：
+#   node1: PG primary + kafka-1 + etcd-1 + gateway + cs-1 + persist
+#   node2: PG replica + kafka-2 + etcd-2 + gateway + cs-2 + feed-api + persist + fanout
+#   node3: PG replica + kafka-3 + etcd-3 + cs-3 + feed-api + deliver×2 + push
+# ============================================================
+name: brave-prod
+
+x-brave-common: &brave-common
+  image: brave:local   # 由 bootstrap.sh 在各节点构建
+  environment: &brave-env
+    PROJECT_PATH: /app
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    POSTGRES_DB: ${POSTGRES_DB}
+    POSTGRES_HOST: ${NODE1_IP}   # 写走 primary（读分流见 README）
+    KAFKA_BROKERS: ${NODE1_IP}:9092,${NODE2_IP}:9092,${NODE3_IP}:9092
+    ETCD_ENDPOINTS: ${NODE1_IP}:2379,${NODE2_IP}:2379,${NODE3_IP}:2379
+    AUTH_SECRET: ${AUTH_SECRET}
+  restart: unless-stopped
+  networks: [brave-prod-net]
+  logging: {driver: json-file, options: {max-size: "100m", max-file: "3"}}
+
+networks:
+  brave-prod-net:
+    driver: bridge
+
+# ============================================================
+# node-1 独占：PG primary / kafka-1 / etcd-1 / gateway / cs-1 / persist
+# ============================================================
+services:
+  pg-primary:
+    image: bitnami/postgresql:15
+    profiles: ["node1"]
+    environment:
+      POSTGRESQL_REPLICATION_MODE: master
+      POSTGRESQL_USERNAME: ${POSTGRES_USER}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRESQL_DATABASE: ${POSTGRES_DB}
+      POSTGRESQL_REPLICATION_USER: repl
+      POSTGRESQL_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+    volumes:
+      - pg-primary-data:/bitnami/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    networks: [brave-prod-net]
+
+  kafka-1:
+    image: apache/kafka:3.7.0
+    profiles: ["node1"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${NODE1_IP}:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@${NODE1_IP}:9093,2@${NODE2_IP}:9093,3@${NODE3_IP}:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      # RF=3 + min.insync.replicas=2（§9：acks=all 语义下的可用性/一致性平衡）
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"   # topic 由 kafka-init 显式创建
+      KAFKA_HEAP_OPTS: ${KAFKA_HEAP_OPTS}
+    volumes: [kafka-1-data:/var/lib/kafka/data]
+    networks: [brave-prod-net]
+
+  etcd-1:
+    image: quay.io/coreos/etcd:v3.5.5
+    profiles: ["node1"]
+    environment:
+      ETCD_NAME: etcd-1
+      ETCD_DATA_DIR: /data/etcd
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://${NODE1_IP}:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://${NODE1_IP}:2379
+      ETCD_INITIAL_CLUSTER: etcd-1=http://${NODE1_IP}:2380,etcd-2=http://${NODE2_IP}:2380,etcd-3=http://${NODE3_IP}:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: ${ETCD_CLUSTER_TOKEN}
+    volumes: [etcd-1-data:/data]
+    networks: [brave-prod-net]
+
+  gateway-1:
+    <<: *brave-common
+    profiles: ["node1"]
+    command: ["gateway"]
+    ports: ["37001:37001"]
+    depends_on:
+      pg-primary: {condition: service_healthy}
+
+  cs-1:
+    <<: *brave-common
+    profiles: ["node1"]
+    command: ["joker"]
+    environment:
+      <<: *brave-env
+      ADVERTISE_HOST: ${NODE1_IP}
+      ADVERTISE_PORT: "37002"
+      GRPC_ADVERTISE_HOST: ${NODE1_IP}
+      JOKER_GRPC_PORT: "37012"
+      SNOWFLAKE_WORKER_ID: "1"
+    ports: ["37002:37002", "37012:37012"]
+    depends_on:
+      pg-primary: {condition: service_healthy}
+
+  persist-1:
+    <<: *brave-common
+    profiles: ["node1"]
+    command: ["persist"]
+    depends_on:
+      pg-primary: {condition: service_healthy}
+
+  migrate-1:
+    <<: *brave-common
+    profiles: ["node1"]
+    command: ["migrate"]
+    restart: "no"
+    depends_on:
+      pg-primary: {condition: service_healthy}
+
+# ============================================================
+# node-2：PG replica / kafka-2 / etcd-2 / gateway / cs-2 / feed-api / persist / fanout
+# ============================================================
+  pg-replica-2:
+    image: bitnami/postgresql:15
+    profiles: ["node2"]
+    environment:
+      POSTGRESQL_REPLICATION_MODE: slave
+      POSTGRESQL_MASTER_HOST: ${NODE1_IP}
+      POSTGRESQL_MASTER_PORT_NUMBER: "5432"
+      POSTGRESQL_REPLICATION_USER: repl
+      POSTGRESQL_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [pg-replica-2-data:/bitnami/postgresql]
+    networks: [brave-prod-net]
+
+  kafka-2:
+    image: apache/kafka:3.7.0
+    profiles: ["node2"]
+    environment:
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${NODE2_IP}:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@${NODE1_IP}:9093,2@${NODE2_IP}:9093,3@${NODE3_IP}:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: ${KAFKA_HEAP_OPTS}
+    volumes: [kafka-2-data:/var/lib/kafka/data]
+    networks: [brave-prod-net]
+
+  etcd-2:
+    image: quay.io/coreos/etcd:v3.5.5
+    profiles: ["node2"]
+    environment:
+      ETCD_NAME: etcd-2
+      ETCD_DATA_DIR: /data/etcd
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://${NODE2_IP}:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://${NODE2_IP}:2379
+      ETCD_INITIAL_CLUSTER: etcd-1=http://${NODE1_IP}:2380,etcd-2=http://${NODE2_IP}:2380,etcd-3=http://${NODE3_IP}:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: ${ETCD_CLUSTER_TOKEN}
+    volumes: [etcd-2-data:/data]
+    networks: [brave-prod-net]
+
+  gateway-2:
+    <<: *brave-common
+    profiles: ["node2"]
+    command: ["gateway"]
+    ports: ["37001:37001"]
+    depends_on: [pg-replica-2]
+
+  cs-2:
+    <<: *brave-common
+    profiles: ["node2"]
+    command: ["joker"]
+    environment:
+      <<: *brave-env
+      ADVERTISE_HOST: ${NODE2_IP}
+      ADVERTISE_PORT: "37002"
+      GRPC_ADVERTISE_HOST: ${NODE2_IP}
+      JOKER_GRPC_PORT: "37012"
+      SNOWFLAKE_WORKER_ID: "2"
+    ports: ["37002:37002", "37012:37012"]
+    depends_on: [pg-replica-2]
+
+  feed-api-2:
+    <<: *brave-common
+    profiles: ["node2"]
+    command: ["feed"]
+    environment:
+      <<: *brave-env
+      ADVERTISE_HOST: ${NODE2_IP}
+      ADVERTISE_PORT: "37003"
+      SNOWFLAKE_WORKER_ID: "2"
+    ports: ["37003:37003"]
+    depends_on: [pg-replica-2]
+
+  persist-2:
+    <<: *brave-common
+    profiles: ["node2"]
+    command: ["persist"]
+    depends_on: [pg-replica-2]
+
+  fanout-2:
+    <<: *brave-common
+    profiles: ["node2"]
+    command: ["fanout"]
+    depends_on: [pg-replica-2]
+
+# ============================================================
+# node-3：PG replica / kafka-3 / etcd-3 / cs-3 / feed-api / deliver×2 / push
+# ============================================================
+  pg-replica-3:
+    image: bitnami/postgresql:15
+    profiles: ["node3"]
+    environment:
+      POSTGRESQL_REPLICATION_MODE: slave
+      POSTGRESQL_MASTER_HOST: ${NODE1_IP}
+      POSTGRESQL_MASTER_PORT_NUMBER: "5432"
+      POSTGRESQL_REPLICATION_USER: repl
+      POSTGRESQL_REPLICATION_PASSWORD: ${POSTGRES_REPLICATION_PASSWORD}
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [pg-replica-3-data:/bitnami/postgresql]
+    networks: [brave-prod-net]
+
+  kafka-3:
+    image: apache/kafka:3.7.0
+    profiles: ["node3"]
+    environment:
+      KAFKA_NODE_ID: 3
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${NODE3_IP}:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@${NODE1_IP}:9093,2@${NODE2_IP}:9093,3@${NODE3_IP}:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 3
+      KAFKA_MIN_INSYNC_REPLICAS: 2
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_HEAP_OPTS: ${KAFKA_HEAP_OPTS}
+    volumes: [kafka-3-data:/var/lib/kafka/data]
+    networks: [brave-prod-net]
+
+  etcd-3:
+    image: quay.io/coreos/etcd:v3.5.5
+    profiles: ["node3"]
+    environment:
+      ETCD_NAME: etcd-3
+      ETCD_DATA_DIR: /data/etcd
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://${NODE3_IP}:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://${NODE3_IP}:2379
+      ETCD_INITIAL_CLUSTER: etcd-1=http://${NODE1_IP}:2380,etcd-2=http://${NODE2_IP}:2380,etcd-3=http://${NODE3_IP}:2380
+      ETCD_INITIAL_CLUSTER_STATE: new
+      ETCD_INITIAL_CLUSTER_TOKEN: ${ETCD_CLUSTER_TOKEN}
+    volumes: [etcd-3-data:/data]
+    networks: [brave-prod-net]
+
+  cs-3:
+    <<: *brave-common
+    profiles: ["node3"]
+    command: ["joker"]
+    environment:
+      <<: *brave-env
+      ADVERTISE_HOST: ${NODE3_IP}
+      ADVERTISE_PORT: "37002"
+      GRPC_ADVERTISE_HOST: ${NODE3_IP}
+      JOKER_GRPC_PORT: "37012"
+      SNOWFLAKE_WORKER_ID: "3"
+    ports: ["37002:37002", "37012:37012"]
+    depends_on: [pg-replica-3]
+
+  feed-api-3:
+    <<: *brave-common
+    profiles: ["node3"]
+    command: ["feed"]
+    environment:
+      <<: *brave-env
+      ADVERTISE_HOST: ${NODE3_IP}
+      ADVERTISE_PORT: "37003"
+      SNOWFLAKE_WORKER_ID: "3"
+    ports: ["37003:37003"]
+    depends_on: [pg-replica-3]
+
+  deliver-3a:
+    <<: *brave-common
+    profiles: ["node3"]
+    command: ["deliver"]
+    depends_on: [pg-replica-3]
+
+  deliver-3b:
+    <<: *brave-common
+    profiles: ["node3"]
+    command: ["deliver"]
+    depends_on: [pg-replica-3]
+
+  push-3:
+    <<: *brave-common
+    profiles: ["node3"]
+    command: ["push"]
+    depends_on: [pg-replica-3]
+
+  ghost-3:
+    <<: *brave-common
+    profiles: ["node3"]
+    command: ["ghost"]
+    depends_on: [pg-replica-3]
+
+  # topic 初始化（任一节点执行一次）：§8 规范分区数，RF=3，min.insync=2
+  kafka-init:
+    image: apache/kafka:3.7.0
+    profiles: ["node1"]
+    depends_on: [kafka-1]
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        BS="${NODE1_IP}:9092"
+        for t in chat.msg:12 chat.push:12 feed.fanout:6 chat.ack:6 chat.notify:3; do
+          name="$${t%%:*}"; parts="$${t##*:}"
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server "$$BS" --create --if-not-exists \
+            --topic "$$name" --partitions "$$parts" --replication-factor 3 \
+            --config min.insync.replicas=2
+        done
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server "$$BS" --list
+    restart: "no"
+    networks: [brave-prod-net]
+
+volumes:
+  pg-primary-data:
+  pg-replica-2-data:
+  pg-replica-3-data:
+  kafka-1-data:
+  kafka-2-data:
+  kafka-3-data:
+  etcd-1-data:
+  etcd-2-data:
+  etcd-3-data:
