@@ -22,6 +22,7 @@ type Options struct {
 	DatabaseConns     int      `json:"DatabaseConns"`
 	DatabaseConnsIdle int      `json:"DatabaseConnsIdle"`
 	KafkaBrokers      []string `json:"kafkaBrokers"`
+	SnowflakeWorkerID int64    `json:"SnowflakeWorkerID"`
 	EtcdEndpoints     []string `json:"etcdEndpoints"`
 	EtcdDialTimeout   int64    `json:"EtcdDialTimeout"`
 	AuthSecret        string   `json:"AuthSecret"`
@@ -59,6 +60,7 @@ func NewOptions(ctx *cli.Context, service string) *Options {
 	c.DatabaseUser = event.ConfigYaml.GetString("postgres.user")
 	c.DatabasePassword = event.ConfigYaml.GetString("postgres.password")
 	c.KafkaBrokers = strings.Split(event.ConfigYaml.GetString("kafka.brokers"), ",")
+	c.SnowflakeWorkerID = event.ConfigYaml.GetInt64("snowflake.worker_id")
 	c.EtcdDialTimeout = event.ConfigYaml.GetInt64("etcd.dial_timeout")
 	c.EtcdEndpoints = strings.Split(event.ConfigYaml.GetString("etcd.endpoints"), ",")
 

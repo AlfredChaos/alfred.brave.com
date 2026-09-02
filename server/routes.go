@@ -16,7 +16,7 @@ func registerRoutes(router *gin.Engine, config *conf.Config) {
 	v1 := router.Group("/v1")
 	router.LoadHTMLGlob(templatePath)
 
-	srv := api.NewServer(config.Db(), config.AuthSecret())
+	srv := api.NewServer(config.Db(), config.AuthSecret(), config.KafkaBrokers(), config.SnowflakeWorkerID())
 	{
 		api.DefaultIndex(v1)
 		srv.Register(v1)
@@ -25,6 +25,7 @@ func registerRoutes(router *gin.Engine, config *conf.Config) {
 		srv.Users(v1)
 		srv.Friends(v1)
 		srv.Conversations(v1)
+		srv.Groups(v1)
 		srv.FeedProxy(v1)
 	}
 }

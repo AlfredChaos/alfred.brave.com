@@ -50,3 +50,11 @@ func AbortUnauthorized(c *gin.Context) {
 func AbortServiceUnavailable(c *gin.Context) {
 	Abort(c, http.StatusServiceUnavailable, i18n.ErrServiceUnavailable)
 }
+
+func AbortForbidden(c *gin.Context) {
+	Abort(c, http.StatusForbidden, i18n.ErrForbidden)
+}
+
+func AbortConflict(c *gin.Context) {
+	Abort(c, http.StatusConflict, i18n.ErrConflict)
+}

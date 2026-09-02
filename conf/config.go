@@ -45,6 +45,7 @@ func initDefaultConfig(name string) {
 	event.ConfigYaml.SetDefault("postgres.database", "brave")
 	event.ConfigYaml.SetDefault("auth.secret", "brave-dev-secret")
 	event.ConfigYaml.SetDefault("kafka.brokers", "127.0.0.1:9092")
+	event.ConfigYaml.SetDefault("snowflake.worker_id", 0)
 	event.ConfigYaml.SetDefault("etcd.dial_timeout", 5)
 	event.ConfigYaml.SetDefault("etcd.endpoints", "0.0.0.0:2379,")
 
@@ -172,6 +173,14 @@ func (c *Config) GetHttpPort() int {
 		return 0
 	}
 	return c.options.HttpPort
+}
+
+// SnowflakeWorkerID 雪花 ID worker 位（D16：多副本须互不相同 0..7）。
+func (c *Config) SnowflakeWorkerID() int64 {
+	if c.options == nil {
+		return 0
+	}
+	return c.options.SnowflakeWorkerID
 }
 
 // KafkaBrokers 返回 Kafka broker 地址列表（逗号分隔配置）。
