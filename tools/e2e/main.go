@@ -211,8 +211,14 @@ func sendFrame(conn *websocket.Conn, frame interface{}) {
 }
 
 // readFrame 读一帧并解析；跳过心跳/受理回执类帧，只认 ack/msg。
-func readFrame(conn *websocket.Conn, timeout time.Duration) map[string]interface{} {
+// recover：服务端断开与 deadline 到期并发时 gorilla 内部可能 panic，按超时处理。
+func readFrame(conn *websocket.Conn, timeout time.Duration) (result map[string]interface{}) {
 	deadline := time.Now().Add(timeout)
+	defer func() {
+		if r := recover(); r != nil {
+			fatalf("read frame panicked (conn closed concurrently): %v", r)
+		}
+	}()
 	for time.Now().Before(deadline) {
 		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 		_, raw, err := conn.ReadMessage()

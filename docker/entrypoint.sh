@@ -29,10 +29,15 @@ case "$ROLE" in
         echo "[entrypoint] role=joker, launching brave joker"
         exec /app/brave joker
         ;;
-    persist|deliver|ghost|fanout|push|feed)
+    persist|deliver|ghost|fanout|push)
         render "$ETC/worker.yaml.tmpl" "$ETC/$ROLE.yaml"
         echo "[entrypoint] role=$ROLE, launching brave $ROLE"
         exec /app/brave "$ROLE"
+        ;;
+    feed)
+        render "$ETC/feed.yaml.tmpl" "$ETC/feed.yaml"
+        echo "[entrypoint] role=feed, launching brave feed"
+        exec /app/brave feed
         ;;
     migrate)
         # migration 子命令读 brave 配置（conf.InitConfig(ProjectName)），渲染对应模板

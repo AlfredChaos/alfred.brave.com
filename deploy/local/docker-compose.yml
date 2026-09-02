@@ -221,6 +221,52 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  # ---------- feed 域 ----------
+  feed-api:
+    <<: *brave-common
+    command: ["feed"]
+    environment:
+      <<: *brave-env
+      ADVERTISE_HOST: "feed-api"
+      ADVERTISE_PORT: "37003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
+  fanout:
+    <<: *brave-common
+    command: ["fanout"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
+  push:
+    <<: *brave-common
+    command: ["push"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
 networks:
   brave-net:
 

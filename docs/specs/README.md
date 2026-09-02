@@ -72,10 +72,11 @@
 | T15 @ 机制 | [T15-mention.md](T15-mention.md) | 完成 |
 | T16 离线通知 | [T16-notify.md](T16-notify.md) | 完成 |
 | T17 本地 compose | [T17-local-deploy.md](T17-local-deploy.md) | 完成 |
-| T18 生产脚本 | [T18-prod-deploy.md](T18-prod-deploy.md) | 完成 |
-| T19 Web 客户端 | [T19-web-client.md](T19-web-client.md) | 完成 |
+| T18 生产脚本 | [T18-prod-deploy.md](T18-prod-deploy.md) | 完成（写好未执行） |
+| T19 Web 客户端 | [T19-web-client.md](T19-web-client.md) | 完成（浏览器双人验收未做，API 级等价） |
 
-> 注：状态列在对应任务通过 Review Gate 后更新；最终交接报告见各 spec 内“验收记录”与 `docs/specs/FINAL-REPORT.md`。
+> 注：状态列在对应任务通过 Review Gate 后更新；最终交接报告见 [FINAL-REPORT.md](FINAL-REPORT.md)。
+> T01-T16 的 spec 内均含真实验收输出与 Review 记录；T17-T19 的实现在 T08 栈上验收。
 
 ## 3. 全局设计决策（各 spec 共用，先行声明）
 

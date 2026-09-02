@@ -12,6 +12,8 @@ import (
 func registerRoutes(router *gin.Engine, config *conf.Config) {
 	projectPath := os.Getenv("PROJECT_PATH")
 	templatePath := fmt.Sprintf("%s/%s", projectPath, "template/*")
+	// 测试客户端静态托管（T19：/web，无构建链）
+	router.Static("/web", projectPath+"/web")
 	// JSON-REST API Version 1（显式 /v1 前缀；HTML 页面留根路径）
 	v1 := router.Group("/v1")
 	router.LoadHTMLGlob(templatePath)

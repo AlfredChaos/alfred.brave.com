@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Brave IM · 测试客户端</title>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<!-- ============ 设置页（首个界面） ============ -->
+<div id="settings-view" class="view">
+  <h1>Brave IM · 连接设置</h1>
+  <label>网关地址 <input id="gw-input" placeholder="http://127.0.0.1:37001"/></label>
+  <label class="checkbox"><input type="checkbox" id="ws-override-toggle"/> WS 地址覆盖（调试用，默认用登录返回的 ws_addr）</label>
+  <label id="ws-override-row" class="hidden">WS 地址 <input id="ws-override-input" placeholder="127.0.0.1:37002"/></label>
+  <button id="btn-test-gw">连接测试</button>
+  <p id="gw-test-result" class="muted">先测试连通性，再登录。</p>
+
+  <h2>账号</h2>
+  <div class="row">
+    <input id="acct-user" placeholder="用户名（3-32，字母/数字/中文）"/>
+    <input id="acct-pass" type="password" placeholder="密码（8+，含字母和数字）"/>
+  </div>
+  <div class="row">
+    <button id="btn-register">注册</button>
+    <button id="btn-login" class="primary">登录</button>
+  </div>
+  <p id="acct-result" class="muted"></p>
+</div>
+
+<!-- ============ 主界面 ============ -->
+<div id="app-view" class="view hidden">
+  <header>
+    <span id="whoami" class="muted"></span>
+    <nav>
+      <button data-tab="chat" class="tab active">单聊</button>
+      <button data-tab="group" class="tab">群聊</button>
+      <button data-tab="feed" class="tab">朋友圈</button>
+      <button data-tab="settings" class="tab">设置</button>
+    </nav>
+  </header>
+
+  <!-- 单聊 -->
+  <section id="tab-chat" class="tabpane">
+    <div class="side">
+      <div class="row"><input id="chat-search" placeholder="用户名搜索"/><button id="btn-search-users">找用户</button></div>
+      <ul id="user-list" class="list"></ul>
+    </div>
+    <div class="main">
+      <div id="conv-title" class="pane-title">选择一个用户开始会话</div>
+      <div id="chat-log" class="log"></div>
+      <div class="row">
+        <input id="chat-input" placeholder="输入消息，回车发送"/>
+        <button id="btn-send-chat" class="primary">发送</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 群聊 -->
+  <section id="tab-group" class="tabpane hidden">
+    <div class="side">
+      <div class="row"><input id="group-name-input" placeholder="群名"/><button id="btn-create-group">建群</button></div>
+      <div class="row"><input id="group-add-input" placeholder="拉人：用户名"/><button id="btn-add-member">拉人</button></div>
+      <ul id="group-list" class="list"></ul>
+    </div>
+    <div class="main">
+      <div id="group-title" class="pane-title">选择群</div>
+      <div id="group-log" class="log"></div>
+      <div class="row">
+        <label class="checkbox"><input type="checkbox" id="mention-all"/>@所有人（仅群主）</label>
+        <input id="group-msg-input" placeholder="群消息，回车发送"/>
+        <button id="btn-send-group" class="primary">发送</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 朋友圈 -->
+  <section id="tab-feed" class="tabpane hidden">
+    <div class="side">
+      <textarea id="post-text" placeholder="发点什么…（≤2000 字）"></textarea>
+      <button id="btn-publish" class="primary">发布</button>
+    </div>
+    <div class="main">
+      <div id="feed-list"></div>
+      <button id="btn-feed-more">加载更多</button>
+    </div>
+  </section>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

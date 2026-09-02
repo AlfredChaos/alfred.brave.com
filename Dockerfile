@@ -25,6 +25,7 @@ COPY --from=builder /out/brave /app/brave
 COPY etc /app/etc
 COPY template /app/template
 COPY database /app/database
+COPY web /app/web
 
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

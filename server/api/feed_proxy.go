@@ -12,10 +12,11 @@ import (
 // FeedServices etcd 发现的 feed-api 地址表（server.StartListenFeedService 每 5s 刷新）。
 var FeedServices = make([]string, 0)
 
-// FeedProxy /v1/feed/* 透明转发（§2：网关只做鉴权+转发，feed-api 无状态任一副本可服务）。
+// FeedProxy /v1/feed 与 /v1/feed/* 透明转发（§2：网关只做鉴权+转发，feed-api 无状态任一副本可服务）。
 // 实例随机挑选；鉴权透传（feed-api 与网关共享 secret，双端校验）。
+// 注意 gin 通配路由要求尾斜杠（POST /v1/feed 会 307），故同时注册精确路径。
 func (s *Server) FeedProxy(router *gin.RouterGroup) {
-	router.Any("/feed/*path", func(c *gin.Context) {
+	handle := func(c *gin.Context) {
 		if len(FeedServices) == 0 {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"code": 503, "error": "feed api unavailable"})
 			return
@@ -32,5 +33,7 @@ func (s *Server) FeedProxy(router *gin.RouterGroup) {
 			w.WriteHeader(http.StatusBadGateway)
 		}
 		proxy.ServeHTTP(c.Writer, c.Request)
-	})
+	}
+	router.Any("/feed", handle)
+	router.Any("/feed/*path", handle)
 }
