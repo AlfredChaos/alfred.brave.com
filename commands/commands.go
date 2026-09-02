@@ -22,4 +22,6 @@ var Braves = []cli.Command{
 	DeliverCommand,
 	// Feed api server
 	FeedCommand,
+	// Feed fanout worker
+	FanoutCommand,
 }
