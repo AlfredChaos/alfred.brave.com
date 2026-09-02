@@ -34,6 +34,8 @@ func fanoutAction(ctx *cli.Context) error {
 			cancel()
 		}
 	}()
+	// 计数聚合定时任务与 fanout 消费同进程（feed 域后台 worker 的两个职责）
+	go worker.RunCounters(cctx)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

@@ -31,6 +31,7 @@ func RegisterRoutes(router *gin.RouterGroup, s *Server) {
 	auth := router.Group("", s.AuthRequired())
 	auth.POST("/feed", s.createPost)
 	auth.GET("/feed", s.getFeed)
+	s.registerActionRoutes(auth)
 }
 
 // createPost 发布（§6 步骤 3-6）：同步落库返回 post_id（不等 fanout），

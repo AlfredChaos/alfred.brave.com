@@ -76,6 +76,39 @@ func New(store *database.Store, brokers []string, groupID string) *Worker {
 // 直接使用 internal/chat 的常量）。
 const fanoutTopic = "feed.fanout"
 
+// RunCounters 计数聚合定时任务（T12 最小版：每 30s 重算近 5 分钟有动作的帖子）。
+// 全量重算幂等，多实例重复执行无害。
+func (w *Worker) RunCounters(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := w.FlushCounters(ctx, time.Now().Add(-5*time.Minute)); err != nil {
+				log.Errorf("fanout: flush counters failed: %v", err)
+			}
+		}
+	}
+}
+
+// FlushCounters 重算 since 之后有动作帖子的计数（测试可直接调用）。
+func (w *Worker) FlushCounters(ctx context.Context, since time.Time) error {
+	ids, err := w.feeds.TouchedPostIDs(ctx, since)
+	if err != nil {
+		return err
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	if err := w.feeds.RecountPostCounters(ctx, ids); err != nil {
+		return err
+	}
+	log.Debugf("fanout: recounted %d post counters", len(ids))
+	return nil
+}
+
 // Run 消费主循环。
 func (w *Worker) Run(ctx context.Context) error {
 	log.Infof("fanout: consuming %s (group=%s)", fanoutTopic, w.reader.Config().GroupID)

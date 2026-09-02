@@ -167,6 +167,96 @@ func (fs *FeedStore) PageInbox(ctx context.Context, uid string, before time.Time
 	return entries, rows.Err()
 }
 
+// ToggleLike 点赞开关：无则加，有则删；返回最终是否处于点赞态。
+func (fs *FeedStore) ToggleLike(ctx context.Context, postID, uid string) (bool, error) {
+	tag, err := fs.store.pool.Exec(ctx,
+		`INSERT INTO post_actions (post_id, uid, action) VALUES ($1, $2, 'like') ON CONFLICT DO NOTHING`,
+		postID, uid)
+	if err != nil {
+		return false, err
+	}
+	if tag.RowsAffected() == 1 {
+		return true, nil
+	}
+	if _, err = fs.store.pool.Exec(ctx,
+		`DELETE FROM post_actions WHERE post_id = $1 AND uid = $2 AND action = 'like'`, postID, uid); err != nil {
+		return false, err
+	}
+	return false, nil
+}
+
+// AddComment 评论：同人对同一帖可多次评论（主键含 action 但单行——按 §7 PK(post_id,uid,action)
+// 约束，本实现取最简：一人一帖一条评论记录，重复评论覆盖内容）。
+func (fs *FeedStore) AddComment(ctx context.Context, postID, uid string, text []byte) error {
+	_, err := fs.store.pool.Exec(ctx,
+		`INSERT INTO post_actions (post_id, uid, action, content) VALUES ($1, $2, 'comment', $3::jsonb)
+		 ON CONFLICT (post_id, uid, action) DO UPDATE SET content = EXCLUDED.content`,
+		postID, uid, text)
+	return err
+}
+
+// ListComments 评论列表（时间正序，前 50）。
+func (fs *FeedStore) ListComments(ctx context.Context, postID string) ([]PostAction, error) {
+	rows, err := fs.store.pool.Query(ctx,
+		`SELECT post_id, uid, action, content, created_at FROM post_actions
+		 WHERE post_id = $1 AND action = 'comment' ORDER BY created_at ASC LIMIT 50`, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	actions := make([]PostAction, 0)
+	for rows.Next() {
+		var a PostAction
+		if err := rows.Scan(&a.PostID, &a.UID, &a.Action, &a.Content, &a.CreatedAt); err != nil {
+			return nil, err
+		}
+		actions = append(actions, a)
+	}
+	return actions, rows.Err()
+}
+
+// TouchedPostIDs 近期有动作的帖子（计数聚合扫描窗口）。
+func (fs *FeedStore) TouchedPostIDs(ctx context.Context, since time.Time) ([]string, error) {
+	rows, err := fs.store.pool.Query(ctx,
+		`SELECT DISTINCT post_id FROM post_actions WHERE created_at > $1`, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ids := make([]string, 0)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// RecountPostCounters 全量重算指定帖子的计数并落库（幂等，定时 flush 用）。
+// 注意：动作被全部取消的帖子 SELECT 无行也必须落 0——用 unnest 驱动 + LEFT JOIN，
+// 否则 ON CONFLICT 不触发、旧计数残留（集成测试红灯发现）。
+func (fs *FeedStore) RecountPostCounters(ctx context.Context, postIDs []string) error {
+	if len(postIDs) == 0 {
+		return nil
+	}
+	_, err := fs.store.pool.Exec(ctx,
+		`INSERT INTO post_counters (post_id, like_cnt, comment_cnt, updated_at)
+		 SELECT u.post_id, COALESCE(c.like_n, 0), COALESCE(c.comment_n, 0), now()
+		 FROM unnest($1::varchar[]) AS u(post_id)
+		 LEFT JOIN (
+		   SELECT post_id,
+		          count(*) FILTER (WHERE action = 'like') AS like_n,
+		          count(*) FILTER (WHERE action = 'comment') AS comment_n
+		   FROM post_actions WHERE post_id = ANY($1) GROUP BY post_id
+		 ) c ON c.post_id = u.post_id
+		 ON CONFLICT (post_id) DO UPDATE
+		   SET like_cnt = EXCLUDED.like_cnt, comment_cnt = EXCLUDED.comment_cnt, updated_at = now()`,
+		postIDs)
+	return err
+}
+
 // GetCounters 批量取计数（hydrate 用）。
 func (fs *FeedStore) GetCounters(ctx context.Context, postIDs []string) (map[string]*PostCounter, error) {
 	result := make(map[string]*PostCounter, len(postIDs))
