@@ -50,6 +50,36 @@ func (ms *MessageStore) ListAfter(ctx context.Context, convID string, afterSeq i
 	return msgs, rows.Err()
 }
 
+// ListAfterForGroup 群历史拉取：按成员时间窗过滤（§5 约束⑦——
+// created_at ∈ [joined_at, left_at)，新成员看不到加入前、被踢后不可见）。
+func (ms *MessageStore) ListAfterForGroup(ctx context.Context, gid, uid string, afterSeq int64, limit int) ([]Message, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	rows, err := ms.store.pool.Query(ctx,
+		`SELECT m.msg_id, m.conv_id, m.seq, m.from_uid, m.type, m.content, m.created_at
+		 FROM messages m
+		 JOIN group_members gm ON gm.gid = m.conv_id AND gm.uid = $2
+		 WHERE m.conv_id = $1 AND m.seq > $3
+		   AND m.created_at >= gm.joined_at
+		   AND (gm.left_at IS NULL OR m.created_at <= gm.left_at)
+		 ORDER BY m.seq ASC LIMIT $4`,
+		gid, uid, afterSeq, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	msgs := make([]Message, 0)
+	for rows.Next() {
+		var m Message
+		if err := rows.Scan(&m.MsgID, &m.ConvID, &m.Seq, &m.FromUID, &m.Type, &m.Content, &m.CreatedAt); err != nil {
+			return nil, err
+		}
+		msgs = append(msgs, m)
+	}
+	return msgs, rows.Err()
+}
+
 // IsMember 判定 uid 是否会话成员（conversation_members 点查）。
 func (cs *ConversationStore) IsMember(ctx context.Context, convID, uid string) (bool, error) {
 	var exists bool

@@ -32,14 +32,16 @@ const (
 
 // Msg chat.msg 载荷。conv_id 允许为空——首条消息由 persist 按 (from,to) 建会话。
 type Msg struct {
-	MsgID    string      `json:"msg_id"`     // 预写消息（群事件）非空；常规为空由 persist 派生
-	CliMsgID string      `json:"cli_msg_id"` // 客户端消息 ID，ACK 匹配与幂等派生用
-	ConvID   string      `json:"conv_id"`
-	FromUID  string      `json:"from_uid"`
-	ToUID    string      `json:"to_uid"` // 单聊收信人；群聊为空
-	Type     string      `json:"type"`   // single|group|system_event
-	Content  interface{} `json:"content"`
-	SentAt   int64       `json:"sent_at"`
+	MsgID      string      `json:"msg_id"`     // 预写消息（群事件）非空；常规为空由 persist 派生
+	CliMsgID   string      `json:"cli_msg_id"` // 客户端消息 ID，ACK 匹配与幂等派生用
+	ConvID     string      `json:"conv_id"`
+	FromUID    string      `json:"from_uid"`
+	ToUID      string      `json:"to_uid"` // 单聊收信人；群聊为空
+	Type       string      `json:"type"`   // single|group|system_event
+	Content    interface{} `json:"content"`
+	Mentions   []string    `json:"mentions,omitempty"`    // 群聊 @（§5）
+	MentionAll bool        `json:"mention_all,omitempty"` // @所有人（owner-only，persist 权威校验）
+	SentAt     int64       `json:"sent_at"`
 }
 
 // Push chat.push 载荷：落库完成后的投递信封（D03 模式 A：带货直达）。

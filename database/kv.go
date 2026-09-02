@@ -46,6 +46,29 @@ func (ks *KvStore) Get(ctx context.Context, key string, out interface{}) error {
 	return nil
 }
 
+// GetManyBatch 批量读取 kv（群聊扇出前批量查在线成员）。返回 key → raw value。
+// key 形如 online:{uid}；返回 map 不含缺失键。
+func (ks *KvStore) GetManyBatch(ctx context.Context, keys []string) (map[string]json.RawMessage, error) {
+	result := make(map[string]json.RawMessage, len(keys))
+	if len(keys) == 0 {
+		return result, nil
+	}
+	rows, err := ks.store.pool.Query(ctx, `SELECT k, v FROM kv WHERE k = ANY($1)`, keys)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var k string
+		var v json.RawMessage
+		if err := rows.Scan(&k, &v); err != nil {
+			return nil, err
+		}
+		result[k] = v
+	}
+	return result, rows.Err()
+}
+
 // Delete 无条件删除（键级幂等）。
 func (ks *KvStore) Delete(ctx context.Context, key string) error {
 	_, err := ks.store.pool.Exec(ctx, `DELETE FROM kv WHERE k = $1`, key)

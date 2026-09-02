@@ -69,9 +69,10 @@ func handleHeartbeat(c *Client, data json.RawMessage) {
 
 // MsgFrame cmd=msg 的业务载荷（§3 步骤 1）。
 type MsgFrame struct {
-	ConvID   string          `json:"conv_id"` // 首条消息可空（persist 按成员对兜底建会话）
-	ToUID    string          `json:"to_uid"`
-	CliMsgID string          `json:"cli_msg_id"` // 客户端消息 ID，ACK 匹配用
+	ConvID   string          `json:"conv_id"` // 单聊首条可空；群聊=gid
+	ToUID    string          `json:"to_uid"`  // 群聊可空（扇出由 persist 按成员展开）
+	CliMsgID string          `json:"cli_msg_id"`
+	Group    bool            `json:"group"` // true=群聊（type=group）
 	Content  json.RawMessage `json:"content"`
 }
 
@@ -84,8 +85,12 @@ func handleMsg(c *Client, data json.RawMessage) {
 		c.SendResponse(ParameterIllegal, "", nil)
 		return
 	}
-	if frame.ToUID == "" || len(frame.Content) == 0 {
+	if (frame.ToUID == "" && !frame.Group) || len(frame.Content) == 0 {
 		c.SendResponse(ParameterIllegal, "to_uid/content required", nil)
+		return
+	}
+	if frame.Group && frame.ConvID == "" {
+		c.SendResponse(ParameterIllegal, "group msg requires conv_id(gid)", nil)
 		return
 	}
 	if err := quickCheckContent(frame.Content); err != nil {
@@ -93,14 +98,27 @@ func handleMsg(c *Client, data json.RawMessage) {
 		return
 	}
 
+	// 从 content 提取 @ 元数据进信封（服务端解析，客户端无法伪造信封与内容不一致）；
+	// 群聊的权威校验（@all→owner、mentions⊆成员）在 persist 事务内（T15）
+	var meta struct {
+		Mentions   []string `json:"mentions"`
+		MentionAll bool     `json:"mention_all"`
+	}
+	_ = json.Unmarshal(frame.Content, &meta)
+
 	env := &chat.Msg{
-		ConvID:   frame.ConvID,
-		CliMsgID: frame.CliMsgID,
-		FromUID:  c.UserId,
-		ToUID:    frame.ToUID,
-		Type:     chat.TypeSingle,
-		Content:  json.RawMessage(frame.Content),
-		SentAt:   time.Now().Unix(),
+		ConvID:     frame.ConvID,
+		CliMsgID:   frame.CliMsgID,
+		FromUID:    c.UserId,
+		ToUID:      frame.ToUID,
+		Type:       chat.TypeSingle,
+		Content:    json.RawMessage(frame.Content),
+		Mentions:   meta.Mentions,
+		MentionAll: meta.MentionAll,
+		SentAt:     time.Now().Unix(),
+	}
+	if frame.Group {
+		env.Type = chat.TypeGroup
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
