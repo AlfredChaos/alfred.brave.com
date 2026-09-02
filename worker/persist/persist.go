@@ -232,8 +232,9 @@ func (w *Worker) validateSingleMsg(ctx context.Context, msg *chat.Msg) error {
 	return nil
 }
 
-// validateGroupMsg 群聊权威校验（§5 persist 事务层）：群存活 + 发送者是有效成员。
-// 返回有效成员列表（扇出目标）。@all/mentions 的权威校验在 T15 扩展于此。
+// validateGroupMsg 群聊权威校验（§5 persist 层，事务串行下原子判定）：
+// 群存活 + 发送者有效成员 + @ 规则（mention_all 仅 owner；mentions ⊆ 当前成员）。
+// 校验失败整条拒绝（不留半条消息）。CS 侧仅做格式快检（mentions≤50），此处才是权威。
 func (w *Worker) validateGroupMsg(ctx context.Context, msg *chat.Msg) ([]pushTarget, error) {
 	if msg.ConvID == "" {
 		return nil, fmt.Errorf("%w: group msg requires conv_id(gid)", ErrPoison)
@@ -252,16 +253,28 @@ func (w *Worker) validateGroupMsg(ctx context.Context, msg *chat.Msg) ([]pushTar
 	if err != nil {
 		return nil, err
 	}
-	senderActive := false
+	senderRole := ""
+	active := make(map[string]bool, len(members))
 	targets := make([]pushTarget, 0, len(members))
 	for _, m := range members {
 		if m.UID == msg.FromUID {
-			senderActive = true
+			senderRole = m.Role
 		}
+		active[m.UID] = true
 		targets = append(targets, pushTarget{UID: m.UID, Role: m.Role})
 	}
-	if !senderActive {
+	if senderRole == "" {
 		return nil, fmt.Errorf("%w: sender %s not active member of %s", ErrPoison, msg.FromUID, msg.ConvID)
+	}
+	// @所有人：仅群主（§5 约束⑥）
+	if msg.MentionAll && senderRole != database.GroupRoleOwner {
+		return nil, fmt.Errorf("%w: mention_all requires owner (sender=%s role=%s)", ErrPoison, msg.FromUID, senderRole)
+	}
+	// @个人：每个 uid 必须是当前有效成员
+	for _, uid := range msg.Mentions {
+		if !active[uid] {
+			return nil, fmt.Errorf("%w: mention %s not active member of %s", ErrPoison, uid, msg.ConvID)
+		}
 	}
 	return targets, nil
 }
