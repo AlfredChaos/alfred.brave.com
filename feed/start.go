@@ -57,10 +57,10 @@ func ServiceRegister(cctx context.Context, config *conf.Config) {
 	host := fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetAdvertisePort())
 	server, err := etcd.NewServiceRegister(etcd.KindFeed, ServiceId, host, lease, config.EtcdClient)
 	if err != nil {
-		log.Errorf("feed service %s register error: %v", ServiceId, err)
-		return
+		// 首次注册失败不放弃：etcd 可能晚于 feed 就绪，Run 维持循环会退避重试
+		log.Warnf("feed service %s initial register failed: %v (will retry)", ServiceId, err)
 	}
 	defer server.Close()
-	go server.ListenLeaseRespChan()
+	go server.Run(cctx)
 	<-cctx.Done()
 }

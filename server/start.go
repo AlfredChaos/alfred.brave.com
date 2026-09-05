@@ -71,11 +71,16 @@ func StartListenFeedService(config *conf.Config) {
 
 func watch(config *conf.Config, kind string, sink *[]string) {
 	discovery := etcd.NewServiceDiscovery(config.EtcdClient)
-	defer discovery.Close()
+	// 不 defer discovery.Close()：它关闭的是共享 EtcdClient，会让后续 etcd 访问
+	// 全部失效（与 ServiceRegister.Close 同款问题）；连接生命周期归 conf 管理。
 	if err := discovery.WatchService(kind); err != nil {
 		log.Errorf("watch %s services failed: %v", kind, err)
 		return
 	}
+	// WatchService 内部已全量拉取：立即填充，避免登录请求撞进"启动后首个 tick
+	// 前的 5s 空窗"（gateway 刚起即有请求时 503，2026-09-05 实测踩到）
+	*sink = discovery.GetServices()
+	log.Debugf("%s services = %v", kind, *sink)
 	for {
 		select {
 		case <-time.Tick(5 * time.Second):

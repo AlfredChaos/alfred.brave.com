@@ -18,6 +18,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -70,7 +71,15 @@ func Start(ctx context.Context, config *conf.Config) {
 		log.Errorf("grpc listen :%d failed: %v", config.GetGrpcPort(), err)
 		return
 	}
-	grpcServer := grpc.NewServer()
+	// 放宽 keepalive enforcement：deliver 是离散 unary 调用，连接大部分时间无活跃流，
+	// 必须允许无流 ping（默认 PermitWithoutStream=false 会直接拒绝）；MinTime 下限
+	// 需低于 client 的 20s ping 间隔（deliver.go），否则被默认 5min 判为恶意踢连接。
+	grpcServer := grpc.NewServer(
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             10 * time.Second,
+			PermitWithoutStream: true,
+		}),
+	)
 	relay.NewServer(exchange.Controller).Register(grpcServer)
 	go func() {
 		log.Infof("grpc relay listening on :%d", config.GetGrpcPort())
@@ -120,11 +129,11 @@ func ServiceRegister(cctx context.Context, config *conf.Config) {
 	host := fmt.Sprintf("%s:%d", config.GetAdvertiseHost(), config.GetAdvertisePort())
 	server, err := etcd.NewServiceRegister(etcd.KindCS, ServiceId, host, lease, config.EtcdClient)
 	if err != nil {
-		log.Errorf("service %s register error: %v", ServiceId, err)
-		return
+		// 首次注册失败不放弃：etcd 可能晚于 joker 就绪，Run 维持循环会退避重试
+		log.Warnf("service %s initial register failed: %v (will retry)", ServiceId, err)
 	}
 	defer server.Close()
-	go server.ListenLeaseRespChan()
+	go server.Run(cctx)
 
 	<-cctx.Done()
 	log.Infof("service listening exit...")
