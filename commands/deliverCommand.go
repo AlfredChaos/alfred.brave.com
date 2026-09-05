@@ -2,13 +2,14 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"alfred.brave.com/common"
 	"alfred.brave.com/conf"
-	"encoding/json"
 
 	"alfred.brave.com/internal/chat"
 	ibrave "alfred.brave.com/internal/kafka"
@@ -80,18 +81,27 @@ func deliverAction(ctx *cli.Context) error {
 		},
 	)
 
-	go func() {
-		if err := worker.Run(cctx); err != nil {
-			log.Errorf("deliver worker exited: %v", err)
-			cancel()
-		}
-	}()
+	workerErr := make(chan error, 1)
+	go func() { workerErr <- worker.Run(cctx) }()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Info("deliver: shutting down")
-	cancel()
-	config.Shutdown()
-	return nil
+	select {
+	case err := <-workerErr:
+		if err == nil {
+			cancel()
+			config.Shutdown()
+			return nil
+		}
+		// worker 致命退出必须让进程非零退出（cmd/brave.go 部署契约），由
+		// compose/supervisord 重启拉起；此前只 cancel 会卡在 <-quit 变僵尸，
+		// restart 策略永远不触发，消费停滞无人发现
+		config.Shutdown()
+		return fmt.Errorf("deliver worker exited: %w", err)
+	case <-quit:
+		log.Info("deliver: shutting down")
+		cancel()
+		config.Shutdown()
+		return nil
+	}
 }

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -39,18 +40,26 @@ func persistAction(ctx *cli.Context) error {
 
 	worker := persist.New(config.Db(), push, config.KafkaBrokers(), "persist")
 
-	go func() {
-		if err := worker.Run(cctx); err != nil {
-			log.Errorf("persist worker exited: %v", err)
-			cancel() // 进程退出交给部署层重启（at-least-once 依赖重投）
-		}
-	}()
+	workerErr := make(chan error, 1)
+	go func() { workerErr <- worker.Run(cctx) }()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Info("persist: shutting down")
-	cancel()
-	config.Shutdown()
-	return nil
+	select {
+	case err := <-workerErr:
+		if err == nil {
+			cancel()
+			config.Shutdown()
+			return nil
+		}
+		// 致命退出必须让进程非零退出（at-least-once 依赖部署层重启重投）；
+		// 只 cancel 会卡在 <-quit 变僵尸，restart 永不触发
+		config.Shutdown()
+		return fmt.Errorf("persist worker exited: %w", err)
+	case <-quit:
+		log.Info("persist: shutting down")
+		cancel()
+		config.Shutdown()
+		return nil
+	}
 }

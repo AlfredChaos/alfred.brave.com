@@ -6,6 +6,7 @@ package push
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -143,10 +144,9 @@ func (w *Worker) send(ctx context.Context, uid string, st *deviceState) {
 	st.badge = 0
 }
 
+// isTimeout 判定 fetch 窗口超时。context.DeadlineExceeded 实现的是 Timeout() bool，
+// 此前误断言 interface{ Deadline() bool } 恒不成立，空轮询超时被当致命错误上抛
+// （旧版 worker 出错后僵尸化掩盖了这一点，见 commands/*Command.go 退出修复）。
 func isTimeout(err error) bool {
-	type deadline interface{ Deadline() bool }
-	if d, ok := err.(deadline); ok {
-		return d.Deadline()
-	}
-	return false
+	return errors.Is(err, context.DeadlineExceeded)
 }
