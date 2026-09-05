@@ -22,8 +22,11 @@ x-brave-common: &brave-common
 
 services:
   # ---------- 存储：PG 15 单实例 ----------
+  # 中间件与业务容器同样配 restart：否则 Docker/宿主机重启后业务自动复活、
+  # 中间件永久躺平，栈进入"看似全绿实则全哑"的半恢复状态（2026-09-05 实测踩坑）。
   postgres:
     image: postgres:15
+    restart: unless-stopped
     environment:
       POSTGRES_USER: brave
       POSTGRES_PASSWORD: brave
@@ -40,6 +43,7 @@ services:
   # ---------- 注册发现：etcd 单节点 ----------
   etcd:
     image: quay.io/coreos/etcd:v3.5.5
+    restart: unless-stopped
     environment:
       ETCD_NAME: etcd-local
       ETCD_DATA_DIR: /data/etcd
@@ -63,6 +67,7 @@ services:
   # ---------- 消息主干：Kafka 单 broker（KRaft） ----------
   kafka:
     image: apache/kafka:3.7.0
+    restart: unless-stopped
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
