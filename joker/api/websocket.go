@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net/http"
+
 	"alfred.brave.com/joker/exchange"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -9,6 +11,12 @@ import (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	// 网关(:37001)与 Chat Server(:37002) 端口分离部署下，网页客户端的 WS 连接
+	// 必然跨源（跨端口即跨源），gorilla 默认 CheckOrigin 会全部拒绝——浏览器
+	// 实测暴露（此前 e2e 用 Go 客户端不带 Origin 头，测不出该问题）。
+	// 当前连接信任模型是 URL 中的 uid（测试客户端），Origin 不作为安全边界；
+	// 若对外开放需升级为 token 握手 + Origin 白名单（见 docs 面试取舍说明）。
+	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
 func Websocket(router *gin.RouterGroup) {

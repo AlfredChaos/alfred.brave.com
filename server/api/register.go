@@ -70,6 +70,13 @@ func (s *Server) Register(router *gin.RouterGroup) {
 			LoginAt:  time.Now(),
 		}
 		if err := s.users.Create(c, user); err != nil {
+			// 唯一键冲突（PG 23505）是用户可见的正常分支：重名注册应提示"已占用"
+			// 而非 500 Database error——浏览器实测暴露
+			if errors.Is(err, database.ErrDuplicateUser) {
+				log.Warnf("user %s (create): name already taken", ur.UserName)
+				abort.AbortConflict(c)
+				return
+			}
 			log.Errorf("user %s (create): %v", ur.UserName, err)
 			abort.AbortDatabaseError(c)
 			return

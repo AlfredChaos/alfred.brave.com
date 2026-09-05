@@ -2,9 +2,11 @@ package database
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // User 用户模型（表 users）。字段与 json tag 对齐原 gorm 版本，保证 API 响应结构不变。
@@ -37,6 +39,7 @@ func NewUserStore(s *Store) *UserStore {
 }
 
 // Create 创建用户；UID 服务端生成（google/uuid，替换已归档的 satori）。
+// 唯一键冲突归一为 ErrDuplicateUser（重名注册是用户可见的正常分支，非基础设施错误）。
 func (us *UserStore) Create(ctx context.Context, u *User) error {
 	if u.UID == "" {
 		u.UID = uuid.NewString()
@@ -47,6 +50,11 @@ func (us *UserStore) Create(ctx context.Context, u *User) error {
 		`INSERT INTO users (uid, user_name, email, password_hash, profile, avatar, login_at, created_at, updated_at)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
 		u.UID, u.UserName, u.Email, u.Password, u.Profile, u.Avatar, u.LoginAt, u.CreatedAt, u.UpdatedAt)
+	if err != nil {
+		if pgErr := new(pgconn.PgError); errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return ErrDuplicateUser
+		}
+	}
 	return err
 }
 

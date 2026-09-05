@@ -16,6 +16,10 @@ var log = event.Log
 // ErrNotFound 统一“记录不存在”语义（pgx.ErrNoRows 的别名），调用方判等无需依赖驱动包。
 var ErrNotFound = errors.New("record not found")
 
+// ErrDuplicateUser 用户名唯一键冲突（users.uq_users_user_name，PG 23505）。
+// 注册重名是用户可见的正常分支，归一为业务错误供 API 层映射 409。
+var ErrDuplicateUser = errors.New("user name already taken")
+
 // Store pgx 连接池封装：所有数据访问器的注入源（构造注入，替代原 gorm 全局 provider）。
 // 并发安全：pgxpool 本身并发安全，Store 无自有可变状态。
 type Store struct {
