@@ -6,6 +6,10 @@ log:
   output: "stdout"
 kafka:
   brokers: "${KAFKA_BROKERS}"
+# ghost 对账依赖 etcd 服务表（存活 CS 集合）；persist/deliver 不消费该段，无副作用
+etcd:
+  dial_timeout: 5
+  endpoints: "${ETCD_ENDPOINTS}"
 postgres:
   user: "${POSTGRES_USER}"
   password: "${POSTGRES_PASSWORD}"

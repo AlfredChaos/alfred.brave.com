@@ -10,6 +10,7 @@ const (
 	DeliverName = "deliver"
 	FanoutName  = "fanout"
 	PushName    = "push"
+	GhostName   = "ghost"
 	FeedName    = "feed"
 )
 
