@@ -23,7 +23,7 @@ var GhostCommand = cli.Command{
 // ghostAction GHOST 对账任务入口：etcd 服务表 + PG kv online:*，
 // 不对外提供服务，无需注册进服务发现。
 func ghostAction(ctx *cli.Context) error {
-	config, err := conf.InitConfig(ctx, common.JokerName, []int{common.MiddlewareDatabase, common.MiddlewareEtcd})
+	config, err := conf.InitConfig(ctx, common.GhostName, []int{common.MiddlewareDatabase, common.MiddlewareEtcd})
 	if err != nil {
 		return err
 	}
@@ -33,7 +33,8 @@ func ghostAction(ctx *cli.Context) error {
 
 	// 服务表视图：watch 常驻维护本地列表，对账时快照
 	discovery := etcd.NewServiceDiscovery(config.EtcdClient)
-	defer discovery.Close()
+	// 不 defer discovery.Close()：它关闭共享 EtcdClient，会废掉进程后续所有
+	// etcd 访问（与 server/start.go watch 同款修正）
 	if err := discovery.WatchService(etcd.KindCS); err != nil {
 		return err
 	}
