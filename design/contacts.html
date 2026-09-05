@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brave IM · 通讯录</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+tailwind.config = {
+  theme: { extend: { colors: {
+    wechat: { DEFAULT: '#07C160', dark: '#06AD56', light: '#EDF7F0', bubble: '#95EC69' },
+    nav: '#2E2E2E', panel: '#F7F7F7', chatbg: '#F5F5F5', line: '#E7E7E7'
+  } } }
+}
+</script>
+<style>
+  body { font-family: -apple-system, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif; }
+  .nav-btn { color: #9C9C9C; padding: 8px 10px; border-radius: 10px; transition: color .2s, background .2s; }
+  .nav-btn:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .nav-btn.active { color: #07C160; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #D9D9D9; border-radius: 3px; }
+</style>
+</head>
+<body class="h-screen overflow-hidden flex bg-panel text-[14px] text-slate-800">
+
+  <!-- 导航条 -->
+  <nav class="w-[64px] bg-nav flex flex-col items-center py-4 gap-4 shrink-0">
+    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=faces" class="w-9 h-9 rounded-lg object-cover cursor-pointer" alt="我的头像">
+    <div class="w-8 border-t border-white/10 my-1"></div>
+    <button class="nav-btn" title="聊天"><i class="fa-solid fa-comment-dots text-[22px]"></i></button>
+    <button class="nav-btn active" title="通讯录"><i class="fa-regular fa-address-book text-[22px]"></i></button>
+    <button class="nav-btn" title="朋友圈"><i class="fa-regular fa-images text-[21px]"></i></button>
+    <div class="flex-1"></div>
+    <button class="nav-btn" title="设置"><i class="fa-solid fa-gear text-[20px]"></i></button>
+    <button class="nav-btn" title="退出"><i class="fa-solid fa-power-off text-[19px]"></i></button>
+  </nav>
+
+  <!-- 通讯录列表 -->
+  <aside class="w-[280px] bg-panel border-r border-line flex flex-col shrink-0">
+    <header class="h-[64px] flex items-center justify-between px-4 shrink-0">
+      <span class="text-[15px] font-medium">通讯录</span>
+      <button class="text-gray-500 hover:text-wechat cursor-pointer transition-colors duration-200" title="添加用户"><i class="fa-solid fa-user-plus"></i></button>
+    </header>
+    <div class="px-3 pb-2">
+      <div class="bg-white/90 rounded-md px-3 py-1.5 flex items-center gap-2 text-gray-400 text-[13px]">
+        <i class="fa-solid fa-magnifying-glass text-xs"></i><span class="truncate">搜索用户名 / UID</span>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto scrollbar-thin">
+      <!-- 功能入口 -->
+      <div class="mx-2 mt-1 rounded-lg overflow-hidden">
+        <div class="flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-white/80 transition-colors duration-200">
+          <div class="w-10 h-10 rounded-lg bg-wechat/10 flex items-center justify-center"><i class="fa-solid fa-user-group text-wechat"></i></div>
+          <span class="flex-1">新的朋友</span>
+          <span class="min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">2</span>
+        </div>
+        <div class="flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-white/80 transition-colors duration-200">
+          <div class="w-10 h-10 rounded-lg bg-indigo-400/15 flex items-center justify-center"><i class="fa-solid fa-user-group text-indigo-400"></i></div>
+          <span class="flex-1">群聊</span>
+          <span class="text-[11px] text-gray-400">4</span>
+        </div>
+      </div>
+
+      <!-- 分组：C -->
+      <div class="px-4 pt-4 pb-1 text-[11px] text-gray-400 font-medium">C</div>
+      <div class="mx-2 rounded-lg overflow-hidden">
+        <div class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/80 transition-colors duration-200">
+          <div class="relative shrink-0">
+            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=96&h=96&fit=crop&crop=faces" class="w-10 h-10 rounded-lg object-cover" alt="陈北">
+            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-wechat rounded-full border-2 border-white"></span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-medium">陈北</div>
+            <div class="text-[11px] text-gray-400 font-mono truncate">uid 6ca411a3…</div>
+          </div>
+          <i class="fa-solid fa-comment-dots text-gray-300 hover:text-wechat cursor-pointer transition-colors duration-200" title="发消息"></i>
+        </div>
+      </div>
+
+      <!-- 分组：L -->
+      <div class="px-4 pt-4 pb-1 text-[11px] text-gray-400 font-medium">L</div>
+      <div class="mx-2 rounded-lg overflow-hidden">
+        <div class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/80 transition-colors duration-200">
+          <div class="relative shrink-0">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=96&h=96&fit=crop&crop=faces" class="w-10 h-10 rounded-lg object-cover" alt="林晚晚">
+            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-wechat rounded-full border-2 border-white"></span>
+          </div>
+          <div class="flex-1 min-w-0"><div class="font-medium">林晚晚</div><div class="text-[11px] text-gray-400 font-mono truncate">uid d462e5d4…</div></div>
+          <i class="fa-solid fa-comment-dots text-gray-300 hover:text-wechat cursor-pointer transition-colors duration-200"></i>
+        </div>
+        <div class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/80 transition-colors duration-200 opacity-80">
+          <div class="relative shrink-0">
+            <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=96&h=96&fit=crop&crop=faces" class="w-10 h-10 rounded-lg object-cover" alt="刘一">
+            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-gray-300 rounded-full border-2 border-white"></span>
+          </div>
+          <div class="flex-1 min-w-0"><div class="font-medium">刘一</div><div class="text-[11px] text-gray-400">离线</div></div>
+          <i class="fa-solid fa-comment-dots text-gray-300 hover:text-wechat cursor-pointer transition-colors duration-200"></i>
+        </div>
+      </div>
+
+      <!-- 分组：S -->
+      <div class="px-4 pt-4 pb-1 text-[11px] text-gray-400 font-medium">S</div>
+      <div class="mx-2 rounded-lg overflow-hidden">
+        <div class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/80 transition-colors duration-200">
+          <div class="relative shrink-0">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=96&h=96&fit=crop&crop=faces" class="w-10 h-10 rounded-lg object-cover" alt="苏禾">
+            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-wechat rounded-full border-2 border-white"></span>
+          </div>
+          <div class="flex-1 min-w-0"><div class="font-medium">苏禾</div><div class="text-[11px] text-gray-400 font-mono truncate">uid e3a1f74f…</div></div>
+          <i class="fa-solid fa-comment-dots text-gray-300 hover:text-wechat cursor-pointer transition-colors duration-200"></i>
+        </div>
+      </div>
+
+      <!-- 分组：Z -->
+      <div class="px-4 pt-4 pb-1 text-[11px] text-gray-400 font-medium">Z</div>
+      <div class="mx-2 rounded-lg overflow-hidden">
+        <div class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-white/80 transition-colors duration-200 opacity-80">
+          <div class="relative shrink-0">
+            <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=96&h=96&fit=crop&crop=faces" class="w-10 h-10 rounded-lg object-cover" alt="老周">
+            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-gray-300 rounded-full border-2 border-white"></span>
+          </div>
+          <div class="flex-1 min-w-0"><div class="font-medium">老周</div><div class="text-[11px] text-gray-400">离线</div></div>
+          <i class="fa-solid fa-comment-dots text-gray-300 hover:text-wechat cursor-pointer transition-colors duration-200"></i>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 用户详情卡 -->
+  <main class="flex-1 bg-chatbg flex items-center justify-center min-w-0">
+    <div class="bg-white rounded-2xl shadow-xl w-[440px] overflow-hidden">
+      <div class="p-8 flex items-center gap-6 border-b border-line">
+        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop&crop=faces" class="w-20 h-20 rounded-2xl object-cover" alt="林晚晚">
+        <div class="min-w-0">
+          <div class="text-lg font-medium flex items-center gap-2">
+            林晚晚
+            <span class="flex items-center gap-1 text-[11px] text-wechat bg-wechat-light px-1.5 py-0.5 rounded font-normal"><span class="w-1.5 h-1.5 bg-wechat rounded-full"></span>在线 · cs-2</span>
+          </div>
+          <div class="text-[12px] text-gray-400 font-mono mt-1">uid d462e5d4-a321-463a</div>
+          <div class="text-[12px] text-gray-400 mt-0.5">地区：上海 · 徐汇</div>
+        </div>
+      </div>
+      <div class="divide-y divide-line">
+        <div class="flex items-center justify-between px-8 py-3.5 text-[13px]">
+          <span class="text-gray-500">共同群聊</span><span>4 个</span>
+        </div>
+        <div class="flex items-center justify-between px-8 py-3.5 text-[13px]">
+          <span class="text-gray-500">消息按 seq 排序</span>
+          <i class="fa-solid fa-toggle-on text-wechat text-lg"></i>
+        </div>
+      </div>
+      <div class="p-6 flex gap-3">
+        <button class="flex-1 py-2.5 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-wechat hover:text-wechat cursor-pointer transition-colors duration-200">
+          <i class="fa-solid fa-video mr-1.5"></i>视频
+        </button>
+        <button class="flex-1 py-2.5 bg-wechat hover:bg-wechat-dark text-white rounded-lg text-[13px] cursor-pointer transition-colors duration-200">
+          <i class="fa-solid fa-comment-dots mr-1.5"></i>发消息
+        </button>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

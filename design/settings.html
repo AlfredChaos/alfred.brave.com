@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brave IM · 设置</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+tailwind.config = {
+  theme: { extend: { colors: {
+    wechat: { DEFAULT: '#07C160', dark: '#06AD56', light: '#EDF7F0', bubble: '#95EC69' },
+    nav: '#2E2E2E', panel: '#F7F7F7', chatbg: '#F5F5F5', line: '#E7E7E7'
+  } } }
+}
+</script>
+<style>
+  body { font-family: -apple-system, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif; }
+  .nav-btn { color: #9C9C9C; padding: 8px 10px; border-radius: 10px; transition: color .2s, background .2s; }
+  .nav-btn:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .nav-btn.active { color: #07C160; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #D9D9D9; border-radius: 3px; }
+</style>
+</head>
+<body class="h-screen overflow-hidden flex bg-panel text-[14px] text-slate-800">
+
+  <!-- 导航条 -->
+  <nav class="w-[64px] bg-nav flex flex-col items-center py-4 gap-4 shrink-0">
+    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=faces" class="w-9 h-9 rounded-lg object-cover cursor-pointer" alt="我的头像">
+    <div class="w-8 border-t border-white/10 my-1"></div>
+    <button class="nav-btn" title="聊天"><i class="fa-solid fa-comment-dots text-[22px]"></i></button>
+    <button class="nav-btn" title="通讯录"><i class="fa-regular fa-address-book text-[22px]"></i></button>
+    <button class="nav-btn" title="朋友圈"><i class="fa-regular fa-images text-[21px]"></i></button>
+    <div class="flex-1"></div>
+    <button class="nav-btn active" title="设置"><i class="fa-solid fa-gear text-[20px]"></i></button>
+    <button class="nav-btn" title="退出"><i class="fa-solid fa-power-off text-[19px]"></i></button>
+  </nav>
+
+  <!-- 设置列表 -->
+  <aside class="w-[280px] bg-panel border-r border-line flex flex-col shrink-0">
+    <header class="h-[64px] flex items-center px-4 shrink-0">
+      <span class="text-[15px] font-medium">设置</span>
+    </header>
+    <div class="flex-1 overflow-y-auto scrollbar-thin px-2 space-y-1">
+      <div class="px-3 py-2.5 rounded-lg cursor-pointer bg-white shadow-sm text-wechat">
+        <i class="fa-solid fa-plug w-5 mr-2"></i>连接与调试
+      </div>
+      <div class="px-3 py-2.5 rounded-lg cursor-pointer hover:bg-white/80 transition-colors duration-200">
+        <i class="fa-regular fa-bell w-5 mr-2 text-gray-500"></i>消息通知
+      </div>
+      <div class="px-3 py-2.5 rounded-lg cursor-pointer hover:bg-white/80 transition-colors duration-200">
+        <i class="fa-solid fa-shield-halved w-5 mr-2 text-gray-500"></i>账号与安全
+      </div>
+      <div class="px-3 py-2.5 rounded-lg cursor-pointer hover:bg-white/80 transition-colors duration-200">
+        <i class="fa-solid fa-database w-5 mr-2 text-gray-500"></i>聊天数据
+      </div>
+      <div class="px-3 py-2.5 rounded-lg cursor-pointer hover:bg-white/80 transition-colors duration-200">
+        <i class="fa-solid fa-circle-info w-5 mr-2 text-gray-500"></i>关于 Brave IM
+      </div>
+    </div>
+  </aside>
+
+  <!-- 设置详情 -->
+  <main class="flex-1 bg-chatbg overflow-y-auto scrollbar-thin min-w-0">
+    <div class="max-w-[560px] mx-auto py-8 px-6 space-y-6">
+
+      <!-- 账号卡 -->
+      <div class="bg-white rounded-2xl shadow-sm p-6 flex items-center gap-5">
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=140&h=140&fit=crop&crop=faces" class="w-16 h-16 rounded-xl object-cover" alt="我的头像">
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-[15px]">Alfred</div>
+          <div class="text-[12px] text-gray-400 font-mono mt-0.5 truncate">uid 6ca411a3-949f…</div>
+          <div class="mt-1.5 flex items-center gap-2 text-[12px]">
+            <span class="flex items-center gap-1 text-wechat"><span class="w-1.5 h-1.5 bg-wechat rounded-full"></span>在线 · cs-1</span>
+            <span class="text-gray-300">|</span>
+            <span class="text-gray-400">延迟 3ms</span>
+          </div>
+        </div>
+        <button class="text-gray-300 hover:text-wechat cursor-pointer transition-colors duration-200" title="编辑资料"><i class="fa-regular fa-pen-to-square"></i></button>
+      </div>
+
+      <!-- 连接与调试（Brave 特色：贴合现有调试能力） -->
+      <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-line flex items-center gap-2">
+          <i class="fa-solid fa-plug text-wechat"></i>
+          <span class="font-medium">连接与调试</span>
+          <span class="text-[11px] text-gray-400 ml-1">开发测试客户端专属</span>
+        </div>
+        <div class="divide-y divide-line">
+          <div class="px-6 py-4">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <div class="text-[13px]">网关地址</div>
+                <div class="text-[11px] text-gray-400 mt-0.5">REST 入口，登录与历史拉取</div>
+              </div>
+              <span class="text-[11px] text-wechat bg-wechat-light px-2 py-0.5 rounded"><i class="fa-solid fa-circle-check mr-1"></i>可达</span>
+            </div>
+            <div class="flex gap-2">
+              <input type="text" value="http://127.0.0.1:37001" class="flex-1 bg-slate-50 border border-line rounded-lg px-3 py-2 font-mono text-[13px] outline-none focus:border-wechat focus:ring-2 focus:ring-wechat/20 transition-all duration-200">
+              <button class="px-4 rounded-lg border border-gray-300 text-[13px] text-gray-600 hover:border-wechat hover:text-wechat cursor-pointer transition-colors duration-200">测试</button>
+            </div>
+          </div>
+          <div class="px-6 py-4">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <div class="text-[13px]">WebSocket 地址覆盖</div>
+                <div class="text-[11px] text-gray-400 mt-0.5">强制连接指定 Chat Server（跨节点投递验证）</div>
+              </div>
+              <i class="fa-solid fa-toggle-on text-wechat text-xl cursor-pointer" role="switch" aria-checked="true"></i>
+            </div>
+            <input type="text" value="127.0.0.1:37202" disabled class="w-full bg-slate-50 border border-line rounded-lg px-3 py-2 font-mono text-[13px] text-gray-500 outline-none">
+            <p class="text-[11px] text-amber-500 mt-1.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>覆盖后所有连接强制走 cs-2，用于模拟跨 CS 场景</p>
+          </div>
+          <div class="px-6 py-4 flex items-center justify-between">
+            <div>
+              <div class="text-[13px]">断线自动重连</div>
+              <div class="text-[11px] text-gray-400 mt-0.5">3 秒退避重连，按 lastSeq 补拉缺失消息</div>
+            </div>
+            <i class="fa-solid fa-toggle-on text-wechat text-xl cursor-pointer" role="switch" aria-checked="true"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 通知 -->
+      <div class="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-line">
+        <div class="px-6 py-4 flex items-center justify-between">
+          <div>
+            <div class="text-[13px]">接收新消息通知</div>
+            <div class="text-[11px] text-gray-400 mt-0.5">chat.notify 驱动，同人 60s 合并 + 单设备频控 20/h</div>
+          </div>
+          <i class="fa-solid fa-toggle-on text-wechat text-xl cursor-pointer" role="switch" aria-checked="true"></i>
+        </div>
+        <div class="px-6 py-4 flex items-center justify-between">
+          <div>
+            <div class="text-[13px]">消息已读回执</div>
+            <div class="text-[11px] text-gray-400 mt-0.5">发送方气泡显示双勾（chat.ack）</div>
+          </div>
+          <i class="fa-solid fa-toggle-on text-wechat text-xl cursor-pointer" role="switch" aria-checked="true"></i>
+        </div>
+        <div class="px-6 py-4 flex items-center justify-between">
+          <div>
+            <div class="text-[13px]">夜间静默</div>
+            <div class="text-[11px] text-gray-400 mt-0.5">23:00 - 7:00 不弹通知</div>
+          </div>
+          <i class="fa-solid fa-toggle-off text-gray-300 text-xl cursor-pointer" role="switch" aria-checked="false"></i>
+        </div>
+      </div>
+
+      <!-- 退出 -->
+      <button class="w-full py-3 bg-white rounded-2xl shadow-sm text-red-500 font-medium hover:bg-red-50 cursor-pointer transition-colors duration-200">
+        <i class="fa-solid fa-right-from-bracket mr-2"></i>退出登录
+      </button>
+
+      <p class="text-center text-[11px] text-gray-300 pt-2">Brave IM · 求职练手项目 · 分布式即时通讯系统 v1.0</p>
+    </div>
+  </main>
+
+</body>
+</html>

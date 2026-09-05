@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brave IM · 朋友圈</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+tailwind.config = {
+  theme: { extend: { colors: {
+    wechat: { DEFAULT: '#07C160', dark: '#06AD56', light: '#EDF7F0', bubble: '#95EC69' },
+    nav: '#2E2E2E', panel: '#F7F7F7', chatbg: '#F5F5F5', line: '#E7E7E7'
+  } } }
+}
+</script>
+<style>
+  body { font-family: -apple-system, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif; }
+  .nav-btn { color: #9C9C9C; padding: 8px 10px; border-radius: 10px; transition: color .2s, background .2s; }
+  .nav-btn:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .nav-btn.active { color: #07C160; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #D9D9D9; border-radius: 3px; }
+</style>
+</head>
+<body class="h-screen overflow-hidden flex bg-panel text-[14px] text-slate-800">
+
+  <!-- 导航条 -->
+  <nav class="w-[64px] bg-nav flex flex-col items-center py-4 gap-4 shrink-0">
+    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=faces" class="w-9 h-9 rounded-lg object-cover cursor-pointer" alt="我的头像">
+    <div class="w-8 border-t border-white/10 my-1"></div>
+    <button class="nav-btn" title="聊天"><i class="fa-solid fa-comment-dots text-[22px]"></i></button>
+    <button class="nav-btn" title="通讯录"><i class="fa-regular fa-address-book text-[22px]"></i></button>
+    <button class="nav-btn active" title="朋友圈"><i class="fa-regular fa-images text-[21px]"></i></button>
+    <div class="flex-1"></div>
+    <button class="nav-btn" title="设置"><i class="fa-solid fa-gear text-[20px]"></i></button>
+    <button class="nav-btn" title="退出"><i class="fa-solid fa-power-off text-[19px]"></i></button>
+  </nav>
+
+  <!-- 朋友圈时间线 -->
+  <main class="flex-1 overflow-y-auto scrollbar-thin bg-white min-w-0">
+    <!-- 封面 -->
+    <div class="relative h-[300px]">
+      <img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&h=500&fit=crop" class="w-full h-full object-cover" alt="朋友圈封面">
+      <div class="absolute top-4 left-6 flex items-center gap-3 text-white drop-shadow">
+        <button class="w-9 h-9 rounded-full bg-black/30 backdrop-blur flex items-center justify-center cursor-pointer hover:bg-black/45 transition-colors duration-200" title="返回"><i class="fa-solid fa-chevron-left"></i></button>
+        <span class="text-sm tracking-widest">朋友圈</span>
+      </div>
+      <!-- 我的身份卡 -->
+      <div class="absolute -bottom-9 right-10 flex items-end gap-4">
+        <div class="text-right pb-1">
+          <div class="text-lg font-medium text-slate-800">Alfred</div>
+          <div class="text-[11px] text-gray-400 font-mono">uid 6ca4… · cs-1</div>
+        </div>
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=faces" class="w-[72px] h-[72px] rounded-xl object-cover border-4 border-white shadow-md" alt="我的头像">
+      </div>
+    </div>
+    <!-- 相机按钮 -->
+    <button class="fixed right-[calc(50%-280px)] top-4 z-10 w-10 h-10 rounded-full bg-black/30 backdrop-blur text-white flex items-center justify-center cursor-pointer hover:bg-wechat transition-colors duration-200" title="发动态">
+      <i class="fa-solid fa-camera"></i>
+    </button>
+
+    <!-- 时间线 -->
+    <div class="max-w-[560px] mx-auto px-6 pt-20 pb-16 space-y-8">
+
+      <!-- 动态 1：九宫格 -->
+      <article class="flex gap-3.5">
+        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=96&h=96&fit=crop&crop=faces" class="w-11 h-11 rounded-lg object-cover shrink-0" alt="林晚晚">
+        <div class="flex-1 min-w-0">
+          <div class="text-[15px] text-[#576B95] font-medium cursor-pointer hover:underline">林晚晚</div>
+          <p class="mt-1.5 text-[14px] leading-relaxed text-slate-800">
+            周末爬山，山顶的云海值回所有楼梯。八张图选不出来，全放 <span class="text-gray-400">#记录</span>
+          </p>
+          <div class="grid grid-cols-3 gap-1.5 w-[78%] mt-2.5 rounded-lg overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=300&fit=crop" class="aspect-square object-cover cursor-pointer hover:opacity-85 transition-opacity duration-200" alt="云海1">
+            <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=300&h=300&fit=crop" class="aspect-square object-cover cursor-pointer hover:opacity-85 transition-opacity duration-200" alt="云海2">
+            <img src="https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=300&h=300&fit=crop" class="aspect-square object-cover cursor-pointer hover:opacity-85 transition-opacity duration-200" alt="云海3">
+            <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300&h=300&fit=crop" class="aspect-square object-cover cursor-pointer hover:opacity-85 transition-opacity duration-200" alt="云海4">
+            <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=300&h=300&fit=crop" class="aspect-square object-cover cursor-pointer hover:opacity-85 transition-opacity duration-200" alt="云海5">
+            <img src="https://images.unsplash.com/photo-1505144808419-1957a94ca61e?w=300&h=300&fit=crop" class="aspect-square object-cover cursor-pointer hover:opacity-85 transition-opacity duration-200" alt="云海6">
+            <img src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=300&h=300&fit=crop" class="aspect-square object-cover cursor-pointer hover:opacity-85 transition-opacity duration-200" alt="云海7">
+            <img src="https://images.unsplash.com/photo-1552083375-1447ce886485?w=300&h=300&fit=crop" class="aspect-square object-cover cursor-pointer hover:opacity-85 transition-opacity duration-200" alt="云海8">
+            <div class="aspect-square bg-slate-100 flex items-center justify-center text-gray-400 text-[12px] cursor-pointer hover:bg-slate-200 transition-colors duration-200">+12</div>
+          </div>
+          <div class="flex items-center justify-between mt-2.5 text-[12px] text-gray-400">
+            <span>32 分钟前</span>
+            <div class="flex items-center gap-2">
+              <button class="px-2 py-1 rounded hover:bg-slate-100 cursor-pointer transition-colors duration-200" title="赞"><i class="fa-regular fa-thumbs-up mr-1"></i>赞</button>
+              <button class="px-2 py-1 rounded hover:bg-slate-100 cursor-pointer transition-colors duration-200" title="评论"><i class="fa-regular fa-comment mr-1"></i>评论</button>
+            </div>
+          </div>
+          <!-- 点赞评论条 -->
+          <div class="mt-1.5 bg-[#F7F7F7] rounded-md px-3 py-2 text-[13px] space-y-1.5">
+            <div class="flex flex-wrap gap-x-1">
+              <i class="fa-solid fa-thumbs-up text-[#576B95] text-[11px] mt-1"></i>
+              <span class="text-[#576B95] cursor-pointer hover:underline">陈北</span><span class="text-gray-400">、</span>
+              <span class="text-[#576B95] cursor-pointer hover:underline">苏禾</span><span class="text-gray-400">、</span>
+              <span class="text-[#576B95] cursor-pointer hover:underline">老周</span>
+              <span class="text-gray-500 text-[12px] ml-1">觉得很赞</span>
+            </div>
+            <div class="flex gap-1 leading-snug">
+              <span class="text-[#576B95] shrink-0 cursor-pointer hover:underline">苏禾：</span>
+              <span class="text-gray-600">下一局带上我！</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <div class="border-t border-line/70"></div>
+
+      <!-- 动态 2：纯文字 -->
+      <article class="flex gap-3.5">
+        <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=96&h=96&fit=crop&crop=faces" class="w-11 h-11 rounded-lg object-cover shrink-0" alt="老周">
+        <div class="flex-1 min-w-0">
+          <div class="text-[15px] text-[#576B95] font-medium cursor-pointer hover:underline">老周</div>
+          <p class="mt-1.5 text-[14px] leading-relaxed text-slate-800">
+            群里说今晚 8:30 分享「百万长连接的设计取舍」，讲 gRPC 投递链路和内核调优，欢迎围观。
+          </p>
+          <div class="flex items-center justify-between mt-2.5 text-[12px] text-gray-400">
+            <span>1 小时前</span>
+            <div class="flex items-center gap-2">
+              <button class="px-2 py-1 rounded hover:bg-slate-100 cursor-pointer transition-colors duration-200"><i class="fa-solid fa-thumbs-up mr-1 text-[#576B95]"></i>已赞</button>
+              <button class="px-2 py-1 rounded hover:bg-slate-100 cursor-pointer transition-colors duration-200"><i class="fa-regular fa-comment mr-1"></i>评论</button>
+            </div>
+          </div>
+          <div class="mt-1.5 bg-[#F7F7F7] rounded-md px-3 py-2 text-[13px] flex gap-1 leading-snug">
+            <span class="text-[#576B95] shrink-0 cursor-pointer hover:underline">林晚晚 回复 老周：</span>
+            <span class="text-gray-600">已定闹钟</span>
+          </div>
+        </div>
+      </article>
+
+      <div class="border-t border-line/70"></div>
+
+      <!-- 动态 3：单图 + 我的 -->
+      <article class="flex gap-3.5">
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=faces" class="w-11 h-11 rounded-lg object-cover shrink-0" alt="我">
+        <div class="flex-1 min-w-0">
+          <div class="text-[15px] text-[#576B95] font-medium cursor-pointer hover:underline">Alfred</div>
+          <p class="mt-1.5 text-[14px] leading-relaxed text-slate-800">
+            单机 68 万长连接压测收官。图是压测机的监控面板，CPU 60%，内存还剩三分之一。
+          </p>
+          <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=520&h=320&fit=crop" class="w-[78%] mt-2.5 rounded-lg cursor-pointer hover:opacity-90 transition-opacity duration-200" alt="压测监控面板">
+          <div class="flex items-center justify-between mt-2.5 text-[12px] text-gray-400">
+            <span>3 小时前</span>
+            <div class="flex items-center gap-2">
+              <button class="px-2 py-1 rounded hover:bg-slate-100 cursor-pointer transition-colors duration-200"><i class="fa-regular fa-thumbs-up mr-1"></i>赞</button>
+              <button class="px-2 py-1 rounded hover:bg-slate-100 cursor-pointer transition-colors duration-200"><i class="fa-regular fa-comment mr-1"></i>评论</button>
+            </div>
+          </div>
+          <div class="mt-1.5 bg-[#F7F7F7] rounded-md px-3 py-2 text-[13px] space-y-1.5">
+            <div class="flex flex-wrap gap-x-1">
+              <i class="fa-solid fa-thumbs-up text-[#576B95] text-[11px] mt-1"></i>
+              <span class="text-[#576B95] cursor-pointer hover:underline">陈北</span>
+            </div>
+            <div class="flex gap-1 leading-snug">
+              <span class="text-[#576B95] shrink-0 cursor-pointer hover:underline">陈北：</span>
+              <span class="text-gray-600">tuning 文档求分享，tcp_mem 那段没看够</span>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </main>
+
+</body>
+</html>

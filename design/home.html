@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brave IM · 会话</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        wechat: { DEFAULT: '#07C160', dark: '#06AD56', light: '#EDF7F0', bubble: '#95EC69' },
+        nav: '#2E2E2E', panel: '#F7F7F7', chatbg: '#F5F5F5', line: '#E7E7E7'
+      },
+      boxShadow: { bubble: '0 1px 2px rgba(0,0,0,.08)' }
+    }
+  }
+}
+</script>
+<style>
+  body { font-family: -apple-system, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif; }
+  .nav-btn { color: #9C9C9C; padding: 8px 10px; border-radius: 10px; transition: color .2s, background .2s; }
+  .nav-btn:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .nav-btn.active, .nav-btn.text-wechat { color: #07C160; }
+  /* 微信气泡小尾巴 */
+  .tail-left::before, .tail-right::before {
+    content: ''; position: absolute; top: 12px; border: 6px solid transparent;
+  }
+  .tail-left::before  { left: -11px; border-right-color: #fff; }
+  .tail-right::before { right: -11px; border-left-color: #95EC69; }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb { background: #D9D9D9; border-radius: 3px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body class="h-screen overflow-hidden flex bg-panel text-[14px] text-slate-800">
+
+  <!-- ===== 第一栏：深色导航 ===== -->
+  <nav class="w-[64px] bg-nav flex flex-col items-center py-4 gap-4 shrink-0">
+    <div class="relative cursor-pointer group" title="Alfred">
+      <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=faces"
+        class="w-9 h-9 rounded-lg object-cover bg-slate-600" alt="我的头像">
+      <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-wechat rounded-full border-2 border-nav"></span>
+    </div>
+    <div class="w-8 border-t border-white/10 my-1"></div>
+    <button class="nav-btn text-wechat" title="聊天"><i class="fa-solid fa-comment-dots text-[22px]"></i></button>
+    <button class="nav-btn" title="通讯录"><i class="fa-regular fa-address-book text-[22px]"></i></button>
+    <button class="nav-btn" title="朋友圈"><i class="fa-regular fa-images text-[21px]"></i></button>
+    <div class="flex-1"></div>
+    <button class="nav-btn relative" title="设置"><i class="fa-solid fa-gear text-[20px]"></i></button>
+    <button class="nav-btn" title="退出"><i class="fa-solid fa-power-off text-[19px]"></i></button>
+  </nav>
+
+  <!-- ===== 第二栏：会话列表 ===== -->
+  <aside class="w-[280px] bg-panel border-r border-line flex flex-col shrink-0">
+    <header class="h-[64px] flex items-center justify-between px-4 shrink-0">
+      <i class="fa-brands fa-weixin text-wechat text-2xl"></i>
+      <div class="flex gap-4 text-gray-500">
+        <button class="hover:text-wechat cursor-pointer transition-colors duration-200" title="发起聊天"><i class="fa-solid fa-plus"></i></button>
+        <button class="hover:text-wechat cursor-pointer transition-colors duration-200" title="搜索"><i class="fa-solid fa-magnifying-glass"></i></button>
+      </div>
+    </header>
+    <div class="px-3 pb-2">
+      <div class="bg-white/90 rounded-md px-3 py-1.5 flex items-center gap-2 text-gray-400 text-[13px]">
+        <i class="fa-solid fa-magnifying-glass text-xs"></i><span class="truncate">搜索</span>
+      </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto scrollbar-thin">
+      <!-- 在线分组提示 -->
+      <div class="px-4 pt-2 pb-1 text-[11px] text-gray-400 flex items-center gap-1.5">
+        <i class="fa-solid fa-signal text-[9px]"></i>在线 · 由 etcd 路由
+      </div>
+
+      <!-- 选中会话 -->
+      <div class="mx-2 mt-1 px-3 py-3 bg-white rounded-lg flex gap-3 cursor-pointer shadow-sm">
+        <div class="relative shrink-0">
+          <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=96&h=96&fit=crop&crop=faces" class="w-10 h-10 rounded-lg object-cover" alt="林晚晚">
+          <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-wechat rounded-full border-2 border-white"></span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline justify-between">
+            <span class="font-medium truncate">林晚晚</span>
+            <span class="text-[11px] text-gray-400 shrink-0 ml-2">20:42</span>
+          </div>
+          <p class="text-[13px] text-gray-500 line-clamp-1 mt-0.5">今晚一起看发布会吗？</p>
+        </div>
+      </div>
+
+      <!-- 群聊会话 -->
+      <div class="mx-2 mt-1 px-3 py-3 rounded-lg flex gap-3 cursor-pointer hover:bg-white/80 transition-colors duration-200">
+        <div class="relative shrink-0">
+          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+            <i class="fa-solid fa-user-group text-white text-sm"></i>
+          </div>
+          <span class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-medium rounded-full flex items-center justify-center border-2 border-panel">3</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline justify-between">
+            <span class="font-medium truncate">Go 后端交流群</span>
+            <span class="text-[11px] text-gray-400 shrink-0 ml-2">20:31</span>
+          </div>
+          <p class="text-[13px] text-gray-500 line-clamp-1 mt-0.5"><span class="text-gray-600">Alfred：</span>gRPC 连接池这块我重写了一遍</p>
+        </div>
+      </div>
+
+      <!-- 普通会话 -->
+      <div class="mx-2 mt-1 px-3 py-3 rounded-lg flex gap-3 cursor-pointer hover:bg-white/80 transition-colors duration-200">
+        <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=96&h=96&fit=crop&crop=faces" class="w-10 h-10 rounded-lg object-cover shrink-0" alt="陈北">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline justify-between">
+            <span class="font-medium truncate">陈北</span>
+            <span class="text-[11px] text-gray-400 shrink-0 ml-2">19:05</span>
+          </div>
+          <p class="text-[13px] text-gray-500 line-clamp-1 mt-0.5">[图片]</p>
+        </div>
+      </div>
+
+      <div class="mx-2 mt-1 px-3 py-3 rounded-lg flex gap-3 cursor-pointer hover:bg-white/80 transition-colors duration-200">
+        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=96&h=96&fit=crop&crop=faces" class="w-10 h-10 rounded-lg object-cover shrink-0" alt="苏禾">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline justify-between">
+            <span class="font-medium truncate">苏禾</span>
+            <span class="text-[11px] text-gray-400 shrink-0 ml-2">昨天</span>
+          </div>
+          <p class="text-[13px] text-gray-500 line-clamp-1 mt-0.5">收到，明天评审见 👌</p>
+        </div>
+      </div>
+
+      <!-- 离线会话（在线状态可见） -->
+      <div class="mx-2 mt-1 px-3 py-3 rounded-lg flex gap-3 cursor-pointer hover:bg-white/80 transition-colors duration-200 opacity-80">
+        <div class="relative shrink-0">
+          <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=96&h=96&fit=crop&crop=faces" class="w-10 h-10 rounded-lg object-cover" alt="老周">
+          <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-gray-300 rounded-full border-2 border-white"></span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline justify-between">
+            <span class="font-medium truncate">老周</span>
+            <span class="text-[11px] text-gray-400 shrink-0 ml-2">周二</span>
+          </div>
+          <p class="text-[13px] text-gray-400 line-clamp-1 mt-0.5">离线 · 消息将在上线后送达</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== 第三栏：聊天区 ===== -->
+  <main class="flex-1 bg-chatbg flex flex-col min-w-0">
+    <!-- 头部 -->
+    <header class="h-[64px] bg-chatbg border-b border-line px-6 flex items-center justify-between shrink-0">
+      <div class="flex items-center gap-2.5">
+        <span class="font-medium text-[15px]">林晚晚</span>
+        <span class="flex items-center gap-1 text-[11px] text-wechat bg-wechat-light px-1.5 py-0.5 rounded">
+          <span class="w-1.5 h-1.5 bg-wechat rounded-full"></span>cs-2
+        </span>
+      </div>
+      <div class="flex gap-5 text-gray-500">
+        <button class="hover:text-wechat cursor-pointer transition-colors duration-200" title="语音"><i class="fa-solid fa-phone"></i></button>
+        <button class="hover:text-wechat cursor-pointer transition-colors duration-200" title="视频"><i class="fa-solid fa-video"></i></button>
+        <button class="hover:text-wechat cursor-pointer transition-colors duration-200" title="会话信息"><i class="fa-solid fa-ellipsis"></i></button>
+      </div>
+    </header>
+
+    <!-- 消息流 -->
+    <div class="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 space-y-5">
+      <!-- 时间分割 -->
+      <div class="text-center"><span class="text-[11px] text-gray-400 bg-white/70 px-2.5 py-1 rounded-md">昨天 20:15</span></div>
+
+      <!-- 对方消息 -->
+      <div class="flex gap-3 items-start">
+        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=faces" class="w-9 h-9 rounded-lg object-cover shrink-0" alt="林晚晚">
+        <div class="relative tail-left bg-white rounded-lg px-3.5 py-2.5 shadow-bubble max-w-[62%]">
+          看到你把压测数据跑出来了，单机能撑到多少连接？
+        </div>
+      </div>
+
+      <!-- 我的消息（已送达） -->
+      <div class="flex gap-3 items-start flex-row-reverse">
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=faces" class="w-9 h-9 rounded-lg object-cover shrink-0" alt="我">
+        <div class="max-w-[62%] flex flex-col items-end">
+          <div class="relative tail-right bg-wechat-bubble px-3.5 py-2.5 shadow-bubble rounded-lg">
+            单机 68 万长连接，CPU 稳定在 60%。内核参数调优记录我整理成文档了
+          </div>
+          <div class="flex items-center gap-1 text-[11px] text-gray-400 mt-1 pr-1">
+            <span class="font-mono">seq 1042</span>
+            <i class="fa-solid fa-check-double text-wechat" title="已送达（chat.ack）"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 我的图片消息 -->
+      <div class="flex gap-3 items-start flex-row-reverse">
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=faces" class="w-9 h-9 rounded-lg object-cover shrink-0" alt="我">
+        <div class="max-w-[62%] flex flex-col items-end">
+          <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=360&h=240&fit=crop" class="rounded-lg shadow-bubble w-[240px] object-cover cursor-pointer hover:opacity-90 transition-opacity duration-200" alt="压测监控截图">
+          <div class="flex items-center gap-1 text-[11px] text-gray-400 mt-1 pr-1">
+            <span class="font-mono">seq 1043</span><i class="fa-solid fa-check-double text-wechat"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- 今天 -->
+      <div class="text-center"><span class="text-[11px] text-gray-400 bg-white/70 px-2.5 py-1 rounded-md">今天 20:42</span></div>
+
+      <div class="flex gap-3 items-start">
+        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=faces" class="w-9 h-9 rounded-lg object-cover shrink-0" alt="林晚晚">
+        <div class="relative tail-left bg-white rounded-lg px-3.5 py-2.5 shadow-bubble max-w-[62%]">
+          今晚一起看发布会吗？
+          <span class="inline-block align-middle ml-1 text-[13px] text-gray-400"><i class="fa-regular fa-face-smile"></i></span>
+        </div>
+      </div>
+
+      <!-- 我的草稿（发送中：单勾 + 旋转） -->
+      <div class="flex gap-3 items-start flex-row-reverse">
+        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=faces" class="w-9 h-9 rounded-lg object-cover shrink-0" alt="我">
+        <div class="max-w-[62%] flex flex-col items-end">
+          <div class="relative tail-right bg-wechat-bubble px-3.5 py-2.5 shadow-bubble rounded-lg opacity-90">
+            好，等我合个分支就来
+          </div>
+          <div class="flex items-center gap-1 text-[11px] text-gray-400 mt-1 pr-1">
+            <i class="fa-solid fa-clock-half-stroke animate-spin [animation-duration:2s]" title="发送中"></i>
+          </div>
+        </div>
+      </div>
+      <div class="h-2"></div>
+    </div>
+
+    <!-- 输入区 -->
+    <footer class="shrink-0 bg-chatbg border-t border-line">
+      <div class="px-5 pt-3 flex gap-6 text-gray-500">
+        <button class="hover:text-wechat cursor-pointer transition-colors duration-200" title="表情"><i class="fa-regular fa-face-smile text-[18px]"></i></button>
+        <button class="hover:text-wechat cursor-pointer transition-colors duration-200" title="文件"><i class="fa-regular fa-folder-open text-[18px]"></i></button>
+        <button class="hover:text-wechat cursor-pointer transition-colors duration-200" title="截图"><i class="fa-solid fa-scissors text-[18px]"></i></button>
+        <button class="hover:text-wechat cursor-pointer transition-colors duration-200" title="聊天记录"><i class="fa-regular fa-clock text-[18px]"></i></button>
+      </div>
+      <textarea rows="3" placeholder="输入消息，Enter 发送…" class="w-full bg-transparent px-5 py-2 text-[14px] outline-none resize-none placeholder:text-gray-300"></textarea>
+      <div class="px-5 pb-3 flex justify-end">
+        <button class="px-6 py-1.5 border border-gray-300 rounded text-[13px] text-gray-600 hover:border-wechat hover:text-wechat cursor-pointer transition-colors duration-200">发送 (S)</button>
+      </div>
+    </footer>
+  </main>
+
+</body>
+</html>

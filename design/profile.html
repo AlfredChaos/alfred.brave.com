@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brave IM · 个人信息</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+tailwind.config = {
+  theme: { extend: { colors: {
+    wechat: { DEFAULT: '#07C160', dark: '#06AD56', light: '#EDF7F0', bubble: '#95EC69' },
+    nav: '#2E2E2E', panel: '#F7F7F7', chatbg: '#F5F5F5', line: '#E7E7E7'
+  } } }
+}
+</script>
+<style>
+  body { font-family: -apple-system, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif; }
+  .nav-btn { color: #9C9C9C; padding: 8px 10px; border-radius: 10px; transition: color .2s, background .2s; }
+  .nav-btn:hover { color: #fff; background: rgba(255,255,255,.08); }
+  .nav-btn.active { color: #07C160; }
+</style>
+</head>
+<body class="h-screen overflow-hidden flex bg-panel text-[14px] text-slate-800">
+
+  <!-- 导航条 -->
+  <nav class="w-[64px] bg-nav flex flex-col items-center py-4 gap-4 shrink-0">
+    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=faces" class="w-9 h-9 rounded-lg object-cover cursor-pointer ring-2 ring-wechat" alt="我的头像">
+    <div class="w-8 border-t border-white/10 my-1"></div>
+    <button class="nav-btn" title="聊天"><i class="fa-solid fa-comment-dots text-[22px]"></i></button>
+    <button class="nav-btn" title="通讯录"><i class="fa-regular fa-address-book text-[22px]"></i></button>
+    <button class="nav-btn" title="朋友圈"><i class="fa-regular fa-images text-[21px]"></i></button>
+    <div class="flex-1"></div>
+    <button class="nav-btn" title="设置"><i class="fa-solid fa-gear text-[20px]"></i></button>
+    <button class="nav-btn" title="退出"><i class="fa-solid fa-power-off text-[19px]"></i></button>
+  </nav>
+
+  <!-- 主区：个人资料卡 -->
+  <main class="flex-1 bg-chatbg flex items-center justify-center min-w-0">
+    <div class="bg-white rounded-2xl shadow-xl w-[520px] overflow-hidden">
+
+      <!-- 头部 -->
+      <div class="relative h-[180px] bg-gradient-to-br from-wechat/90 via-emerald-500 to-teal-600">
+        <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&h=300&fit=crop" class="w-full h-full object-cover opacity-25 mix-blend-luminosity" alt="">
+        <button class="absolute top-4 left-5 w-8 h-8 rounded-full bg-black/25 backdrop-blur text-white flex items-center justify-center cursor-pointer hover:bg-black/40 transition-colors duration-200" title="返回"><i class="fa-solid fa-chevron-left text-sm"></i></button>
+        <div class="absolute -bottom-10 left-8 flex items-end gap-5">
+          <div class="relative">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&crop=faces" class="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-lg" alt="我的头像">
+            <button class="absolute -right-1 -bottom-1 w-7 h-7 bg-wechat text-white rounded-full flex items-center justify-center shadow cursor-pointer hover:bg-wechat-dark transition-colors duration-200" title="更换头像">
+              <i class="fa-solid fa-camera text-[11px]"></i>
+            </button>
+          </div>
+        </div>
+        <div class="absolute -bottom-8 left-[140px]">
+          <div class="text-xl font-semibold text-slate-800">Alfred</div>
+        </div>
+      </div>
+
+      <!-- 资料项 -->
+      <div class="pt-14 divide-y divide-line">
+        <div class="flex items-center justify-between px-8 py-3.5 group cursor-pointer hover:bg-slate-50 transition-colors duration-200">
+          <span class="text-gray-500 text-[13px] w-20">用户名</span>
+          <span class="flex-1 text-right">Alfred</span>
+          <i class="fa-solid fa-chevron-right text-[10px] text-gray-300 ml-4 group-hover:text-gray-400 transition-colors"></i>
+        </div>
+        <div class="flex items-center justify-between px-8 py-3.5">
+          <span class="text-gray-500 text-[13px] w-20">UID</span>
+          <span class="flex-1 text-right font-mono text-[13px] text-gray-600">6ca411a3-949f-4dd0-9445</span>
+          <button class="ml-4 text-[11px] text-wechat hover:text-wechat-dark cursor-pointer transition-colors duration-200"><i class="fa-regular fa-copy"></i> 复制</button>
+        </div>
+        <div class="flex items-center justify-between px-8 py-3.5">
+          <span class="text-gray-500 text-[13px] w-20">当前节点</span>
+          <div class="flex-1 flex justify-end items-center gap-3">
+            <span class="flex items-center gap-1.5 text-[12px] text-wechat bg-wechat-light px-2 py-0.5 rounded font-mono">
+              <span class="w-1.5 h-1.5 bg-wechat rounded-full"></span>cs-1 · ws 127.0.0.1:37002
+            </span>
+            <span class="text-[11px] text-gray-400 flex items-center gap-1"><i class="fa-solid fa-heart-pulse text-wechat"></i>心跳正常 30s</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-between px-8 py-3.5 group cursor-pointer hover:bg-slate-50 transition-colors duration-200">
+          <span class="text-gray-500 text-[13px] w-20">二维码</span>
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=56x56&data=brave-im%3A%2F%2Fuser%2F6ca411a3&color=333333" class="w-10 h-10 rounded border border-line" alt="我的二维码">
+          <i class="fa-solid fa-chevron-right text-[10px] text-gray-300 ml-4 group-hover:text-gray-400"></i>
+        </div>
+        <div class="flex items-center justify-between px-8 py-3.5 group cursor-pointer hover:bg-slate-50 transition-colors duration-200">
+          <span class="text-gray-500 text-[13px] w-20">地区</span>
+          <span class="flex-1 text-right text-gray-600">上海 徐汇</span>
+          <i class="fa-solid fa-chevron-right text-[10px] text-gray-300 ml-4 group-hover:text-gray-400"></i>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <button class="w-full py-3 bg-wechat hover:bg-wechat-dark text-white rounded-xl font-medium cursor-pointer transition-colors duration-200">
+          <i class="fa-regular fa-pen-to-square mr-2"></i>编辑资料
+        </button>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>

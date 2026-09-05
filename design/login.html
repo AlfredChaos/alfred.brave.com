@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brave IM · 登录</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        wechat: { DEFAULT: '#07C160', dark: '#06AD56', light: '#EDF7F0', bubble: '#95EC69' },
+        nav: '#2E2E2E', panel: '#F7F7F7', chatbg: '#F5F5F5', line: '#E7E7E7'
+      },
+      fontFamily: { sans: ['-apple-system', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', 'sans-serif'] },
+      boxShadow: { bubble: '0 1px 2px rgba(0,0,0,.08)' }
+    }
+  }
+}
+</script>
+<style>
+  body { font-family: -apple-system, PingFang SC, Hiragino Sans GB, Microsoft YaHei, sans-serif; }
+</style>
+</head>
+<body class="min-h-screen bg-chatbg flex items-center justify-center p-4 lg:p-8">
+
+  <div class="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+
+    <!-- 左侧品牌区 -->
+    <div class="md:w-[46%] bg-gradient-to-br from-wechat via-emerald-500 to-teal-600 relative flex flex-col justify-between p-10 text-white">
+      <div>
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-lg">
+            <i class="fa-solid fa-comment-dots text-wechat text-2xl"></i>
+          </div>
+          <div>
+            <div class="text-xl font-semibold tracking-wide">Brave IM</div>
+            <div class="text-xs text-white/70">分布式即时通讯系统</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-6 my-10">
+        <h1 class="text-3xl font-semibold leading-snug">跨节点消息<br>实时可达</h1>
+        <ul class="space-y-3 text-sm text-white/85">
+          <li class="flex items-center gap-3"><i class="fa-solid fa-circle-check w-5"></i>Kafka 消息主干 · at-least-once</li>
+          <li class="flex items-center gap-3"><i class="fa-solid fa-bolt w-5"></i>gRPC 跨 Chat Server 投递</li>
+          <li class="flex items-center gap-3"><i class="fa-solid fa-shield-halved w-5"></i>etcd 服务发现 · 断线自动补拉</li>
+        </ul>
+      </div>
+
+      <div class="flex items-end gap-2">
+        <img src="https://i.pravatar.cc/56?img=12" class="w-10 h-10 rounded-lg border-2 border-white/60" alt="用户">
+        <img src="https://i.pravatar.cc/56?img=32" class="w-10 h-10 rounded-lg border-2 border-white/60" alt="用户">
+        <img src="https://i.pravatar.cc/56?img=45" class="w-10 h-10 rounded-lg border-2 border-white/60" alt="用户">
+        <img src="https://i.pravatar.cc/56?img=5" class="w-10 h-10 rounded-lg border-2 border-white/60" alt="用户">
+        <span class="ml-2 text-xs text-white/70">百万级长连接架构演示</span>
+      </div>
+      <!-- 装饰 -->
+      <i class="fa-solid fa-comment text-white/10 text-[140px] absolute -bottom-8 -right-4 rotate-12 pointer-events-none"></i>
+    </div>
+
+    <!-- 右侧表单 -->
+    <div class="flex-1 p-8 md:p-12 flex flex-col justify-center">
+      <div class="flex bg-panel rounded-lg p-1 mb-8 text-sm font-medium">
+        <button class="flex-1 py-2 rounded-md bg-white shadow text-wechat cursor-pointer transition-colors duration-200">登录</button>
+        <button class="flex-1 py-2 rounded-md text-gray-500 hover:text-gray-700 cursor-pointer transition-colors duration-200">注册</button>
+      </div>
+
+      <form class="space-y-5" onsubmit="return false">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1.5" for="name">用户名</label>
+          <div class="relative">
+            <i class="fa-regular fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input id="name" type="text" placeholder="输入用户名" autocomplete="username"
+              class="w-full pl-11 pr-4 py-3 bg-panel rounded-lg outline-none focus:ring-2 focus:ring-wechat/40 focus:bg-white border border-transparent focus:border-wechat/40 transition-all duration-200">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1.5" for="pass">密码</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input id="pass" type="password" placeholder="输入密码" autocomplete="current-password"
+              class="w-full pl-11 pr-12 py-3 bg-panel rounded-lg outline-none focus:ring-2 focus:ring-wechat/40 focus:bg-white border border-transparent focus:border-wechat/40 transition-all duration-200">
+            <button type="button" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer" aria-label="显示密码"><i class="fa-regular fa-eye-slash"></i></button>
+          </div>
+        </div>
+
+        <!-- 网关配置：Brave 调试特色 -->
+        <div class="pt-1">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-sm text-gray-600" for="gw">网关地址</label>
+            <button type="button" id="btn-test" class="text-xs text-wechat hover:text-wechat-dark cursor-pointer transition-colors duration-200"><i class="fa-solid fa-plug-circle-check mr-1"></i>测试连接</button>
+          </div>
+          <div class="relative">
+            <i class="fa-solid fa-server absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input id="gw" type="text" value="http://127.0.0.1:37001"
+              class="w-full pl-11 pr-4 py-3 bg-panel rounded-lg outline-none focus:ring-2 focus:ring-wechat/40 focus:bg-white border border-transparent focus:border-wechat/40 transition-all duration-200 font-mono text-[13px]">
+          </div>
+          <p id="gw-result" class="text-xs text-wechat mt-1.5 pl-1"><i class="fa-solid fa-circle-check mr-1"></i>网关可达（延迟 3ms）</p>
+        </div>
+
+        <button class="w-full py-3.5 bg-wechat hover:bg-wechat-dark text-white rounded-lg font-medium shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer active:scale-[.99]">
+          登 录
+        </button>
+      </form>
+
+      <div class="mt-8 flex items-center justify-between text-xs text-gray-400">
+        <span>登录即分配 Chat Server（ws_addr）</span>
+        <span class="font-mono">v1.0 · local</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
