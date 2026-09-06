@@ -127,7 +127,7 @@
 
 ### S1 连接爬坡（hold，阶梯加压，**2+1' 拓扑**）
 - 部署：切换到 2+1' 变体 compose（cs-3 带 mem_limit）；
-- **账号预注册**：压测前用工具批量注册全部账号（登录走 bcrypt，1000 QPS 登录会让 node-3 的 gateway 先冒烟；预注册把注册成本剥离，建连限速 500–1000/s，75 万连接约 12–20 分钟建满）；
+- **账号预注册**：按 §4.5 用 roster 模式直写 PG（API 注册因 bcrypt 不可行）；建连限速 500–1000/s，75 万连接约 12–20 分钟建满；
 - 阶梯：每台 worker 以 1000 conn/s 建连，每档 15 万（三台合计），档间稳态 5min 采集；
 - 15 万 → 30 万 → 45 万 → 60 万 → 65 万 → 直到触发 §2.5 拐点；
 - 记录：每档末快照（连接数/内存/FD/goroutine）→ **连接-内存斜率**（KB/连接）与 node-1/2 vs node-3（加权 cs）的斜率对比。
@@ -180,11 +180,36 @@ go run ./tools/stress -mode storm -gateway http://<nodeN>:37001 -seed n1 -users 
 
 ### 4.3 服务端观测端口（env `BRAVE_PPROF=1` 启用）
 
+> 已修复：GHOST 对账原为单页 1 万条硬上限——75 万在线时漏掉 99% 残留记录。
+> `kv.ScanPrefix` 改 key 游标分页 + Sweep 循环扫尽（单测覆盖 1200 行 × 500/页 多页路径）。
+
 - joker：`localhost:6060/debug/pprof`（goroutine/heap 数，collect.sh 拉取）；
 - gateway：`localhost:6061`；
 - prod compose 已注入该 env（见 deploy/prod docker-compose.prod.yml override）。
 
-### 4.4 真机执行前置 checklist
+### 4.5 账号账簿（roster，已交付并本地验证）
+
+65–75 万连接 = 同等数量预注册账号。**不能走 API 注册**：bcrypt cost10 每次 ~50–100ms CPU，
+80 万次注册要 5–11 小时，且登录验证同样吃 bcrypt——建连吞吐会被卡死在 ~50–100/s，
+阶梯压测无法进行（2026-09-06 核算发现，已写入 S1 预注册项的根因）。
+
+方案：`-mode roster` 直写 PG 批量造号 + **bcrypt cost4 哈希**（登录验证 ~1ms，
+gateway 登录吞吐回千级）：
+
+```bash
+# 三台各自造本机段（seed 唯一）；幂等可重跑；本地实测 500 号 23ms
+go run ./tools/stress -mode roster -dsn postgres://...  -seed n1 -users 300000 -out results/n1-roster
+```
+
+- 全部账号共用明文 Stress123 → 预计算一个 cost4 哈希，COPY 批插 + ON CONFLICT 幂等；
+- 产出 `roster.csv`（name,uid,email），**不入 git**（.gitignore: roster*、/tmp 或 results/）；
+- 诚实边界：压测专用账号池，绕过注册 API（注册路径已有 e2e 覆盖）；cost4 仅压测账号，
+  生产注册仍是 cost10；
+- stress 客户端天然兼容：registerAndLogin 幂等（注册 409 忽略 → 直接登录），
+  本地已验证 roster 账号 100 连接 hold 全通；
+- 登录自检：造号后抽 3 个账号过 gateway /v1/login 验证哈希有效（本地 3/3 通过）。
+
+### 4.6 真机执行前置 checklist
 
 1. [ ] bootstrap.sh 部署三节点混部 + verify.sh 全绿；
 2. [ ] 三节点执行 kernel-tuning.md §2–§5 sysctl/ulimit（连接档：FD 100 万、关 conntrack、tcp_mem 按各机内存算）；
