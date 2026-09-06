@@ -1,4 +1,7 @@
-# binaries
-e2e
-brave
+# binaries（go build 在仓库根/各工具目录的产物，一律不入库）
+/brave
+/e2e
+/stress
+/faildrill
+cmd/brave
 *.test
