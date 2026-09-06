@@ -23,6 +23,8 @@ x-brave-common: &brave-common
     KAFKA_BROKERS: ${NODE1_IP}:9092,${NODE2_IP}:9092,${NODE3_IP}:9092
     ETCD_ENDPOINTS: ${NODE1_IP}:2379,${NODE2_IP}:2379,${NODE3_IP}:2379
     AUTH_SECRET: ${AUTH_SECRET}
+    # 压测观测（stress-plan.md §4.3）：joker→:6060 / gateway→:6061 /debug/pprof，仅容器内 localhost
+    BRAVE_PPROF: "1"
   restart: unless-stopped
   networks: [brave-prod-net]
   logging: {driver: json-file, options: {max-size: "100m", max-file: "3"}}

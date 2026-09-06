@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	_ "net/http/pprof" // BRAVE_PPROF=1 时注册 /debug/pprof 到默认 mux
+	"os"
 	"time"
 
 	"alfred.brave.com/conf"
@@ -42,6 +44,17 @@ func Start(ctx context.Context, config *conf.Config) {
 	// Register HTTP route handlers
 	exchange.RegisterServiceId(ServiceId)
 	registerRoutes(router, config)
+	// 压测观测（stress-plan.md §4.3）：env BRAVE_PPROF=1 时暴露 localhost:6060
+	// 的 goroutine/heap dump，供 collect.sh 周期拉取；默认关闭零开销
+	if os.Getenv("BRAVE_PPROF") == "1" {
+		go func() {
+			addr := "127.0.0.1:6060"
+			log.Infof("pprof listening on %s", addr)
+			if err := http.ListenAndServe(addr, nil); err != nil { // net/http/pprof 默认 mux
+				log.Warnf("pprof server: %v", err)
+			}
+		}()
+	}
 
 	ser := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", config.GetHttpHost(), config.GetHttpPort()),
