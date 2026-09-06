@@ -27,6 +27,8 @@ services:
   postgres:
     image: postgres:15
     restart: unless-stopped
+    ports:
+      - "55432:5432"   # 宿主映射：roster 造号与集成测试直连用（BRAVE_PG_DSN 默认 55432）
     environment:
       POSTGRES_USER: brave
       POSTGRES_PASSWORD: brave

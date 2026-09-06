@@ -44,6 +44,7 @@ var (
 	duration = flag.Duration("duration", 5*time.Minute, "持续时间")
 	wsOver   = flag.String("ws-override", "", "强制直连该 WS 地址（纯净单点压测用），空=用登录返回的 ws_addr")
 	outDir   = flag.String("out", "", "结果目录（空=不落盘，仅控制台）")
+	dsn      = flag.String("dsn", "", "roster 模式：PG 直连 DSN（批量造号用）")
 )
 
 // ---------- 延迟直方图：10ms 桶，上限 30s（3 万桶 int64，轻量无依赖） ----------
@@ -139,6 +140,12 @@ type stormPayload struct {
 
 func main() {
 	flag.Parse()
+	if *mode == "roster" {
+		if err := runRoster(); err != nil {
+			fatal("roster: %v", err)
+		}
+		return
+	}
 	fmt.Printf("stress: mode=%s users=%d rate=%d duration=%s seed=%s out=%s\n",
 		*mode, *users, *rate, *duration, *seed, *outDir)
 

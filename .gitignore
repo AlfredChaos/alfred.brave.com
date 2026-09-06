@@ -5,3 +5,7 @@
 /faildrill
 cmd/brave
 *.test
+
+# stress 产物（账簿 CSV 与结果目录；源码 tools/stress/roster.go 不在此列）
+roster-*/
+roster.csv
