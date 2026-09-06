@@ -2,24 +2,35 @@ package ghost
 
 import (
 	"context"
+	"fmt"
+	"sort"
 	"testing"
 	"time"
 
 	"alfred.brave.com/database"
 )
 
-// fakeKV GHOST 对账单测用假 kv。
+// fakeKV GHOST 对账单测用假 kv：模拟真实 PG 后端的 key 游标语义
+// （afterKey 过滤 + 有序 + 按调用方 limit 截断）。
 type fakeKV struct {
 	entries map[string]database.KvEntry
 	deleted []string
 }
 
-func (f *fakeKV) ScanPrefix(ctx context.Context, prefix string, limit int) ([]database.KvEntry, error) {
-	out := make([]database.KvEntry, 0)
-	for k, e := range f.entries {
-		if len(k) >= len(prefix) && k[:len(prefix)] == prefix {
-			out = append(out, e)
+func (f *fakeKV) ScanPrefix(ctx context.Context, prefix, afterKey string, limit int) ([]database.KvEntry, error) {
+	keys := make([]string, 0, len(f.entries))
+	for k := range f.entries {
+		if len(k) >= len(prefix) && k[:len(prefix)] == prefix && k > afterKey {
+			keys = append(keys, k)
 		}
+	}
+	sort.Strings(keys)
+	if limit > 0 && len(keys) > limit {
+		keys = keys[:limit]
+	}
+	out := make([]database.KvEntry, 0, len(keys))
+	for _, k := range keys {
+		out = append(out, f.entries[k])
 	}
 	return out, nil
 }
@@ -89,6 +100,26 @@ func TestSweepEmptyAliveTable(t *testing.T) {
 	removed, err := r.Sweep(context.Background())
 	if err != nil || removed != 2 {
 		t.Fatalf("removed = %d err = %v, want 2 nil", removed, err)
+	}
+}
+
+// TestSweepPaginatesLargeTable 分页回归：1200 条记录、fake 每页只回 500 ——
+// 旧实现单页上限即全表上限，75 万在线压测场景会漏掉 99% 残留（实测前修复）。
+func TestSweepPaginatesLargeTable(t *testing.T) {
+	fkv := &fakeKV{entries: map[string]database.KvEntry{}}
+	for i := 0; i < 1200; i++ {
+		k := "online:u" + fmt.Sprintf("%06d", i)
+		fkv.entries[k] = database.KvEntry{Key: k, Value: []byte(`{"cs":"cs-dead:37002","addr":"cs-dead:37012"}`)}
+	}
+	r := NewReconciler(fkv, func() map[string]bool { return map[string]bool{} })
+	r.pageSize = 500 // 压小页触发 1200/500 = 3 页路径
+
+	removed, err := r.Sweep(context.Background())
+	if err != nil {
+		t.Fatalf("sweep: %v", err)
+	}
+	if removed != 1200 || len(fkv.entries) != 0 {
+		t.Fatalf("removed=%d left=%d, want 1200/0 (pagination must cover full table)", removed, len(fkv.entries))
 	}
 }
 

@@ -90,19 +90,22 @@ type KvEntry struct {
 	UpdatedAt time.Time       `json:"updated_at"`
 }
 
-// ScanPrefix 前缀扫描（GHOST 对账用 online:*）。
-func (ks *KvStore) ScanPrefix(ctx context.Context, prefix string, limit int) ([]KvEntry, error) {
+// ScanPrefix 前缀扫描（GHOST 对账用 online:*）。afterKey 为空从头扫，否则
+// 从该 key 之后续扫（key 游标分页）——Sweep 在十万级 online 记录下循环调用，
+// 单页 limit 不再是全表上限（压测 75 万在线时旧的 1 万硬上限会漏掉 99% 残留）。
+func (ks *KvStore) ScanPrefix(ctx context.Context, prefix, afterKey string, limit int) ([]KvEntry, error) {
 	if limit <= 0 {
 		limit = 1000
 	}
 	rows, err := ks.store.pool.Query(ctx,
-		`SELECT k, v, updated_at FROM kv WHERE k LIKE $1 || '%' ORDER BY k LIMIT $2`, prefix, limit)
+		`SELECT k, v, updated_at FROM kv WHERE k LIKE $1 || '%' AND k > $2 ORDER BY k LIMIT $3`,
+		prefix, afterKey, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	entries := make([]KvEntry, 0)
+	entries := make([]KvEntry, 0, limit)
 	for rows.Next() {
 		var e KvEntry
 		if err := rows.Scan(&e.Key, &e.Value, &e.UpdatedAt); err != nil {
