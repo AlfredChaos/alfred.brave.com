@@ -1,0 +1,5 @@
+ts,connected,sent,recv,send_failed,dropped,latency_p50_ms,latency_p95_ms,latency_p99_ms
+2026-09-06T09:59:18+08:00,100,0,0,0,0,na,na,na
+2026-09-06T09:59:28+08:00,100,0,0,0,0,na,na,na
+2026-09-06T09:59:38+08:00,100,0,0,0,0,na,na,na
+2026-09-06T09:59:48+08:00,100,0,0,0,0,na,na,na
