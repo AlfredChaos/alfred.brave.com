@@ -1,0 +1,41 @@
+# pprof heap 证据 · node-1 cs @135k conns (2026-09-07 17:49 采集, S1 终态)
+# MemStats: HeapAlloc=7805831688(57.8KB/conn) HeapSys=8912420864 HeapIdle=1048158208 HeapReleased=1572864 NextGC=12844692024 NumGC=94
+
+File: brave
+Type: inuse_space
+Time: Sep 7, 2026 at 5:49pm (CST)
+Showing nodes accounting for 5777.78MB, 97.66% of 5915.94MB total
+Dropped 114 nodes (cum <= 29.58MB)
+Showing top 10 nodes out of 25
+      flat  flat%   sum%        cum   cum%
+ 5053.73MB 85.43% 85.43%  5053.73MB 85.43%  alfred.brave.com/joker/exchange.NewClient (inline)
+  333.29MB  5.63% 91.06%   547.98MB  9.26%  github.com/gorilla/websocket.newConn
+  210.19MB  3.55% 94.61%   210.19MB  3.55%  bufio.NewReaderSize (inline)
+  145.06MB  2.45% 97.06%   145.06MB  2.45%  runtime.malg
+      33MB  0.56% 97.62%       33MB  0.56%  net.newFD (inline)
+    2.50MB 0.042% 97.66%    37.89MB  0.64%  alfred.brave.com/joker/exchange.(*Client).ReadPump
+         0     0% 97.66%    90.51MB  1.53%  alfred.brave.com/joker.StartHttp
+         0     0% 97.66%  5602.71MB 94.71%  alfred.brave.com/joker/api.UpgradeWebsockets
+         0     0% 97.66%  5602.71MB 94.71%  alfred.brave.com/joker/api.Websocket.func1
+         0     0% 97.66%  5602.71MB 94.71%  github.com/gin-gonic/gin.(*Context).Next
+
+# pprof heap 证据 · node-2 cs @195k conns
+# MemStats: HeapAlloc=8536563984(43.8KB/conn) HeapSys=9785393152 HeapIdle=1191583744 NextGC=16200399672 NumGC=89
+
+File: brave
+Type: inuse_space
+Time: Sep 7, 2026 at 5:49pm (CST)
+Showing nodes accounting for 7367.17MB, 96.78% of 7612.28MB total
+Dropped 113 nodes (cum <= 38.06MB)
+Showing top 10 nodes out of 27
+      flat  flat%   sum%        cum   cum%
+ 6438.46MB 84.58% 84.58%  6438.46MB 84.58%  alfred.brave.com/joker/exchange.NewClient (inline)
+  418.86MB  5.50% 90.08%   733.13MB  9.63%  github.com/gorilla/websocket.newConn
+  306.27MB  4.02% 94.11%   306.27MB  4.02%  bufio.NewReaderSize (inline)
+  197.08MB  2.59% 96.69%   197.08MB  2.59%  runtime.malg
+       5MB 0.066% 96.76%   108.22MB  1.42%  alfred.brave.com/joker/exchange.(*Client).ReadPump
+    1.50MB  0.02% 96.78%    50.34MB  0.66%  github.com/sirupsen/logrus.(*Entry).Logf
+         0     0% 96.78%    84.51MB  1.11%  alfred.brave.com/joker.StartHttp
+         0     0% 96.78%  7173.09MB 94.23%  alfred.brave.com/joker/api.UpgradeWebsockets
+         0     0% 96.78%  7173.09MB 94.23%  alfred.brave.com/joker/api.Websocket.func1
+         0     0% 96.78%  7173.09MB 94.23%  github.com/gin-gonic/gin.(*Context).Next
