@@ -37,7 +37,14 @@ if [ -z "$CS_CTR" ]; then
 fi
 [ -n "$CS_CTR" ] && echo "cs container for goroutine sampling: $CS_CTR"
 
+# goroutine 采样：优先直连本机 cs pprof（systemd 直跑形态，BRAVE_PPROF=1 → 127.0.0.1:6060）；
+# 拿不到再走 docker exec（compose 形态）。COLLECT_CS_PPOF_URL 可覆盖（如 6061 第二实例）。
+PPROF_URL="${COLLECT_CS_PPROF_URL:-http://127.0.0.1:6060}"
+
 goroutines() {
+  local n
+  n=$(curl -s --max-time 2 "$PPROF_URL/debug/pprof/goroutine?debug=1" 2>/dev/null | head -1 | grep -oE '[0-9]+' | head -1)
+  if [ -n "$n" ]; then echo "$n"; return 0; fi
   [ -z "$CS_CTR" ] && return 0
   docker exec "$CS_CTR" sh -c \
     'curl -s "http://127.0.0.1:6060/debug/pprof/goroutine?debug=1" 2>/dev/null | head -1' 2>/dev/null \

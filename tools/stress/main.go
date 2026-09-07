@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -34,17 +35,20 @@ import (
 )
 
 var (
-	mode     = flag.String("mode", "hold", "hold | storm | storm-echo")
-	gateway  = flag.String("gateway", "http://127.0.0.1:37001", "gateway base url")
-	seed     = flag.String("seed", "stress", "账号前缀（多机压测时每机唯一）")
-	users    = flag.Int("users", 100, "连接数（storm 模式取偶数配对）")
-	batch    = flag.Int("batch", 50, "分批建立：每批数量")
-	batchDel = flag.Duration("batch-delay", 2*time.Second, "批间隔")
-	rate     = flag.Int("rate", 50, "storm：全局发送速率 msg/s；hold/建连阶段：每秒新建连接数上限")
-	duration = flag.Duration("duration", 5*time.Minute, "持续时间")
-	wsOver   = flag.String("ws-override", "", "强制直连该 WS 地址（纯净单点压测用），空=用登录返回的 ws_addr")
-	outDir   = flag.String("out", "", "结果目录（空=不落盘，仅控制台）")
-	dsn      = flag.String("dsn", "", "roster 模式：PG 直连 DSN（批量造号用）")
+	mode        = flag.String("mode", "hold", "hold | storm | storm-echo")
+	gateway     = flag.String("gateway", "http://127.0.0.1:37001", "gateway base url")
+	seed        = flag.String("seed", "stress", "账号前缀（多机压测时每机唯一）")
+	users       = flag.Int("users", 100, "连接数（storm 模式取偶数配对）")
+	batch       = flag.Int("batch", 50, "分批建立：每批数量")
+	batchDel    = flag.Duration("batch-delay", 2*time.Second, "批间隔")
+	rate        = flag.Int("rate", 50, "storm：全局发送速率 msg/s；hold/建连阶段：每秒新建连接数上限")
+	duration    = flag.Duration("duration", 5*time.Minute, "持续时间")
+	wsOver      = flag.String("ws-override", "", "强制直连该 WS 地址（纯净单点压测用），空=用登录返回的 ws_addr")
+	offset      = flag.Int("offset", 0, "账号序号起始偏移（阶梯加压时各档用不相交账号段，避免顶号）")
+	connWorkers = flag.Int("connect-workers", 32, "并发建连 worker 数：串行建连受登录 RTT 限制（~150/s 上限），阶梯爬坡需并发")
+	srcIPs      = flag.Int("src-ips", 1, "回环源 IP 数：绑定 127.0.0.1..N 轮转，突破单四元组 ~64k 端口上限（仅 SUT 本机自打用）")
+	outDir      = flag.String("out", "", "结果目录（空=不落盘，仅控制台）")
+	dsn         = flag.String("dsn", "", "roster 模式：PG 直连 DSN（批量造号用）")
 )
 
 // ---------- 延迟直方图：10ms 桶，上限 30s（3 万桶 int64，轻量无依赖） ----------
@@ -167,50 +171,92 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
-	// ---- 建连（限速：token bucket，rate conn/s；batch 批间隔控制突发） ----
 	if *mode != "hold" && *users%2 != 0 {
 		*users++ // 配对需要偶数
 		fmt.Printf("storm needs even users, bumped to %d\n", *users)
 	}
+	// ---- 建连（限速：token bucket，rate conn/s；并发 worker 池抵消登录 RTT） ----
+	// 串行建连上限 = 1/登录RTT（~150/s），阶梯爬坡 500-1000/s 必须并发；
+	// ticker 仍是全局限速源，worker 数只决定并行度不决定速率。
+	//
+	// 多源 IP 拨号器池：回环自打时 (127.0.0.1, *, 127.0.0.1, 37002) 四元组只有 ~64k 个
+	// 临时端口（2026-09-07 S1 Tier2 实测撞墙）。127.0.0.0/8 整段在 Linux 天然可绑定，
+	// 按 i mod N 轮转源地址，四元组空间 ×N。
+	dialers := make([]*websocket.Dialer, max(*srcIPs, 1))
+	for k := range dialers {
+		nd := &net.Dialer{LocalAddr: &net.TCPAddr{IP: net.ParseIP(fmt.Sprintf("127.0.0.%d", k+1))}}
+		// 读写缓冲 1024B（默认 4096）：心跳/echo 帧都是几十字节的小消息，
+		// 自打模式 worker 与 cs 同机抢内存，每连接省 ~6KB（28 万连接省 1.7G）
+		dialers[k] = &websocket.Dialer{NetDialContext: nd.DialContext, HandshakeTimeout: 10 * time.Second,
+			ReadBufferSize: 1024, WriteBufferSize: 1024}
+	}
 	connectTicker := time.NewTicker(time.Second / time.Duration(max(*rate, 1)))
 	defer connectTicker.Stop()
+	slots := make([]*wsClient, *users) // 按下标存位：并发完成顺序不定，配对语义=偶数下标配下一位
+	taskCh := make(chan int)
+	go func() {
+		defer close(taskCh)
+		for i := 0; i < *users; i++ {
+			if i > 0 && *batch > 0 && i%*batch == 0 {
+				fmt.Printf("batch: %d/%d dispatched (connected=%d failed=%d)\n",
+					i, *users, connected.Load(), sendFailed.Load())
+				time.Sleep(*batchDel)
+			}
+			<-connectTicker.C // 全局限速
+			taskCh <- i
+		}
+	}()
+	var connWG sync.WaitGroup
+	for w := 0; w < max(*connWorkers, 1); w++ {
+		connWG.Add(1)
+		go func() {
+			defer connWG.Done()
+			for i := range taskCh {
+				// 命名对齐 roster 账簿（roster.go: <seed>-<7位序号>），offset 让阶梯档位取不相交账号段
+				name := fmt.Sprintf("%s-%07d", *seed, i+*offset)
+				uid, wsAddr, err := loginOrRegister(name)
+				if err != nil {
+					sendFailed.Add(1)
+					continue
+				}
+				if *wsOver != "" {
+					wsAddr = *wsOver
+				}
+				conn, _, err := dialers[i%len(dialers)].Dial("ws://"+wsAddr+"/ws/"+uid, nil)
+				if err != nil {
+					sendFailed.Add(1)
+					continue
+				}
+				c := &wsClient{conn: conn, uid: uid}
+				slots[i] = c // 各 worker 写下标互不重叠，无需加锁
+				connected.Add(1)
+				go readLoop(c)
+			}
+		}()
+	}
+	connWG.Wait()
+	// 压实 + 确定性配对（storm：偶数下标 i 与 i+1 互为 pair，与原注释语义一致）
 	for i := 0; i < *users; i++ {
-		if i > 0 && i%*batch == 0 {
-			fmt.Printf("batch: %d/%d connected (failed=%d)\n", len(clients), *users, sendFailed.Load())
-			time.Sleep(*batchDel)
+		if slots[i] != nil {
+			clients = append(clients, slots[i])
 		}
-		<-connectTicker.C // 限速
-		name := fmt.Sprintf("%s%d", *seed, i)
-		uid, wsAddr, err := registerAndLogin(name)
-		if err != nil {
-			sendFailed.Add(1)
-			continue
+	}
+	if *mode != "hold" {
+		for i := 0; i+1 < *users; i += 2 {
+			if slots[i] != nil && slots[i+1] != nil {
+				slots[i].pair = slots[i+1]
+				slots[i+1].pair = slots[i]
+			}
 		}
-		if *wsOver != "" {
-			wsAddr = *wsOver
-		}
-		conn, _, err := websocket.DefaultDialer.Dial("ws://"+wsAddr+"/ws/"+uid, nil)
-		if err != nil {
-			sendFailed.Add(1)
-			continue
-		}
-		c := &wsClient{conn: conn, uid: uid}
-		clientsMu.Lock()
-		clients = append(clients, c)
-		// storm 配对：偶数下标与下一位互为 pair
-		if *mode != "hold" && len(clients)%2 == 0 {
-			c.pair = clients[len(clients)-2]
-			clients[len(clients)-2].pair = c
-		}
-		clientsMu.Unlock()
-		connected.Add(1)
-		go readLoop(c)
 	}
 	fmt.Printf("connect phase done: connected=%d failed=%d\n", connected.Load(), sendFailed.Load())
 
 	// ---- 心跳（每连接 30s，D14 客户端模式；分片错峰） ----
 	runStop := make(chan struct{})
 	var wg sync.WaitGroup
+	// 心跳分片并发：单 goroutine 串行在 28 万连接下一轮 >6 分钟，尾部连接必然拖到
+	// 服务端过期被正确误杀（S1b W2 各节点"收敛到固定值"= 串行吞吐上限，实锤 2026-09-07）。
+	// 16 路分片：一轮 ≤1s（9.3k 写/s 摊薄），远小于 30s 周期。
 	go func() {
 		t := time.NewTicker(30 * time.Second)
 		defer t.Stop()
@@ -220,9 +266,25 @@ func main() {
 				return
 			case <-t.C:
 				clientsMu.Lock()
-				for _, c := range clients {
-					_ = c.write(websocket.TextMessage, []byte(`{"cmd":"heartbeat","data":{}}`))
+				const hbWorkers = 16
+				n := len(clients)
+				shard := n/hbWorkers + 1
+				var hwg sync.WaitGroup
+				for s := 0; s*shard < n; s++ {
+					lo := s * shard
+					hi := lo + shard
+					if hi > n {
+						hi = n
+					}
+					hwg.Add(1)
+					go func(chunk []*wsClient) {
+						defer hwg.Done()
+						for _, c := range chunk {
+							_ = c.write(websocket.TextMessage, []byte(`{"cmd":"heartbeat","data":{}}`))
+						}
+					}(clients[lo:hi])
 				}
+				hwg.Wait()
 				clientsMu.Unlock()
 			}
 		}
@@ -435,18 +497,25 @@ func max(a, b int) int {
 	return b
 }
 
-// registerAndLogin 注册（幂等：已注册则忽略）+ 登录拿 ws_addr。
-func registerAndLogin(name string) (uid, wsAddr string, err error) {
-	body, _ := json.Marshal(map[string]string{"user_name": name, "email": name + "@stress.local", "password": "Stress123"})
-	if resp, err := http.Post(*gateway+"/v1/register", "application/json", bytes.NewReader(body)); err == nil {
-		resp.Body.Close() // 409 已注册视为成功
-	}
+// httpClient 复用连接：默认 Transport 每主机仅 2 个空闲连接，
+// 500 conn/s × 32 并发下会疯狂新建 TCP（客户端侧 TIME_WAIT 风暴）。
+var httpClient = &http.Client{Transport: &http.Transport{
+	MaxIdleConns:        256,
+	MaxIdleConnsPerHost: 128,
+	IdleConnTimeout:     90 * time.Second,
+}}
+
+// login 仅登录（账簿号路径：零注册成本）。
+func login(name string) (uid, wsAddr string, err error) {
 	lb, _ := json.Marshal(map[string]string{"user_name": name, "password": "Stress123"})
-	resp, err := http.Post(*gateway+"/v1/login", "application/json", bytes.NewReader(lb))
+	resp, err := httpClient.Post(*gateway+"/v1/login", "application/json", bytes.NewReader(lb))
 	if err != nil {
 		return "", "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", "", fmt.Errorf("login %s: http %d", name, resp.StatusCode)
+	}
 	var out struct {
 		UID    string `json:"uid"`
 		WsAddr string `json:"ws_addr"`
@@ -455,4 +524,18 @@ func registerAndLogin(name string) (uid, wsAddr string, err error) {
 		return "", "", err
 	}
 	return out.UID, out.WsAddr, nil
+}
+
+// loginOrRegister 先登录；未注册（账簿外账号）才走注册+重登。
+// 旧版"先注册后登录"对已存在账号也触发服务端 cost10 bcrypt（~100ms/次，
+// register.go 先哈希后查唯一性），把建连速率钉死在 ~7/s（2026-09-07 真机 S1 实测）。
+func loginOrRegister(name string) (uid, wsAddr string, err error) {
+	if uid, wsAddr, err = login(name); err == nil {
+		return uid, wsAddr, nil
+	}
+	body, _ := json.Marshal(map[string]string{"user_name": name, "email": name + "@stress.local", "password": "Stress123"})
+	if resp, rerr := httpClient.Post(*gateway+"/v1/register", "application/json", bytes.NewReader(body)); rerr == nil {
+		resp.Body.Close() // 409 已注册视为成功
+	}
+	return login(name)
 }
