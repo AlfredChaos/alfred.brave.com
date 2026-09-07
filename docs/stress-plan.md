@@ -196,6 +196,17 @@ go run ./tools/stress -mode storm -gateway http://<nodeN>:37001 -seed n1 -users 
 
 ### 4.5 账号账簿（roster，已交付并本地验证）
 
+**账簿规范**（密码常量与命名规则的唯一权威出处）：
+
+| 项 | 值 | 出处 |
+|---|---|---|
+| 密码（全部压测账号共用明文） | `Stress123` | tools/stress/roster.go `rosterPassword`（stress 客户端同常量） |
+| 哈希代价 | cost4（仅压测池；生产注册 cost10） | roster.go `rosterBcryptCost` |
+| 用户名模板 | `<seed>-<7位序号>`，如 `n1-0000123`（seed=机器段，多台唯一） | roster.go `seedUsers` |
+| 账簿 CSV | `user_name,uid,email` 三列；**不含密码**（共用明文在代码常量里，不入文件/git） | roster.go `writeRosterCSV` |
+| 真机产物路径 | `docs/stress-results/<date>-<phase>/roster/roster.csv`（随记录归档） | §5 记录规范 |
+| 本地池示例 | `rt-0000000..rt-0000499`（本地栈冒烟）；手动验证账号 alfredo/beibei/chaos-01/chaos-2 密码 `passw0rd1` | S0 findings.md |
+
 65–75 万连接 = 同等数量预注册账号。**不能走 API 注册**：bcrypt cost10 每次 ~50–100ms CPU，
 80 万次注册要 5–11 小时，且登录验证同样吃 bcrypt——建连吞吐会被卡死在 ~50–100/s，
 阶梯压测无法进行（2026-09-06 核算发现，已写入 S1 预注册项的根因）。
