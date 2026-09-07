@@ -229,10 +229,14 @@ go run ./tools/stress -mode roster -dsn postgres://...  -seed n1 -users 300000 -
 
 ### 4.6 真机执行前置 checklist
 
-1. [ ] bootstrap.sh 部署三节点混部 + verify.sh 全绿；
+1. [ ] systemd 形态部署（deploy/systemd/README.md）：build.sh 打包 → 三台 install.sh 按角色 →
+   node-1 原生 PG（shared_buffers 768MB / max_connections 300）→ brave-migrate → 中间件
+   集群 compose（etcd×3 + broker×3）→ 建 topic（RF=3）→ 起业务；verify.sh 逐项巡检；
 2. [ ] 三节点执行 kernel-tuning.md §2–§5 sysctl/ulimit —— **按节点分档**（§2 新增 2+1' 连接档）：node-1/2 用 80 万 fd 档、node-3 用 50 万档；conntrack 两档都必须关（30 万连接 ≫ 默认 65536 表项，不关=静默丢包）；S3 混部阶段可以不回退（参数是上限不是行为改变）；
 3. [ ] 压测机侧（三台 worker + Mac）：ip_local_port_range 扩 + tcp_tw_reuse（kernel-tuning §3）；
-4. [ ] **派生 2+1' 变体 compose**：node-3 上 cs-3 加 mem_limit ~5G、kafka heap 已限 512M、PG shared_buffers 显式 512M–1G；演练一次切换（混部↔2+1'）；
+4. [ ] 2+1' 切换演练（units 已备）：node-3 切 brave-cs-node3（MemoryMax=5G）+ 中间件换单点
+   env（RF=1 重建 topic）；node-1/2 `systemctl stop docker`；/etc/brave/env 的中间件地址改单点
+   后 render-config.sh 重渲染 + restart；
 5. [ ] 账号预注册：每台 seed 段批量注册（stress 工具幂等，重复执行跳过已注册）；
 6. [ ] 采集目录 `mkdir -p docs/stress-results/<date>-<phase>/`；
 7. [ ] S0 冒烟通过（真机重复一遍本地冒烟参数）。

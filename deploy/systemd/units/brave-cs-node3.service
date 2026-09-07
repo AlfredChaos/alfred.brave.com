@@ -1,0 +1,25 @@
+# Brave Chat Server（joker）。连接档 LimitNOFILE=800000：pam limits 对 systemd
+# 不生效，必须写在这里（30 万连接 + 程序自身 fd）。2+1' 拓扑的 node-3 用
+# brave-cs-node3.service（带 MemoryMax=5G 限容）。
+[Unit]
+Description=Brave IM Chat Server (joker, 2+1-prime node3 capped)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PROJECT_PATH=/etc/brave
+EnvironmentFile=/etc/brave/env
+ExecStart=/usr/local/bin/brave joker
+Restart=always
+RestartSec=2
+LimitNOFILE=800000
+# 崩溃重启即部署层兜底（worker 致命退出非零码语义见 commands/*）
+StartLimitIntervalSec=0
+# 中间件全家同机：cs-3 只允许 ~5G，触顶被 OOM kill 即红线信号（自动重启）
+MemoryMax=5G
+
+[Install]
+WantedBy=multi-user.target
+
+# ---- 2+1' 变体专属（覆盖追加在 [Service] 内，systemd 允许同 section 追加）----

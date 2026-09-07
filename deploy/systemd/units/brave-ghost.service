@@ -1,0 +1,18 @@
+# Brave GHOST Reconciler (online table)。
+[Unit]
+Description=Brave IM GHOST Reconciler (online table)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PROJECT_PATH=/etc/brave
+EnvironmentFile=/etc/brave/env
+ExecStart=/usr/local/bin/brave ghost
+Restart=always
+RestartSec=2
+LimitNOFILE=500000
+StartLimitIntervalSec=0
+
+[Install]
+WantedBy=multi-user.target

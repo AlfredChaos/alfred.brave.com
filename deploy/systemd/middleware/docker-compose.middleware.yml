@@ -1,0 +1,49 @@
+# 中间件容器（systemd 部署形态专用）：etcd + kafka 单节点一份。
+# 业务进程走 systemd（brave-* units），PG 原生装 node-1（见 README）。
+# 本文件由每台的 .env.middleware 提供节点参数（ETCD_NAME / 本机 IP），
+# 集群（3 成员）与单点（2+1' 拓扑仅 node-3 跑）共用，差异只在 .env。
+name: brave-mw
+
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.5
+    restart: unless-stopped
+    environment:
+      ETCD_NAME: ${ETCD_NAME}
+      ETCD_DATA_DIR: /data/etcd
+      ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+      ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+      ETCD_ADVERTISE_CLIENT_URLS: http://${THIS_IP}:2379
+      # 集群版：INITIAL_CLUSTER 列三成员；单点版只列自己（.env 控制）
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://${THIS_IP}:2380
+      ETCD_INITIAL_CLUSTER: ${ETCD_INITIAL_CLUSTER}
+      ETCD_INITIAL_CLUSTER_TOKEN: ${ETCD_CLUSTER_TOKEN}
+      ETCD_INITIAL_CLUSTER_STATE: ${ETCD_CLUSTER_STATE}
+    volumes:
+      - mw-etcd:/data
+    ports: ["2379:2379", "2380:2380"]
+
+  kafka:
+    image: apache/kafka:3.7.0
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: ${KAFKA_NODE_ID}
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://${THIS_IP}:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: ${KAFKA_QUORUM_VOTERS}
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: ${KAFKA_RF}
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: ${KAFKA_RF}
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: ${KAFKA_MIN_ISR}
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_HEAP_OPTS: "-Xmx768m -Xms768m"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    volumes:
+      - mw-kafka:/var/lib/kafka/data
+    ports: ["9092:9092", "9093:9093"]
+
+volumes:
+  mw-etcd:
+  mw-kafka:

@@ -1,0 +1,15 @@
+# 一次性 DB 迁移（goose up）。PG 就绪后手动 systemctl start brave-migrate。
+[Unit]
+Description=Brave IM one-shot DB migration
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+Environment=PROJECT_PATH=/etc/brave
+EnvironmentFile=/etc/brave/env
+ExecStart=/usr/local/bin/brave migrate
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
