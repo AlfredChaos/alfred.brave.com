@@ -7,9 +7,15 @@ PKG=$(cd "$HERE/.." && pwd)   # tar 解包根：bin/ etc/ database/ systemd/
 ROLE=${1:?usage: install.sh node1|node2|node3}
 
 install -m 0755 "$PKG/bin/brave" /usr/local/bin/brave
+install -m 0755 "$PKG/bin/stress" /usr/local/bin/stress 2>/dev/null || true   # 老包无 stress 时忽略
 install -d /etc/brave
 cp -n "$HERE/env.brave.example" /etc/brave/env 2>/dev/null || true
 cp -R "$PKG/etc/"*.tmpl /etc/brave/etc/ 2>/dev/null || { install -d /etc/brave/etc; cp "$PKG/etc/"*.tmpl /etc/brave/etc/; }
+# migration SQL：brave migration 按 $PROJECT_PATH/database/migration 解析，必须进 /etc/brave
+cp -R "$PKG/database" /etc/brave/ 2>/dev/null || true
+# gateway 运行资产：html/template 与 gin 静态目录（对齐 Dockerfile COPY template web）
+cp -R "$PKG/template" /etc/brave/ 2>/dev/null || true
+cp -R "$PKG/web" /etc/brave/ 2>/dev/null || true
 
 install -m 0644 "$HERE"/units/*.service /etc/systemd/system/
 systemctl daemon-reload

@@ -8,7 +8,7 @@ Wants=network-online.target
 Type=oneshot
 Environment=PROJECT_PATH=/etc/brave
 EnvironmentFile=/etc/brave/env
-ExecStart=/usr/local/bin/brave migrate
+ExecStart=/usr/local/bin/brave migration up
 RemainAfterExit=yes
 
 [Install]

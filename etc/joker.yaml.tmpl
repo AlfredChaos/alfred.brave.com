@@ -1,7 +1,10 @@
 debug: false
 version: "v1"
 log:
-  level: "debug"
+  # info：压测机实锤（2026-09-07 S1b）——debug 级把每条心跳消息 Debugf 打进
+  # Manager 事件循环（10 万+ 行/s，journald 限流抑制），心跳处理延迟 > 6min 空闲
+  # 阈值 → 连接被 cleanIdleClients 批量误杀（280k 掉 26%）。日志级别是容量参数。
+  level: "info"
   output: "stdout"
   file_path: "/var/log/brave/joker.log"
 bind_address: "0.0.0.0"

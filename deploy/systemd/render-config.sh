@@ -25,3 +25,12 @@ PY
   fi
   echo "rendered $(basename "$out")"
 done
+
+# worker 角色别名：persist/deliver/ghost/fanout/push 各自按服务名读 <role>.yaml
+# （对齐 docker/entrypoint.sh 的 render worker.yaml.tmpl → $ROLE.yaml）
+if [ -f "$ROOT/etc/worker.yaml" ]; then
+  for role in persist deliver ghost fanout push; do
+    cp "$ROOT/etc/worker.yaml" "$ROOT/etc/$role.yaml"
+    echo "rendered $role.yaml"
+  done
+fi
