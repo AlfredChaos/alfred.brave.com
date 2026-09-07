@@ -230,7 +230,7 @@ go run ./tools/stress -mode roster -dsn postgres://...  -seed n1 -users 300000 -
 ### 4.6 真机执行前置 checklist
 
 1. [ ] bootstrap.sh 部署三节点混部 + verify.sh 全绿；
-2. [ ] 三节点执行 kernel-tuning.md §2–§5 sysctl/ulimit（连接档：FD 100 万、关 conntrack、tcp_mem 按各机内存算）；
+2. [ ] 三节点执行 kernel-tuning.md §2–§5 sysctl/ulimit —— **按节点分档**（§2 新增 2+1' 连接档）：node-1/2 用 80 万 fd 档、node-3 用 50 万档；conntrack 两档都必须关（30 万连接 ≫ 默认 65536 表项，不关=静默丢包）；S3 混部阶段可以不回退（参数是上限不是行为改变）；
 3. [ ] 压测机侧（三台 worker + Mac）：ip_local_port_range 扩 + tcp_tw_reuse（kernel-tuning §3）；
 4. [ ] **派生 2+1' 变体 compose**：node-3 上 cs-3 加 mem_limit ~5G、kafka heap 已限 512M、PG shared_buffers 显式 512M–1G；演练一次切换（混部↔2+1'）；
 5. [ ] 账号预注册：每台 seed 段批量注册（stress 工具幂等，重复执行跳过已注册）；

@@ -35,7 +35,7 @@
 ```bash
 # /etc/security/limits.conf（root 与普通用户都要）
 *  soft  nofile  262144      # 10 万连接 ×2 余量 + 程序自身 fd（PG/Kafka/日志）
-*  hard  nofile  262144
+*  hard  nofile  262144      # ← 2+1' 连接档（25-30 万）请用下方 80 万档，勿用本档
 *  soft  nproc   65536
 *  hard  nproc   65536
 ```
@@ -80,6 +80,41 @@ net.ipv4.tcp_keepalive_time = 600
 net.ipv4.tcp_keepalive_intvl = 60
 net.ipv4.tcp_keepalive_probes = 3
 ```
+
+**2+1' 连接档（16G 单机，目标 25–30 万 cs 连接，2026-09-06 新增）**——练手档（10 万）与百万档之间，
+按节点角色分两套：
+
+node-1/2（cs 独占台，25–30 万连接）：
+
+```bash
+# fd：30 万连接 + PG/kafka/日志余量 ≈ 65 万需求，取 80 万
+*  soft  nofile  800000
+*  hard  nofile  800000
+
+net.ipv4.tcp_rmem = 4096 8192 524288     # 单缓冲上限 512KB（突发余量）
+net.ipv4.tcp_wmem = 4096 8192 524288
+# tcp_mem 页数：30 万连接 × 平均 ~24KB 内核侧（rmem+wmem 初始 16KB + 峰值余量）
+#   = ~7.2GB ≈ 189 万页；压力线 60% / 上限 75%（超限才开始丢包弃缓冲）
+net.ipv4.tcp_mem = 943718 1887437 2516582
+
+net.core.somaxconn = 65535
+net.core.netdev_max_backlog = 262144
+net.ipv4.ip_local_port_range = 1024 65000
+net.ipv4.tcp_tw_reuse = 1
+```
+
+node-3（中间件 + cs-3，cs 仅 ~5G/15 万连接）：
+
+```bash
+*  soft  nofile  500000
+*  hard  nofile  500000
+
+net.ipv4.tcp_rmem = 4096 8192 262144     # 沿用练手档值（连接少 + pagecache 要留给 PG/kafka）
+net.ipv4.tcp_wmem = 4096 8192 262144
+net.ipv4.tcp_mem = 629145 1258291 1887437   # 9.5G 可用折算，偏保守
+```
+
+**conntrack（两档节点都必须关，30 万连接远超默认 65536 表项 → 静默丢包）**：
 
 **百万档（≥64G 专用机）**（对照 gowebsocket 实战值，按内存等比重算 tcp_mem）：
 
