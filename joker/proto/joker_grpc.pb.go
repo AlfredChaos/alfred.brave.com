@@ -6,7 +6,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v7.35.1
-// source: joker.proto
+// source: joker/proto/joker.proto
 
 package jokerproto
 
@@ -23,7 +23,9 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Relay_RelayMessage_FullMethodName = "/joker.Relay/RelayMessage"
+	Relay_RelayMessage_FullMethodName       = "/joker.Relay/RelayMessage"
+	Relay_BatchRelayMessages_FullMethodName = "/joker.Relay/BatchRelayMessages"
+	Relay_BatchRelayAcks_FullMethodName     = "/joker.Relay/BatchRelayAcks"
 )
 
 // RelayClient is the client API for Relay service.
@@ -32,6 +34,10 @@ const (
 type RelayClient interface {
 	// RelayMessage 投递一条已落库消息；目标 CS 查本地连接表写入 Send 通道。
 	RelayMessage(ctx context.Context, in *RelayMessageRequest, opts ...grpc.CallOption) (*RelayMessageResponse, error)
+	// BatchRelayMessages 批量投递消息；results 与 messages 按下标一一对应。
+	BatchRelayMessages(ctx context.Context, in *BatchRelayMessagesRequest, opts ...grpc.CallOption) (*BatchRelayMessagesResponse, error)
+	// BatchRelayAcks 批量投递发送方 ACK；目标 CS 输出 cmd=ack 帧。
+	BatchRelayAcks(ctx context.Context, in *BatchRelayAcksRequest, opts ...grpc.CallOption) (*BatchRelayAcksResponse, error)
 }
 
 type relayClient struct {
@@ -51,12 +57,34 @@ func (c *relayClient) RelayMessage(ctx context.Context, in *RelayMessageRequest,
 	return out, nil
 }
 
+func (c *relayClient) BatchRelayMessages(ctx context.Context, in *BatchRelayMessagesRequest, opts ...grpc.CallOption) (*BatchRelayMessagesResponse, error) {
+	out := new(BatchRelayMessagesResponse)
+	err := c.cc.Invoke(ctx, Relay_BatchRelayMessages_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *relayClient) BatchRelayAcks(ctx context.Context, in *BatchRelayAcksRequest, opts ...grpc.CallOption) (*BatchRelayAcksResponse, error) {
+	out := new(BatchRelayAcksResponse)
+	err := c.cc.Invoke(ctx, Relay_BatchRelayAcks_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RelayServer is the server API for Relay service.
 // All implementations must embed UnimplementedRelayServer
 // for forward compatibility
 type RelayServer interface {
 	// RelayMessage 投递一条已落库消息；目标 CS 查本地连接表写入 Send 通道。
 	RelayMessage(context.Context, *RelayMessageRequest) (*RelayMessageResponse, error)
+	// BatchRelayMessages 批量投递消息；results 与 messages 按下标一一对应。
+	BatchRelayMessages(context.Context, *BatchRelayMessagesRequest) (*BatchRelayMessagesResponse, error)
+	// BatchRelayAcks 批量投递发送方 ACK；目标 CS 输出 cmd=ack 帧。
+	BatchRelayAcks(context.Context, *BatchRelayAcksRequest) (*BatchRelayAcksResponse, error)
 	mustEmbedUnimplementedRelayServer()
 }
 
@@ -66,6 +94,12 @@ type UnimplementedRelayServer struct {
 
 func (UnimplementedRelayServer) RelayMessage(context.Context, *RelayMessageRequest) (*RelayMessageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RelayMessage not implemented")
+}
+func (UnimplementedRelayServer) BatchRelayMessages(context.Context, *BatchRelayMessagesRequest) (*BatchRelayMessagesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchRelayMessages not implemented")
+}
+func (UnimplementedRelayServer) BatchRelayAcks(context.Context, *BatchRelayAcksRequest) (*BatchRelayAcksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchRelayAcks not implemented")
 }
 func (UnimplementedRelayServer) mustEmbedUnimplementedRelayServer() {}
 
@@ -98,6 +132,42 @@ func _Relay_RelayMessage_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Relay_BatchRelayMessages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchRelayMessagesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelayServer).BatchRelayMessages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Relay_BatchRelayMessages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelayServer).BatchRelayMessages(ctx, req.(*BatchRelayMessagesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Relay_BatchRelayAcks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchRelayAcksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RelayServer).BatchRelayAcks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Relay_BatchRelayAcks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RelayServer).BatchRelayAcks(ctx, req.(*BatchRelayAcksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Relay_ServiceDesc is the grpc.ServiceDesc for Relay service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -109,7 +179,15 @@ var Relay_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "RelayMessage",
 			Handler:    _Relay_RelayMessage_Handler,
 		},
+		{
+			MethodName: "BatchRelayMessages",
+			Handler:    _Relay_BatchRelayMessages_Handler,
+		},
+		{
+			MethodName: "BatchRelayAcks",
+			Handler:    _Relay_BatchRelayAcks_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "joker.proto",
+	Metadata: "joker/proto/joker.proto",
 }

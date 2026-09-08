@@ -1,0 +1,22 @@
+# Brave Deliver Worker 模板实例（chat.push -> grpc relay）。
+# 实例共享 Kafka 组 deliver：多实例安全分摊 12 分区（S3c）。
+# 启停：systemctl start brave-deliver@1 brave-deliver@2 ...
+[Unit]
+Description=Brave IM Deliver Worker instance %i (chat.push -> grpc relay)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PROJECT_PATH=/etc/brave
+EnvironmentFile=/etc/brave/env
+ExecStart=/usr/local/bin/brave deliver
+Restart=always
+RestartSec=2
+LimitNOFILE=500000
+StartLimitIntervalSec=0
+# 压测档：投递 worker 与 CS 同机，限 CPU 份额避免抢占热 CS（CPUWeight 默认 100）
+CPUWeight=80
+
+[Install]
+WantedBy=multi-user.target

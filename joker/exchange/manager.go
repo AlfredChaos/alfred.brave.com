@@ -98,6 +98,11 @@ func (manager *Manager) GetClient(userId string) *Client {
 	return v.(*Client)
 }
 
+// OnlineAddr 返回本机 relay 地址，供共享 ACK 消费者判断归属是否本地。
+func (manager *Manager) OnlineAddr() string {
+	return manager.onlineAddr
+}
+
 func (manager *Manager) GetClientsLen() int {
 	clients := manager.GetAllClients()
 	return len(clients)

@@ -14,6 +14,7 @@ import (
 	"alfred.brave.com/internal/chat"
 	ibrave "alfred.brave.com/internal/kafka"
 	"alfred.brave.com/worker/deliver"
+	"github.com/segmentio/kafka-go"
 	"github.com/urfave/cli"
 )
 
@@ -80,6 +81,52 @@ func deliverAction(ctx *cli.Context) error {
 			}
 		},
 	)
+	// S3c：送达后 ack 走批写（SetBatchDeliveredHook），批尾一次 WriteBatch 摊薄
+	// chat.ack 逐条 acks=all 的跨机确认税；onDelivered 单条闭包保留为回退路径
+	// （批钩子未注入时 flushDelivered 逐条调用它，测试直调 Deliver 同路径）。
+	if ackProducer != nil {
+		worker.SetBatchDeliveredHook(func(ctx context.Context, pushes []*chat.Push) error {
+			msgs := make([]kafka.Message, 0, len(pushes))
+			for _, p := range pushes {
+				raw, err := json.Marshal(chat.AckFromPush(p))
+				if err != nil {
+					log.Errorf("marshal ack: %v", err)
+					continue
+				}
+				msgs = append(msgs, kafka.Message{Key: []byte(p.FromUID), Value: raw})
+			}
+			if len(msgs) == 0 {
+				return nil
+			}
+			if err := ackProducer.WriteBatch(ctx, msgs); err != nil {
+				return fmt.Errorf("produce %s batch(%d): %w", chat.TopicAck, len(msgs), err)
+			}
+			return nil
+		})
+	}
+	if notifyProducer != nil {
+		// S3c：离线通知批写（flushOffline），与 ack 同款摊薄；未注入钩子时
+		// flushDelivered 逐条回退 onOffline（测试直调 Deliver 同路径）。
+		worker.SetBatchOfflineHook(func(ctx context.Context, pushes []*chat.Push) error {
+			msgs := make([]kafka.Message, 0, len(pushes))
+			for _, p := range pushes {
+				notify := chat.Notify{ToUID: p.ToUID, FromUID: p.FromUID, ConvID: p.ConvID, Seq: p.Seq}
+				raw, err := json.Marshal(notify)
+				if err != nil {
+					log.Errorf("marshal notify: %v", err)
+					continue
+				}
+				msgs = append(msgs, kafka.Message{Key: []byte(p.ToUID), Value: raw})
+			}
+			if len(msgs) == 0 {
+				return nil
+			}
+			if err := notifyProducer.WriteBatch(ctx, msgs); err != nil {
+				return fmt.Errorf("produce %s batch(%d): %w", chat.TopicNotify, len(msgs), err)
+			}
+			return nil
+		})
+	}
 
 	workerErr := make(chan error, 1)
 	go func() { workerErr <- worker.Run(cctx) }()

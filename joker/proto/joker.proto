@@ -11,6 +11,10 @@ option go_package = "alfred.brave.com/joker/proto;jokerproto";
 service Relay {
   // RelayMessage 投递一条已落库消息；目标 CS 查本地连接表写入 Send 通道。
   rpc RelayMessage(RelayMessageRequest) returns (RelayMessageResponse);
+  // BatchRelayMessages 批量投递消息；results 与 messages 按下标一一对应。
+  rpc BatchRelayMessages(BatchRelayMessagesRequest) returns (BatchRelayMessagesResponse);
+  // BatchRelayAcks 批量投递发送方 ACK；目标 CS 输出 cmd=ack 帧。
+  rpc BatchRelayAcks(BatchRelayAcksRequest) returns (BatchRelayAcksResponse);
 }
 
 message RelayMessageRequest {
@@ -32,4 +36,29 @@ message RelayMessageRequest {
 message RelayMessageResponse {
   bool delivered = 1;  // 是否已写入目标连接的 Send 通道
   string reason = 2;   // 未投递原因：not_found=本机无该连接
+}
+
+message BatchRelayMessagesRequest {
+  repeated RelayMessageRequest messages = 1;
+}
+
+message BatchRelayMessagesResponse {
+  repeated RelayMessageResponse results = 1;
+}
+
+message RelayAckRequest {
+  string msg_id = 1;
+  string cli_msg_id = 2;
+  string conv_id = 3;
+  string from_uid = 4;
+  string to_uid = 5;
+  int64 seq = 6;
+}
+
+message BatchRelayAcksRequest {
+  repeated RelayAckRequest acks = 1;
+}
+
+message BatchRelayAcksResponse {
+  repeated RelayMessageResponse results = 1;
 }

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"alfred.brave.com/database"
 	"alfred.brave.com/event"
 	"alfred.brave.com/internal/chat"
 
@@ -44,6 +45,16 @@ func (p *Producer) Write(ctx context.Context, key string, value []byte) error {
 		Key:   []byte(key),
 		Value: value,
 	})
+}
+
+// WriteBatch 批量写（S3c 批量化改造）：一次 WriteMessages 摊薄
+// acks=all 的跨机副本确认延迟——单条路径实测 ~8ms/条的固定税，
+// 批 N 条只付一次（kafka-go Writer 内部按批 flush）。
+func (p *Producer) WriteBatch(ctx context.Context, msgs []kafka.Message) error {
+	if len(msgs) == 0 {
+		return nil
+	}
+	return p.writer.WriteMessages(ctx, msgs...)
 }
 
 func (p *Producer) Close() error {
@@ -111,7 +122,15 @@ func (m *MsgProducer) Produce(ctx context.Context, env *chat.Msg) error {
 	if err != nil {
 		return fmt.Errorf("marshal chat.msg: %w", err)
 	}
-	return m.p.Write(ctx, env.ConvID, raw)
+	// 分区键 = conv_id；单聊首条 conv 为空（客户端常态）时退化为成员对 single_key：
+	// 同会话双向消息哈希到同一分区（排序保证 A→B 与 B→A 同键），且键空间为
+	// 全量会话而不是空串——S3c 实测空键把所有流量压到单热分区（12 消费者 1 干活），
+	// 分片消费被结构性锁死；单键改双键后消息按会话摊开（收益见 s3c-optimization.md）。
+	key := env.ConvID
+	if key == "" && env.Type == chat.TypeSingle {
+		key = database.SingleKey(env.FromUID, env.ToUID)
+	}
+	return m.p.Write(ctx, key, raw)
 }
 
 func (m *MsgProducer) Close() error {

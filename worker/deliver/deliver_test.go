@@ -217,3 +217,141 @@ func TestDeliverOfflineNotRetried(t *testing.T) {
 		t.Fatalf("relay called %d times for offline user", got)
 	}
 }
+
+// TestFlushDeliveredBatchesCallbacks 批处理时 ack 与离线通知各只冲刷一次；
+// 两个数组来自分片 goroutine，flush 时统一取走，避免重放导致重复积压。
+func TestFlushDeliveredBatchesCallbacks(t *testing.T) {
+	w := newTestWorker(&fakeKv{}, nil)
+	w.pending = []*chat.Push{testPush(), testPush()}
+	w.pendingOffline = []*chat.Push{testPush()}
+
+	var gotAck, gotOffline int
+	w.SetBatchDeliveredHook(func(_ context.Context, pushes []*chat.Push) error {
+		gotAck += len(pushes)
+		return nil
+	})
+	w.SetBatchOfflineHook(func(_ context.Context, pushes []*chat.Push) error {
+		gotOffline += len(pushes)
+		return nil
+	})
+	if err := w.flushDelivered(context.Background()); err != nil {
+		t.Fatalf("flush batches: %v", err)
+	}
+	if gotAck != 2 || gotOffline != 1 {
+		t.Fatalf("batched callbacks ack=%d offline=%d, want 2/1", gotAck, gotOffline)
+	}
+	if len(w.pending) != 0 || len(w.pendingOffline) != 0 {
+		t.Fatalf("pending callbacks must be drained, ack=%d offline=%d", len(w.pending), len(w.pendingOffline))
+	}
+}
+
+// TestFlushDeliveredFallsBackToSingleCallbacks 未接入生产者批钩子时（单测直调
+// Deliver 的最小装配）仍逐条调用原回调，保持已有接口语义。
+func TestFlushDeliveredFallsBackToSingleCallbacks(t *testing.T) {
+	w := newTestWorker(&fakeKv{}, nil)
+	w.pending = []*chat.Push{testPush(), testPush()}
+	w.pendingOffline = []*chat.Push{testPush()}
+	var ack, offline int
+	w.onDelivered = func(context.Context, *chat.Push) { ack++ }
+	w.onOffline = func(context.Context, *chat.Push) { offline++ }
+
+	if err := w.flushDelivered(context.Background()); err != nil {
+		t.Fatalf("flush fallback: %v", err)
+	}
+	if ack != 2 || offline != 1 {
+		t.Fatalf("single callbacks ack=%d offline=%d, want 2/1", ack, offline)
+	}
+}
+
+// fakeBatchRelayer 记录批调用并按脚本返回结果；单条 Relay 计数验证回退路径。
+type fakeBatchRelayer struct {
+	mu         sync.Mutex
+	batches    []string // 每次批调用的 addr
+	batchSizes []int
+	singles    int
+	failBatch  bool
+	results    []*jokerproto.RelayMessageResponse
+}
+
+func (f *fakeBatchRelayer) Relay(ctx context.Context, addr string, req *jokerproto.RelayMessageRequest) (*jokerproto.RelayMessageResponse, error) {
+	f.mu.Lock()
+	f.singles++
+	f.mu.Unlock()
+	return &jokerproto.RelayMessageResponse{Delivered: true}, nil
+}
+
+func (f *fakeBatchRelayer) BatchRelayMessages(ctx context.Context, addr string, req *jokerproto.BatchRelayMessagesRequest) (*jokerproto.BatchRelayMessagesResponse, error) {
+	f.mu.Lock()
+	f.batches = append(f.batches, addr)
+	f.batchSizes = append(f.batchSizes, len(req.Messages))
+	f.mu.Unlock()
+	if f.failBatch {
+		return nil, status.Error(codes.Unavailable, "cs down")
+	}
+	results := f.results
+	if results == nil {
+		results = make([]*jokerproto.RelayMessageResponse, len(req.Messages))
+		for i := range results {
+			results[i] = &jokerproto.RelayMessageResponse{Delivered: true}
+		}
+	}
+	return &jokerproto.BatchRelayMessagesResponse{Results: results}, nil
+}
+
+func pushFor(to string) *chat.Push {
+	return &chat.Push{MsgID: "m-" + to, CliMsgID: "c-" + to, ConvID: "conv", Seq: 1,
+		FromUID: "from", ToUID: to, Type: chat.TypeSingle, Content: map[string]string{"text": "x"}}
+}
+
+// TestDeliverBatchGroupsByAddr 同批同目标 CS 只发一次 BatchRelay；送达结果进 pending。
+func TestDeliverBatchGroupsByAddr(t *testing.T) {
+	kv := &fakeKv{data: map[string]string{
+		"online:u1": `{"cs":"cs-1","addr":"csA:37012"}`,
+		"online:u2": `{"cs":"cs-2","addr":"csA:37012"}`,
+		"online:u3": `{"cs":"cs-3","addr":"csB:37012"}`,
+	}}
+	relayer := &fakeBatchRelayer{}
+	w := newTestWorker(kv, relayer)
+	w.collecting = true
+
+	w.deliverBatch(context.Background(), "csA:37012", []*chat.Push{pushFor("u1"), pushFor("u2")})
+	w.collecting = false
+	if len(relayer.batches) != 1 || relayer.batches[0] != "csA:37012" || relayer.batchSizes[0] != 2 {
+		t.Fatalf("batch calls = %v sizes=%v", relayer.batches, relayer.batchSizes)
+	}
+	if relayer.singles != 0 {
+		t.Fatalf("batch success must not fall back to singles, got %d", relayer.singles)
+	}
+	if len(w.pending) != 2 {
+		t.Fatalf("pending = %d, want 2", len(w.pending))
+	}
+}
+
+// TestDeliverBatchFallbackOnRPCError 批 RPC 失败 → 逐条回退（既有重试路径）。
+func TestDeliverBatchFallbackOnRPCError(t *testing.T) {
+	kv := onlineKv("csA:37012")
+	relayer := &fakeBatchRelayer{failBatch: true}
+	w := newTestWorker(kv, relayer)
+
+	w.deliverBatch(context.Background(), "csA:37012", []*chat.Push{pushFor("u1"), pushFor("u1")})
+	if len(relayer.batches) != 1 {
+		t.Fatalf("batch attempts = %d", len(relayer.batches))
+	}
+	if relayer.singles != 2 {
+		t.Fatalf("fallback singles = %d, want 2", relayer.singles)
+	}
+}
+
+// TestDeliverBatchNotFoundRetries not_found 结果 → 路由失效后逐条重投。
+func TestDeliverBatchNotFoundRetries(t *testing.T) {
+	kv := onlineKv("csA:37012")
+	relayer := &fakeBatchRelayer{results: []*jokerproto.RelayMessageResponse{
+		{Delivered: false, Reason: "not_found"},
+	}}
+	w := newTestWorker(kv, relayer)
+
+	w.deliverBatch(context.Background(), "csA:37012", []*chat.Push{pushFor("u1")})
+	if relayer.singles != 1 {
+		t.Fatalf("not_found must trigger single retry, singles = %d", relayer.singles)
+	}
+}

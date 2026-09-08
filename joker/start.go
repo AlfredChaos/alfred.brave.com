@@ -2,6 +2,7 @@ package joker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -93,7 +94,16 @@ func Start(ctx context.Context, config *conf.Config) {
 			PermitWithoutStream: true,
 		}),
 	)
-	relay.NewServer(exchange.Controller).Register(grpcServer)
+	relayServer := relay.NewServer(exchange.Controller)
+	relayServer.Register(grpcServer)
+	// /debug/relay 只读计数快照（send_full/not_found 等），挂在 pprof 同一 mux——
+	// BRAVE_PPROF=1 时可被 collect.sh 周期采集；注册无服务时零开销。
+	http.HandleFunc("/debug/relay", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(relayServer.Stats()); err != nil {
+			log.Warnf("debug relay encode: %v", err)
+		}
+	})
 	go func() {
 		log.Infof("grpc relay listening on :%d", config.GetGrpcPort())
 		if err := grpcServer.Serve(grpcLis); err != nil {
@@ -104,11 +114,13 @@ func Start(ctx context.Context, config *conf.Config) {
 	// Init Websockets Manager
 	go exchange.Controller.Start()
 
-	// chat.ack 消费者（§3 步骤 14-15）：每实例独立消费组 = 广播语义
+	// chat.ack 消费者：所有 CS 共享组 cs-ack，按 online:{from_uid} 路由到持有
+	// 发送者连接的节点。StartOffset=LastOffset 避免新组回放历史回执（ACK 非权威）。
 	ackReader := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: config.KafkaBrokers(),
-		GroupID: "cs-ack-" + ServiceId,
-		Topic:   chat.TopicAck,
+		Brokers:     config.KafkaBrokers(),
+		GroupID:     "cs-ack",
+		Topic:       chat.TopicAck,
+		StartOffset: kafka.LastOffset,
 	})
 	go func() {
 		if err := exchange.ConsumeAcks(ctx, exchange.Controller, ackReader); err != nil {

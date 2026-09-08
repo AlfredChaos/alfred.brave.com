@@ -46,6 +46,7 @@ var (
 	wsOver      = flag.String("ws-override", "", "强制直连该 WS 地址（纯净单点压测用），空=用登录返回的 ws_addr")
 	offset      = flag.Int("offset", 0, "账号序号起始偏移（阶梯加压时各档用不相交账号段，避免顶号）")
 	connWorkers = flag.Int("connect-workers", 32, "并发建连 worker 数：串行建连受登录 RTT 限制（~150/s 上限），阶梯爬坡需并发")
+	sendWorkers = flag.Int("send-workers", 1, "storm 发送分片数：每连接只由一个分片写，提升高频消息生成上限")
 	srcIPs      = flag.Int("src-ips", 1, "回环源 IP 数：绑定 127.0.0.1..N 轮转，突破单四元组 ~64k 端口上限（仅 SUT 本机自打用）")
 	outDir      = flag.String("out", "", "结果目录（空=不落盘，仅控制台）")
 	dsn         = flag.String("dsn", "", "roster 模式：PG 直连 DSN（批量造号用）")
@@ -91,6 +92,13 @@ func (h *histogram) quantile(q float64) time.Duration {
 	return latMaxIdx * 10 * time.Millisecond
 }
 
+// count 返回累计样本数（ack 覆盖率分母）。
+func (h *histogram) count() int64 {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.total
+}
+
 // ---------- 投递对账：cli_msg_id 集合 ----------
 type ledger struct {
 	mu      sync.Mutex
@@ -126,9 +134,10 @@ var (
 	clientsMu                                  sync.Mutex
 	clients                                    []*wsClient
 	connected, dropped, sent, recv, sendFailed atomic.Int64
+	ackMissed                                  atomic.Int64     // 发送后 2 分钟仍无回执（send_full/丢投递的真实信号）
 	sendLat                                    = newHistogram() // 单向（storm：收端视角）
 	rttLat                                     = newHistogram() // 往返（storm-echo：发端视角）
-	ackLat                                     = newHistogram() // 发送方 msg→ack
+	ackLat                                     = newHistogram() // 发送方 msg→ack（per-message，按 cli_msg_id 对账）
 	led                                        = newLedger()
 )
 
@@ -292,47 +301,65 @@ func main() {
 
 	// ---- storm / storm-echo：全局限速发送 ----
 	if *mode != "hold" && len(clients) >= 2 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			interval := time.Second / time.Duration(max(*rate, 1))
-			t := time.NewTicker(interval)
-			defer t.Stop()
-			i := 0
-			for {
-				select {
-				case <-runStop:
-					return
-				case <-t.C:
-					clientsMu.Lock()
-					if len(clients) < 2 {
-						clientsMu.Unlock()
-						continue
-					}
-					from := clients[i%len(clients)]
-					clientsMu.Unlock()
-					if from.pair == nil {
-						i++
-						continue
-					}
-					id := fmt.Sprintf("%s-%d-%d", *seed, os.Getpid(), i)
-					// 单向延迟：纳秒戳随 content 下发；同 worker 时钟同源，收端直接差值
-					content := fmt.Sprintf(`{"text":"s","ts":%d,"mid":%q}`, time.Now().UnixNano(), id)
-					frame := fmt.Sprintf(`{"cmd":"msg","data":{"to_uid":%q,"cli_msg_id":%q,"content":%s}}`,
-						from.pair.uid, id, content)
-					led.mu.Lock()
-					led.sent[id] = true
-					led.mu.Unlock()
-					if from.write(websocket.TextMessage, []byte(frame)) == nil {
-						sent.Add(1)
-						from.lastSendNano.Store(time.Now().UnixNano())
-					} else {
-						sendFailed.Add(1)
-					}
-					i++
-				}
+		// 高档位不能由一个 goroutine 串行 JSON 编码 + WebSocket Write：S3c 预跑中
+		// -rate 2667/节点实际只能产生约 1500/s，测到的是压测端而非 SUT 的墙。
+		// 按 clients 下标稳定分片，每个连接始终只归一个 sender 写，满足 gorilla
+		// WebSocket "单并发 writer" 约束；各 shard 的 rate 之和严格等于全局 rate。
+		workers := max(*sendWorkers, 1)
+		workers = min(workers, len(clients))
+		baseRate, remainder := *rate/workers, *rate%workers
+		for shard := 0; shard < workers; shard++ {
+			shardRate := baseRate
+			if shard < remainder {
+				shardRate++
 			}
-		}()
+			if shardRate == 0 {
+				continue
+			}
+			wg.Add(1)
+			go func(shard, shardRate int) {
+				defer wg.Done()
+				interval := time.Second / time.Duration(shardRate)
+				t := time.NewTicker(interval)
+				defer t.Stop()
+				i := shard
+				for {
+					select {
+					case <-runStop:
+						return
+					case <-t.C:
+						clientsMu.Lock()
+						if len(clients) < 2 {
+							clientsMu.Unlock()
+							continue
+						}
+						from := clients[i%len(clients)]
+						clientsMu.Unlock()
+						if from.pair == nil {
+							i += workers
+							continue
+						}
+						id := fmt.Sprintf("%s-%d-%d", *seed, os.Getpid(), i)
+						// 单向延迟：纳秒戳随 content 下发；同 worker 时钟同源，收端直接差值
+						content := fmt.Sprintf(`{"text":"s","ts":%d,"mid":%q}`, time.Now().UnixNano(), id)
+						frame := fmt.Sprintf(`{"cmd":"msg","data":{"to_uid":%q,"cli_msg_id":%q,"content":%s}}`,
+							from.pair.uid, id, content)
+						led.mu.Lock()
+						led.sent[id] = true
+						led.mu.Unlock()
+						if from.write(websocket.TextMessage, []byte(frame)) == nil {
+							sent.Add(1)
+							from.lastSendNano.Store(time.Now().UnixNano())
+							// per-message ack 账本：发送即登记，ack 到达按 cli_msg_id 结算
+							ackLedger.add(id, time.Now().UnixNano())
+						} else {
+							sendFailed.Add(1)
+						}
+						i += workers
+					}
+				}
+			}(shard, shardRate)
+		}
 	}
 
 	// ---- 周期报告 + CSV ----
@@ -344,9 +371,12 @@ func main() {
 			case <-runStop:
 				return
 			case <-t.C:
-				line := fmt.Sprintf("[report] connected=%d sent=%d recv=%d sendFailed=%d dropped=%d latP50=%s latP95=%s latP99=%s",
+				// 超时未 ack 的消息不可能再进延迟分布：purge 防账本无限增长，
+				// 计数进 ackMissed（真实"发送后无回执"信号）
+				ackMissed.Add(int64(ackLedger.purge(time.Now().Add(-2 * time.Minute))))
+				line := fmt.Sprintf("[report] connected=%d sent=%d recv=%d sendFailed=%d dropped=%d latP50=%s latP95=%s latP99=%s ackPending=%d",
 					connected.Load(), sent.Load(), recv.Load(), sendFailed.Load(), dropped.Load(),
-					msStr(sendLat.quantile(0.5)), msStr(sendLat.quantile(0.95)), msStr(sendLat.quantile(0.99)))
+					msStr(sendLat.quantile(0.5)), msStr(sendLat.quantile(0.95)), msStr(sendLat.quantile(0.99)), ackLedger.size())
 				fmt.Println(line)
 				if csvw != nil {
 					csvw.Write([]string{
@@ -428,12 +458,62 @@ func readLoop(c *wsClient) {
 				_ = c.write(websocket.TextMessage, []byte(echo))
 			}
 		case "ack":
-			// 发送方收到 ack：与该连接最近一次发送时刻作差（近似下界，口径见 report 注）
-			if n := c.lastSendNano.Load(); n > 0 {
-				ackLat.add(time.Since(time.Unix(0, n)))
+			// 发送方收到 ack：按 cli_msg_id 精确对账（每条消息真实 ack 延迟）。
+			// 旧口径"该连接最近一次发送时刻"在风暴下交叉严重，p50 会被放大一个量级。
+			if id := frame.Data.CliMsgID; id != "" {
+				if t0, ok := ackLedger.take(id); ok {
+					ackLat.add(time.Since(time.Unix(0, t0)))
+				}
 			}
 		}
 	}
+}
+
+// ackLedger 记录待 ack 的 cli_msg_id → 发送纳秒戳。收到即 take 结算；
+// 周期 purge 防止永不 ack 的消息（send_full/丢投递）无限堆积。
+type ackPending struct {
+	mu sync.Mutex
+	m  map[string]int64
+}
+
+var ackLedger = &ackPending{m: map[string]int64{}}
+
+func (a *ackPending) add(id string, nano int64) {
+	a.mu.Lock()
+	a.m[id] = nano
+	a.mu.Unlock()
+}
+
+func (a *ackPending) take(id string) (int64, bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	t, ok := a.m[id]
+	if ok {
+		delete(a.m, id)
+	}
+	return t, ok
+}
+
+// purge 丢弃 olderThan 之前的未 ack 记录，返回清除条数——它们对应
+// 真正未送达回执的消息（send_full/离线），单独计数不进延迟分布。
+func (a *ackPending) purge(olderThan time.Time) int {
+	cutoff := olderThan.UnixNano()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	n := 0
+	for id, t := range a.m {
+		if t < cutoff {
+			delete(a.m, id)
+			n++
+		}
+	}
+	return n
+}
+
+func (a *ackPending) size() int {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return len(a.m)
 }
 
 // writeReport 结束汇总：计数 + 分位数 + 对账。
@@ -462,11 +542,18 @@ func writeReport() {
 			"sent_ids": len(led.sent), "lost": lost, "received_dup": dup, "out_of_order": oSnow,
 			"note": "storm-echo 模式 recv 计数含回显帧（原始 mid 复用），dup 翻倍为预期；单向延迟以收端视角为准",
 		},
+		"ack": map[string]interface{}{
+			// per-message 对账：matched 进延迟分布；missed=发送后 2 分钟仍无回执；
+			// pending=停止发送时仍未结算（在途或链路积压，宽限 2s 后仍占多数即投递积压）
+			"matched": ackLat.count(), "missed": ackMissed.Load() + int64(ackLedger.size()),
+			"note": "ack_p50/p99 按 cli_msg_id 逐条结算，仅覆盖 matched 消息",
+		},
 		"latency": map[string]interface{}{
 			"one_way_p50_ms": ms(sendLat.quantile(0.5)), "one_way_p95_ms": ms(sendLat.quantile(0.95)),
 			"one_way_p99_ms": ms(sendLat.quantile(0.99)), "one_way_max_ms": ms(sendLat.quantile(1.0)),
-			"ack_p50_ms": ms(ackLat.quantile(0.5)), "ack_p99_ms": ms(ackLat.quantile(0.99)),
-			"bucket_ms": 10,
+			"ack_p50_ms": ms(ackLat.quantile(0.5)), "ack_p95_ms": ms(ackLat.quantile(0.95)),
+			"ack_p99_ms": ms(ackLat.quantile(0.99)),
+			"bucket_ms":  10,
 		},
 		"finished_at": time.Now().Format(time.RFC3339),
 	}

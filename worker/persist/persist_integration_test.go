@@ -300,3 +300,56 @@ func TestKafkaOrderingByKey(t *testing.T) {
 		}
 	}
 }
+
+// TestPersistBatchReplayIdempotent 批路径重试幂等（S3c 根因回归）：
+// 同批 [新消息, 已落库重放, 批内重复] → 消息行只多 1、seq 无空洞、重放复用原 seq 补投 push。
+func TestPersistBatchReplayIdempotent(t *testing.T) {
+	w, store, collector := newIntegrationEnv(t)
+	ctx := context.Background()
+	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
+	alice := ensureUser(t, store, "ia"+suffix)
+	bob := ensureUser(t, store, "ib"+suffix)
+
+	// 首条走单条路径：建会话 + seq=1
+	m1 := &chat.Msg{CliMsgID: "b-1", FromUID: alice, ToUID: bob, Type: chat.TypeSingle, Content: map[string]string{"text": "1"}}
+	if err := w.Handle(ctx, m1); err != nil {
+		t.Fatalf("handle m1: %v", err)
+	}
+	convID := m1.ConvID
+
+	msgs := database.NewMessageStore(store)
+	before, _ := msgs.ListAfter(ctx, convID, 0, 10)
+
+	// 批：新消息 b-2 + b-1 重放 + b-2 批内重复
+	m2 := &chat.Msg{CliMsgID: "b-2", ConvID: convID, FromUID: alice, ToUID: bob, Type: chat.TypeSingle, Content: map[string]string{"text": "2"}}
+	m2Dup := &chat.Msg{CliMsgID: "b-2", ConvID: convID, FromUID: alice, ToUID: bob, Type: chat.TypeSingle, Content: map[string]string{"text": "2"}}
+	m1Replay := &chat.Msg{CliMsgID: "b-1", ConvID: convID, FromUID: alice, ToUID: bob, Type: chat.TypeSingle, Content: map[string]string{"text": "1"}}
+	if err := w.handleSingleBatch(ctx, []*chat.Msg{m2, m1Replay, m2Dup}); err != nil {
+		t.Fatalf("handleSingleBatch: %v", err)
+	}
+	w.flushPushes(ctx)
+
+	got, err := msgs.ListAfter(ctx, convID, 0, 10)
+	if err != nil || len(got) != len(before)+1 {
+		t.Fatalf("after batch: err=%v rows=%d want %d", err, len(got), len(before)+1)
+	}
+	if got[1].Seq != 2 {
+		t.Fatalf("m2 seq = %d, want 2 (replay must not burn seq)", got[1].Seq)
+	}
+
+	// 后续新消息 seq=3：重放与批内重复都没烧号
+	m3 := &chat.Msg{CliMsgID: "b-3", ConvID: convID, FromUID: alice, ToUID: bob, Type: chat.TypeSingle, Content: map[string]string{"text": "3"}}
+	if err := w.Handle(ctx, m3); err != nil {
+		t.Fatalf("handle m3: %v", err)
+	}
+	got, _ = msgs.ListAfter(ctx, convID, 0, 10)
+	if len(got) != 3 || got[2].Seq != 3 {
+		t.Fatalf("seq hole after batch: len=%d seqs=%v", len(got), []int64{got[0].Seq, got[1].Seq, got[2].Seq})
+	}
+
+	// push 对账：m1 首+重放补投、m2 只投一次（批内重复不再投）、m3 —— key 恒 bob
+	_, keys := collector.snapshot()
+	if len(keys) != 4 { // m1 + m1(replay) + m2 + m3
+		t.Fatalf("push count = %d, want 4 (at-least-once replay re-push, dup suppressed)", len(keys))
+	}
+}

@@ -2,9 +2,12 @@ package exchange
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"alfred.brave.com/database"
+	"alfred.brave.com/internal/chat"
+	"alfred.brave.com/joker/proto"
 )
 
 // fakeOnlineKV 记录调用序列的假 kv，用于验证状态迁移触发的读写。
@@ -12,6 +15,7 @@ type fakeOnlineKV struct {
 	upserts  []string // "uid|cs"
 	dels     []string // "uid|cs"
 	delCalls int
+	lookup   map[string]OnlineValue
 }
 
 func (f *fakeOnlineKV) Upsert(ctx context.Context, uid, cs, addr string) error {
@@ -23,6 +27,19 @@ func (f *fakeOnlineKV) DeleteIfMatch(ctx context.Context, uid, cs string) error 
 	f.delCalls++
 	f.dels = append(f.dels, uid+"|"+cs)
 	return nil
+}
+
+func (f *fakeOnlineKV) GetMany(ctx context.Context, uids []string) (map[string]OnlineValue, error) {
+	out := make(map[string]OnlineValue, len(uids))
+	if f.lookup == nil {
+		return out, nil
+	}
+	for _, uid := range uids {
+		if v, ok := f.lookup[uid]; ok {
+			out[uid] = v
+		}
+	}
+	return out, nil
 }
 
 // TestOnlineUpsertOnRegister 连接建立必须 upsert online:{uid}，cs 为本机服务地址。
@@ -68,3 +85,54 @@ func TestOnlineNilKeepsLocalMode(t *testing.T) {
 }
 
 var _ = database.ErrNotFound // 保持 database 引用（OnlineKV 默认实现所在包）
+
+type fakeAckRelayer struct {
+	calls []string
+}
+
+func (f *fakeAckRelayer) BatchRelayAcks(ctx context.Context, addr string, req *jokerproto.BatchRelayAcksRequest) (*jokerproto.BatchRelayAcksResponse, error) {
+	f.calls = append(f.calls, addr)
+	out := &jokerproto.BatchRelayAcksResponse{Results: make([]*jokerproto.RelayMessageResponse, 0, len(req.Acks))}
+	for range req.Acks {
+		out.Results = append(out.Results, &jokerproto.RelayMessageResponse{Delivered: true})
+	}
+	return out, nil
+}
+
+func TestAckDispatchLocalAndRemote(t *testing.T) {
+	m := NewManager()
+	m.SetOnlineIdentity("cs-local:37002", "cs-local:37012")
+	fake := &fakeOnlineKV{lookup: map[string]OnlineValue{
+		"local-user":  {Addr: "cs-local:37012"},
+		"remote-user": {Addr: "cs-remote:37012"},
+	}}
+	m.SetOnline(fake)
+	local := NewClient(m, "local-user", nil)
+	m.EventRegister(local)
+	relayer := &fakeAckRelayer{}
+	d := &ackDispatcher{manager: m, relayer: relayer}
+
+	err := d.dispatch(context.Background(), []chat.Ack{
+		{MsgID: "m-local", CliMsgID: "c-local", FromUID: "local-user"},
+		{MsgID: "m-remote", CliMsgID: "c-remote", FromUID: "remote-user"},
+		{MsgID: "m-offline", CliMsgID: "c-off", FromUID: "offline-user"},
+	})
+	if err != nil {
+		t.Fatalf("dispatch: %v", err)
+	}
+	select {
+	case raw := <-local.Send:
+		var frame AckFrame
+		if err := json.Unmarshal(raw, &frame); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if frame.Cmd != "ack" || frame.Data.MsgID != "m-local" {
+			t.Fatalf("local ack mismatch: %+v", frame)
+		}
+	default:
+		t.Fatal("local sender did not receive ack")
+	}
+	if len(relayer.calls) != 1 || relayer.calls[0] != "cs-remote:37012" {
+		t.Fatalf("remote calls = %v, want [cs-remote:37012]", relayer.calls)
+	}
+}

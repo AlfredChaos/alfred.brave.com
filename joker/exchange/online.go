@@ -2,6 +2,8 @@ package exchange
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"alfred.brave.com/database"
@@ -12,6 +14,7 @@ import (
 type OnlineKV interface {
 	Upsert(ctx context.Context, uid, cs, addr string) error
 	DeleteIfMatch(ctx context.Context, uid, cs string) error
+	GetMany(ctx context.Context, uids []string) (map[string]OnlineValue, error)
 }
 
 // OnlineValue online:{uid} 的 kv 值结构。cs 与 etcd 服务表 value 同格式（host:port），
@@ -39,6 +42,26 @@ func (p *PgOnlineKV) Upsert(ctx context.Context, uid, cs, addr string) error {
 // （用户已切到新 CS 并 upsert 新值）旧节点的晚到 del 不会误删新记录（§4 漂移窗口）。
 func (p *PgOnlineKV) DeleteIfMatch(ctx context.Context, uid, cs string) error {
 	return p.kv.DeleteIfMatch(ctx, onlineKey(uid), "cs", cs)
+}
+
+func (p *PgOnlineKV) GetMany(ctx context.Context, uids []string) (map[string]OnlineValue, error) {
+	keys := make([]string, 0, len(uids))
+	for _, uid := range uids {
+		keys = append(keys, onlineKey(uid))
+	}
+	rows, err := p.kv.GetManyBatch(ctx, keys)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]OnlineValue, len(rows))
+	for key, raw := range rows {
+		var value OnlineValue
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return nil, fmt.Errorf("decode %s: %w", key, err)
+		}
+		result[key[len("online:"):]] = value
+	}
+	return result, nil
 }
 
 func onlineKey(uid string) string {

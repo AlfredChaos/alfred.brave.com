@@ -48,14 +48,14 @@ type WsFrame struct {
 
 func NewClient(manager *Manager, userId string, socket *websocket.Conn) *Client {
 	c := &Client{
-		UserId:  userId,
-		Socket:  socket,
+		UserId: userId,
+		Socket: socket,
 		// Send 缓冲 32：S1 真机测出 make(chan []byte, 1000) 是每连接 ~24KB 预分配税
-	// （1000×24B 切片头，零消息也占；135k 连接 ≈ 3.1GB，占 cs 活堆 ~40%）。
-	// 缩到 32 不改变反压语义：三个跨协程写点（ack=丢+seq 兜底 / broadcast=踢线 /
-	// relay=3s 超时回未投递）均为 select+显式路径，慢消费踢线而非堆积（D20 环节④）。
-	// 唯一裸写 Send 的 SendResponse 走自身通道自循环，最坏自锁单连接，6 分钟心跳清理兜底。
-	Send:    make(chan []byte, 32),
+		// （1000×24B 切片头，零消息也占；135k 连接 ≈ 3.1GB，占 cs 活堆 ~40%）。
+		// 缩到 32 不改变反压语义：三个跨协程写点（ack=丢+seq 兜底 / broadcast=踢线 /
+		// relay=立即 send_full 回未投递）均为 select+显式路径，慢消费踢线而非堆积（D20 环节④）。
+		// 唯一裸写 Send 的 SendResponse 走自身通道自循环，最坏自锁单连接，6 分钟心跳清理兜底。
+		Send:    make(chan []byte, 32),
 		manager: manager,
 	}
 	c.Touch()

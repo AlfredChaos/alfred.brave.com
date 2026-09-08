@@ -20,7 +20,7 @@ cleanup() {
     echo "  \"stopped_at\": \"$(date -Iseconds)\","
     echo "  \"interval_s\": $INTERVAL,"
     echo "  \"samples\": $(( $(wc -l < "$CSV") - 1 )),"
-    echo "  \"columns\": \"ts,cpu_idle_used_pct,mem_used_mb,mem_used_pct,swap_si_so_kb,fds_allocated,tcp_estab,tcp_timewait,retrans_segs_delta,cs_goroutines\","
+    echo "  \"columns\": \"ts,cpu_idle_used_pct,mem_used_mb,mem_used_pct,swap_si_so_kb,fds_allocated,tcp_estab,tcp_timewait,retrans_segs_delta,cs_goroutines,relay_msg,relay_ack,relay_send_full,relay_not_found\","
     echo "  \"cs_container\": \"${CS_CTR:-none}\","
     echo "  \"note\": \"stress-plan.md §2.3 指标；cpu 列=100-idle（1s 采样窗）；retrans 为周期增量\""
     echo "}"
@@ -29,7 +29,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "ts,cpu_used_pct,mem_used_mb,mem_used_pct,swap_si_so_kb,fds_allocated,tcp_estab,tcp_timewait,retrans_delta,cs_goroutines" > "$CSV"
+echo "ts,cpu_used_pct,mem_used_mb,mem_used_pct,swap_si_so_kb,fds_allocated,tcp_estab,tcp_timewait,retrans_delta,cs_goroutines,relay_msg,relay_ack,relay_send_full,relay_not_found" > "$CSV"
 
 # 自动发现 cs 容器（prod: brave-prod-cs-1-1 / local: brave-local-cs-1-1）
 if [ -z "$CS_CTR" ]; then
@@ -71,6 +71,12 @@ while true; do
   if [ -n "$prev_rt" ]; then rtg=$(( rt - prev_rt )); else rtg=0; fi
   prev_rt=$rt
   gr=$(goroutines)
-  echo "$ts,${cpu:-},${memu:-},${memp:-},${swap:-},${fds:-},${estab:-},${tw:-},${rtg:-0},${gr:-}" >> "$CSV"
+  # relay 计数快照（S3c）：增量列由分析端做差；无 /debug/relay 时记 0
+  relay=$(curl -s --max-time 2 "$PPROF_URL/debug/relay" 2>/dev/null || true)
+  r_msg=$(echo "$relay" | grep -oE '"message_enqueued":[0-9]+' | cut -d: -f2)
+  r_ack=$(echo "$relay" | grep -oE '"ack_enqueued":[0-9]+' | cut -d: -f2)
+  r_full=$(echo "$relay" | grep -oE '"send_full":[0-9]+' | cut -d: -f2)
+  r_nf=$(echo "$relay" | grep -oE '"not_found":[0-9]+' | cut -d: -f2)
+  echo "$ts,${cpu:-},${memu:-},${memp:-},${swap:-},${fds:-},${estab:-},${tw:-},${rtg:-0},${gr:-},${r_msg:-0},${r_ack:-0},${r_full:-0},${r_nf:-0}" >> "$CSV"
   sleep "$INTERVAL"
 done
