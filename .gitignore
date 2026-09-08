@@ -12,3 +12,6 @@ roster.csv
 
 # systemd 部署打包产物
 dist/
+
+# 本地 agent 工作区（会话级，不入库）
+.zcode/
