@@ -1,0 +1,8 @@
+{
+  "stopped_at": "2026-09-08T18:46:44+08:00",
+  "interval_s": 10,
+  "samples": 531,
+  "columns": "ts,cpu_idle_used_pct,mem_used_mb,mem_used_pct,swap_si_so_kb,fds_allocated,tcp_estab,tcp_timewait,retrans_segs_delta,cs_goroutines",
+  "cs_container": "none",
+  "note": "stress-plan.md §2.3 指标；cpu 列=100-idle（1s 采样窗）；retrans 为周期增量"
+}

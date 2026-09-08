@@ -1,0 +1,306 @@
+goroutine profile: total 60075
+29997 @ 0x47442e 0x409c3c 0x409812 0xedfba9 0x47c7a1
+#	0xedfba8	alfred.brave.com/joker/exchange.(*Client).WritePump+0xa8	/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/exchange/client.go:103
+
+29907 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4b8fba 0x4b8fa8 0x55a4e5 0x56b185 0x582283 0x5823b3 0xed5ae6 0xed7d2d 0xed8d7e 0xed9473 0xee0219 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84				/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26				/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:84
+#	0x4b8fb9	internal/poll.(*pollDesc).waitRead+0x279			/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:89
+#	0x4b8fa7	internal/poll.(*FD).Read+0x267					/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_unix.go:165
+#	0x55a4e4	net.(*netFD).Read+0x24						/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/fd_posix.go:55
+#	0x56b184	net.(*conn).Read+0x44						/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/net.go:189
+#	0x582282	bufio.(*Reader).fill+0x102					/opt/homebrew/Cellar/go/1.23.5/libexec/src/bufio/bufio.go:110
+#	0x5823b2	bufio.(*Reader).Peek+0x52					/opt/homebrew/Cellar/go/1.23.5/libexec/src/bufio/bufio.go:148
+#	0xed5ae5	github.com/gorilla/websocket.(*Conn).read+0x25			/Users/alfredchaos/go/pkg/mod/github.com/gorilla/websocket@v1.5.1/conn.go:378
+#	0xed7d2c	github.com/gorilla/websocket.(*Conn).advanceFrame+0x6c		/Users/alfredchaos/go/pkg/mod/github.com/gorilla/websocket@v1.5.1/conn.go:824
+#	0xed8d7d	github.com/gorilla/websocket.(*Conn).NextReader+0x13d		/Users/alfredchaos/go/pkg/mod/github.com/gorilla/websocket@v1.5.1/conn.go:1034
+#	0xed9472	github.com/gorilla/websocket.(*Conn).ReadMessage+0x12		/Users/alfredchaos/go/pkg/mod/github.com/gorilla/websocket@v1.5.1/conn.go:1120
+#	0xee0218	alfred.brave.com/joker/exchange.(*Client).ReadPump+0x2b8	/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/exchange/client.go:154
+
+93 @ 0x47442e 0x44fe05 0xdcb7d8 0xdd5c45 0xdd5b75 0xee22b9 0xee2277 0xee1cd9 0xee0208 0x47c7a1
+#	0xdcb7d7	github.com/segmentio/kafka-go.(*Writer).WriteMessages+0xa77	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/writer.go:674
+#	0xdd5c44	alfred.brave.com/internal/kafka.(*Producer).Write+0x244		/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/internal/kafka/producer.go:44
+#	0xdd5b74	alfred.brave.com/internal/kafka.(*MsgProducer).Produce+0x174	/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/internal/kafka/producer.go:133
+#	0xee22b8	alfred.brave.com/joker/exchange.(*Manager).ProduceMsg+0x3f8	/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/exchange/produce.go:30
+#	0xee2276	alfred.brave.com/joker/exchange.handleMsg+0x3b6			/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/exchange/router.go:125
+#	0xee1cd8	alfred.brave.com/joker/exchange.poccessMessage+0x138		/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/exchange/router.go:54
+#	0xee0207	alfred.brave.com/joker/exchange.(*Client).ReadPump+0x2a7	/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/exchange/client.go:166
+
+9 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4b8fba 0x4b8fa8 0x55a4e5 0x56b185 0x5827b7 0xd5f49b 0xd5fb90 0x4ae8f0 0xd60a1d 0xd60a02 0xd6de3f 0xd6de54 0xd6e4ba 0xd5f97d 0xdc788b 0xdc75e7 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84					/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26					/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:84
+#	0x4b8fb9	internal/poll.(*pollDesc).waitRead+0x279				/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:89
+#	0x4b8fa7	internal/poll.(*FD).Read+0x267						/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_unix.go:165
+#	0x55a4e4	net.(*netFD).Read+0x24							/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/fd_posix.go:55
+#	0x56b184	net.(*conn).Read+0x44							/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/net.go:189
+#	0x5827b6	bufio.(*Reader).Read+0x196						/opt/homebrew/Cellar/go/1.23.5/libexec/src/bufio/bufio.go:241
+#	0xd5f49a	github.com/segmentio/kafka-go/protocol.(*Conn).Read+0x1a		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/protocol/conn.go:44
+#	0xd5fb8f	github.com/segmentio/kafka-go/protocol.(*decoder).Read+0x6f		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/protocol/decode.go:48
+#	0x4ae8ef	io.ReadAtLeast+0x8f							/opt/homebrew/Cellar/go/1.23.5/libexec/src/io/io.go:335
+#	0xd60a1c	io.ReadFull+0x3c							/opt/homebrew/Cellar/go/1.23.5/libexec/src/io/io.go:354
+#	0xd60a01	github.com/segmentio/kafka-go/protocol.(*decoder).readFull+0x21		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/protocol/decode.go:180
+#	0xd6de3e	github.com/segmentio/kafka-go/protocol.(*decoder).readInt32+0x17e	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/protocol/decode.go:211
+#	0xd6de53	github.com/segmentio/kafka-go/protocol.ReadResponse+0x193		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/protocol/response.go:32
+#	0xd6e4b9	github.com/segmentio/kafka-go/protocol.RoundTrip+0x119			/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/protocol/roundtrip.go:15
+#	0xd5f97c	github.com/segmentio/kafka-go/protocol.(*Conn).RoundTrip+0x17c		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/protocol/conn.go:94
+#	0xdc788a	github.com/segmentio/kafka-go.(*conn).roundTrip+0x12a			/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/transport.go:1282
+#	0xdc75e6	github.com/segmentio/kafka-go.(*conn).run+0x106				/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/transport.go:1258
+
+9 @ 0x47442e 0x44fe05 0xdc4c28 0xdc11cb 0xdc034a 0xd94bf2 0xdb44b2 0xdcc1ce 0xdce685 0xdcd7e5 0xdcab73 0x47c7a1
+#	0xdc4c27	github.com/segmentio/kafka-go.async.await+0x87				/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/transport.go:884
+#	0xdc11ca	github.com/segmentio/kafka-go.(*connPool).roundTrip+0x2ea		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/transport.go:399
+#	0xdc0349	github.com/segmentio/kafka-go.(*Transport).RoundTrip+0xa9		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/transport.go:181
+#	0xd94bf1	github.com/segmentio/kafka-go.(*Client).roundTrip+0x131			/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/client.go:115
+#	0xdb44b1	github.com/segmentio/kafka-go.(*Client).Produce+0x1b1			/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/produce.go:148
+#	0xdcc1cd	github.com/segmentio/kafka-go.(*Writer).produce+0x1ed			/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/writer.go:733
+#	0xdce684	github.com/segmentio/kafka-go.(*partitionWriter).writeBatch+0x4a4	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/writer.go:1135
+#	0xdcd7e4	github.com/segmentio/kafka-go.(*partitionWriter).writeBatches+0x24	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/writer.go:1022
+#	0xdcab72	github.com/segmentio/kafka-go.(*Writer).spawn.func1+0x52		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/writer.go:547
+
+6 @ 0x47442e 0x409c3c 0x409812 0xdc7579 0x47c7a1
+#	0xdc7578	github.com/segmentio/kafka-go.(*conn).run+0x98	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/transport.go:1257
+
+6 @ 0x47442e 0x44fe05 0xdbdb8c 0xdbd870 0xdbbd9d 0xdbb8d8 0x47c7a1
+#	0xdbdb8b	github.com/segmentio/kafka-go.(*reader).sendMessage+0x10b	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/reader.go:1550
+#	0xdbd86f	github.com/segmentio/kafka-go.(*reader).read+0x36f		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/reader.go:1522
+#	0xdbbd9c	github.com/segmentio/kafka-go.(*reader).run+0x3dc		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/reader.go:1325
+#	0xdbb8d7	github.com/segmentio/kafka-go.(*Reader).start.func1+0x1b7	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/reader.go:1217
+
+3 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4b8fba 0x4b8fa8 0x55a4e5 0x56b185 0x5827b7 0x4ae8f0 0xb839e5 0xb839b3 0xb84125 0xbc2ee6 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84					/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26					/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:84
+#	0x4b8fb9	internal/poll.(*pollDesc).waitRead+0x279				/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:89
+#	0x4b8fa7	internal/poll.(*FD).Read+0x267						/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_unix.go:165
+#	0x55a4e4	net.(*netFD).Read+0x24							/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/fd_posix.go:55
+#	0x56b184	net.(*conn).Read+0x44							/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/net.go:189
+#	0x5827b6	bufio.(*Reader).Read+0x196						/opt/homebrew/Cellar/go/1.23.5/libexec/src/bufio/bufio.go:241
+#	0x4ae8ef	io.ReadAtLeast+0x8f							/opt/homebrew/Cellar/go/1.23.5/libexec/src/io/io.go:335
+#	0xb839e4	io.ReadFull+0x64							/opt/homebrew/Cellar/go/1.23.5/libexec/src/io/io.go:354
+#	0xb839b2	golang.org/x/net/http2.readFrameHeader+0x32				/Users/alfredchaos/go/pkg/mod/golang.org/x/net@v0.23.0/http2/frame.go:237
+#	0xb84124	golang.org/x/net/http2.(*Framer).ReadFrame+0x84				/Users/alfredchaos/go/pkg/mod/golang.org/x/net@v0.23.0/http2/frame.go:498
+#	0xbc2ee5	google.golang.org/grpc/internal/transport.(*http2Client).reader+0x225	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/http2_client.go:1585
+
+3 @ 0x47442e 0x44fe05 0xb69ae9 0x47c7a1
+#	0xb69ae8	google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run+0x108	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/grpcsync/callback_serializer.go:83
+
+3 @ 0x47442e 0x44fe05 0xbaf4b3 0xbafbfb 0xbb9225 0x47c7a1
+#	0xbaf4b2	google.golang.org/grpc/internal/transport.(*controlBuffer).get+0x112	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/controlbuf.go:418
+#	0xbafbfa	google.golang.org/grpc/internal/transport.(*loopyWriter).run+0x7a	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/controlbuf.go:552
+#	0xbb9224	google.golang.org/grpc/internal/transport.newHTTP2Client.func6+0x84	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/http2_client.go:451
+
+3 @ 0x47442e 0x44fe05 0xdce07e 0xdcdffb 0xdcab73 0x47c7a1
+#	0xdce07d	github.com/segmentio/kafka-go.(*partitionWriter).awaitBatch+0x5d		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/writer.go:1076
+#	0xdcdffa	github.com/segmentio/kafka-go.(*partitionWriter).newWriteBatch.func1+0x1a	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/writer.go:1068
+#	0xdcab72	github.com/segmentio/kafka-go.(*Writer).spawn.func1+0x52			/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/writer.go:547
+
+3 @ 0x47442e 0x475e99 0x475e79 0x487345 0xdcd2a5 0xdcd7f8 0xdcab73 0x47c7a1
+#	0x475e78	sync.runtime_notifyListWait+0x138					/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/sema.go:587
+#	0x487344	sync.(*Cond).Wait+0x84							/opt/homebrew/Cellar/go/1.23.5/libexec/src/sync/cond.go:71
+#	0xdcd2a4	github.com/segmentio/kafka-go.(*batchQueue).Get+0x84			/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/writer.go:953
+#	0xdcd7f7	github.com/segmentio/kafka-go.(*partitionWriter).writeBatches+0x37	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/writer.go:1013
+#	0xdcab72	github.com/segmentio/kafka-go.(*Writer).spawn.func1+0x52		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/writer.go:547
+
+3 @ 0x495825 0x493cfb 0x4bb0b4 0x4bb0ac 0x4baecc 0x55ad05 0x56b345 0xed5e3f 0xed7166 0xed78f5 0xedfc84 0x47c7a1
+#	0x495824	syscall.Syscall+0x24						/opt/homebrew/Cellar/go/1.23.5/libexec/src/syscall/syscall_linux.go:73
+#	0x493cfa	syscall.write+0x3a						/opt/homebrew/Cellar/go/1.23.5/libexec/src/syscall/zsyscall_linux_amd64.go:964
+#	0x4bb0b3	syscall.Write+0x393						/opt/homebrew/Cellar/go/1.23.5/libexec/src/syscall/syscall_unix.go:211
+#	0x4bb0ab	internal/poll.ignoringEINTRIO+0x38b				/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_unix.go:745
+#	0x4baecb	internal/poll.(*FD).Write+0x1ab					/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_unix.go:381
+#	0x55ad04	net.(*netFD).Write+0x24						/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/fd_posix.go:96
+#	0x56b344	net.(*conn).Write+0x44						/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/net.go:201
+#	0xed5e3e	github.com/gorilla/websocket.(*Conn).write+0x27e		/Users/alfredchaos/go/pkg/mod/github.com/gorilla/websocket@v1.5.1/conn.go:403
+#	0xed7165	github.com/gorilla/websocket.(*messageWriter).flushFrame+0x3a5	/Users/alfredchaos/go/pkg/mod/github.com/gorilla/websocket@v1.5.1/conn.go:636
+#	0xed78f4	github.com/gorilla/websocket.(*messageWriter).Close+0x34	/Users/alfredchaos/go/pkg/mod/github.com/gorilla/websocket@v1.5.1/conn.go:746
+#	0xedfc83	alfred.brave.com/joker/exchange.(*Client).WritePump+0x183	/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/exchange/client.go:123
+
+1 @ 0x40f749 0x476669 0x8748b3 0x47c7a1
+#	0x476668	os/signal.signal_recv+0x28	/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/sigqueue.go:152
+#	0x8748b2	os/signal.loop+0x12		/opt/homebrew/Cellar/go/1.23.5/libexec/src/os/signal/signal_unix.go:23
+
+1 @ 0x433091 0x47335d 0xd7dc91 0xd7dac5 0xd7a8eb 0xef594f 0xef63fe 0x71cfa9 0x71eeaa 0x73c14e 0x71b950 0x47c7a1
+#	0xd7dc90	runtime/pprof.writeRuntimeProfile+0xb0	/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/pprof/pprof.go:793
+#	0xd7dac4	runtime/pprof.writeGoroutine+0x44	/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/pprof/pprof.go:752
+#	0xd7a8ea	runtime/pprof.(*Profile).WriteTo+0x14a	/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/pprof/pprof.go:374
+#	0xef594e	net/http/pprof.handler.ServeHTTP+0x52e	/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/http/pprof/pprof.go:272
+#	0xef63fd	net/http/pprof.Index+0xdd		/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/http/pprof/pprof.go:388
+#	0x71cfa8	net/http.HandlerFunc.ServeHTTP+0x28	/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/http/server.go:2220
+#	0x71eea9	net/http.(*ServeMux).ServeHTTP+0x1c9	/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/http/server.go:2747
+#	0x73c14d	net/http.serverHandler.ServeHTTP+0x8d	/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/http/server.go:3210
+#	0x71b94f	net/http.(*conn).serve+0x5cf		/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/http/server.go:2092
+
+1 @ 0x47442e 0x409c3c 0x4097f2 0xef87a6 0x47c7a1
+#	0xef87a5	alfred.brave.com/joker.Start+0xda5	/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/start.go:120
+
+1 @ 0x47442e 0x409c3c 0x4097f2 0xef8fc9 0x47c7a1
+#	0xef8fc8	alfred.brave.com/joker.ServiceRegister+0x2c8	/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/start.go:151
+
+1 @ 0x47442e 0x409c3c 0x4097f2 0xf288f1 0x8619d0 0x8627bc 0x85f67b 0xf2a60e 0x43dbcb 0x47c7a1
+#	0xf288f0	alfred.brave.com/commands.jokerAction+0x290	/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/commands/jokerCommand.go:49
+#	0x8619cf	github.com/urfave/cli.HandleAction+0x4f		/Users/alfredchaos/go/pkg/mod/github.com/urfave/cli@v1.22.10/app.go:524
+#	0x8627bb	github.com/urfave/cli.Command.Run+0x67b		/Users/alfredchaos/go/pkg/mod/github.com/urfave/cli@v1.22.10/command.go:173
+#	0x85f67a	github.com/urfave/cli.(*App).Run+0xb3a		/Users/alfredchaos/go/pkg/mod/github.com/urfave/cli@v1.22.10/app.go:277
+#	0xf2a60d	main.main+0xcd					/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/cmd/brave.go:27
+#	0x43dbca	runtime.main+0x28a				/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/proc.go:272
+
+1 @ 0x47442e 0x409c3c 0x409812 0xceb7a6 0x47c7a1
+#	0xceb7a5	alfred.brave.com/internal/etcd.(*ServiceRegister).Run+0x3c5	/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/internal/etcd/service_register.go:76
+
+1 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4b8fba 0x4b8fa8 0x55a4e5 0x56b185 0x582283 0x5823b3 0xd9c125 0xd9c4ed 0xd9c205 0xd96e4b 0xd96e3c 0xd9f72c 0xd9e945 0xdb7a9e 0xdb7bb7 0xdb8905 0xdb8f8e 0xd9e4ab 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84					/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26					/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:84
+#	0x4b8fb9	internal/poll.(*pollDesc).waitRead+0x279				/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:89
+#	0x4b8fa7	internal/poll.(*FD).Read+0x267						/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_unix.go:165
+#	0x55a4e4	net.(*netFD).Read+0x24							/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/fd_posix.go:55
+#	0x56b184	net.(*conn).Read+0x44							/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/net.go:189
+#	0x582282	bufio.(*Reader).fill+0x102						/opt/homebrew/Cellar/go/1.23.5/libexec/src/bufio/bufio.go:110
+#	0x5823b2	bufio.(*Reader).Peek+0x52						/opt/homebrew/Cellar/go/1.23.5/libexec/src/bufio/bufio.go:148
+#	0xd9c124	github.com/segmentio/kafka-go.(*Conn).peekResponseSizeAndID+0x24	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/conn.go:1302
+#	0xd9c4ec	github.com/segmentio/kafka-go.(*Conn).waitResponse+0x8c			/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/conn.go:1392
+#	0xd9c204	github.com/segmentio/kafka-go.(*Conn).do+0x44				/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/conn.go:1348
+#	0xd96e4a	github.com/segmentio/kafka-go.(*Conn).writeOperation+0xea		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/conn.go:1327
+#	0xd96e3b	github.com/segmentio/kafka-go.(*Conn).offsetCommit+0xdb			/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/conn.go:452
+#	0xd9f72b	github.com/segmentio/kafka-go.(*timeoutCoordinator).offsetCommit+0xab	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:634
+#	0xd9e944	github.com/segmentio/kafka-go.(*Generation).CommitOffsets+0x324		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:443
+#	0xdb7a9d	github.com/segmentio/kafka-go.(*Reader).commitOffsetsWithRetry+0xbd	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/reader.go:160
+#	0xdb7bb6	github.com/segmentio/kafka-go.(*Reader).commitLoopImmediate+0xb6	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/reader.go:223
+#	0xdb8904	github.com/segmentio/kafka-go.(*Reader).commitLoop+0x164		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/reader.go:281
+#	0xdb8f8d	github.com/segmentio/kafka-go.(*Reader).run.func3+0x2d			/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/reader.go:335
+#	0xd9e4aa	github.com/segmentio/kafka-go.(*Generation).Start.func1+0x2a		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:396
+
+1 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4b8fba 0x4b8fa8 0x55a4e5 0x56b185 0x5827b7 0x4ae8f0 0xb839e5 0xb839b3 0xb84125 0xbc9358 0xc03b16 0xc03385 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84						/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26						/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:84
+#	0x4b8fb9	internal/poll.(*pollDesc).waitRead+0x279					/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:89
+#	0x4b8fa7	internal/poll.(*FD).Read+0x267							/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_unix.go:165
+#	0x55a4e4	net.(*netFD).Read+0x24								/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/fd_posix.go:55
+#	0x56b184	net.(*conn).Read+0x44								/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/net.go:189
+#	0x5827b6	bufio.(*Reader).Read+0x196							/opt/homebrew/Cellar/go/1.23.5/libexec/src/bufio/bufio.go:241
+#	0x4ae8ef	io.ReadAtLeast+0x8f								/opt/homebrew/Cellar/go/1.23.5/libexec/src/io/io.go:335
+#	0xb839e4	io.ReadFull+0x64								/opt/homebrew/Cellar/go/1.23.5/libexec/src/io/io.go:354
+#	0xb839b2	golang.org/x/net/http2.readFrameHeader+0x32					/Users/alfredchaos/go/pkg/mod/golang.org/x/net@v0.23.0/http2/frame.go:237
+#	0xb84124	golang.org/x/net/http2.(*Framer).ReadFrame+0x84					/Users/alfredchaos/go/pkg/mod/golang.org/x/net@v0.23.0/http2/frame.go:498
+#	0xbc9357	google.golang.org/grpc/internal/transport.(*http2Server).HandleStreams+0x137	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/http2_server.go:636
+#	0xc03b15	google.golang.org/grpc.(*Server).serveStreams+0x195				/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/server.go:979
+#	0xc03384	google.golang.org/grpc.(*Server).handleRawConn.func1+0x44			/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/server.go:920
+
+1 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4bd095 0x4bd083 0x55c4a9 0x5747fe 0x5739d0 0x7209cc 0x720691 0xef8c17 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84		/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26		/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:84
+#	0x4bd094	internal/poll.(*pollDesc).waitRead+0x294	/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:89
+#	0x4bd082	internal/poll.(*FD).Accept+0x282		/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_unix.go:620
+#	0x55c4a8	net.(*netFD).accept+0x28			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/fd_unix.go:172
+#	0x5747fd	net.(*TCPListener).accept+0x1d			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/tcpsock_posix.go:159
+#	0x5739cf	net.(*TCPListener).Accept+0x2f			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/tcpsock.go:372
+#	0x7209cb	net/http.(*Server).Serve+0x30b			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/http/server.go:3330
+#	0x720690	net/http.(*Server).ListenAndServe+0x70		/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/http/server.go:3259
+#	0xef8c16	alfred.brave.com/joker.StartHttp+0x16		/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/start.go:130
+
+1 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4bd095 0x4bd083 0x55c4a9 0x5747fe 0x5739d0 0x7209cc 0x720691 0xef9217 0xef9218 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84		/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26		/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:84
+#	0x4bd094	internal/poll.(*pollDesc).waitRead+0x294	/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:89
+#	0x4bd082	internal/poll.(*FD).Accept+0x282		/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_unix.go:620
+#	0x55c4a8	net.(*netFD).accept+0x28			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/fd_unix.go:172
+#	0x5747fd	net.(*TCPListener).accept+0x1d			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/tcpsock_posix.go:159
+#	0x5739cf	net.(*TCPListener).Accept+0x2f			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/tcpsock.go:372
+#	0x7209cb	net/http.(*Server).Serve+0x30b			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/http/server.go:3330
+#	0x720690	net/http.(*Server).ListenAndServe+0x70		/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/http/server.go:3259
+#	0xef9216	net/http.ListenAndServe+0x96			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/http/server.go:3514
+#	0xef9217	alfred.brave.com/joker.Start.func2+0x97		/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/start.go:53
+
+1 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4bd095 0x4bd083 0x55c4a9 0x5747fe 0x5739d0 0xc029fa 0xef8a53 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84		/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26		/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:84
+#	0x4bd094	internal/poll.(*pollDesc).waitRead+0x294	/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_poll_runtime.go:89
+#	0x4bd082	internal/poll.(*FD).Accept+0x282		/opt/homebrew/Cellar/go/1.23.5/libexec/src/internal/poll/fd_unix.go:620
+#	0x55c4a8	net.(*netFD).accept+0x28			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/fd_unix.go:172
+#	0x5747fd	net.(*TCPListener).accept+0x1d			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/tcpsock_posix.go:159
+#	0x5739cf	net.(*TCPListener).Accept+0x2f			/opt/homebrew/Cellar/go/1.23.5/libexec/src/net/tcpsock.go:372
+#	0xc029f9	google.golang.org/grpc.(*Server).Serve+0x439	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/server.go:852
+#	0xef8a52	alfred.brave.com/joker.Start.func3+0xb2		/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/start.go:99
+
+1 @ 0x47442e 0x44fe05 0x83949c 0x47c7a1
+#	0x83949b	github.com/spf13/viper.(*Viper).WatchConfig.func1.1+0xfb	/Users/alfredchaos/go/pkg/mod/github.com/spf13/viper@v1.7.1/viper.go:365
+
+1 @ 0x47442e 0x44fe05 0xa12985 0xa11b12 0x47c7a1
+#	0xa12984	github.com/jackc/pgx/v5/pgxpool.(*Pool).backgroundHealthCheck+0xc4	/Users/alfredchaos/go/pkg/mod/github.com/jackc/pgx/v5@v5.5.5/pgxpool/pool.go:400
+#	0xa11b11	github.com/jackc/pgx/v5/pgxpool.NewWithConfig.func3+0x31		/Users/alfredchaos/go/pkg/mod/github.com/jackc/pgx/v5@v5.5.5/pgxpool/pool.go:264
+
+1 @ 0x47442e 0x44fe05 0xbaf4b3 0xbafbfb 0xbc62d5 0x47c7a1
+#	0xbaf4b2	google.golang.org/grpc/internal/transport.(*controlBuffer).get+0x112	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/controlbuf.go:418
+#	0xbafbfa	google.golang.org/grpc/internal/transport.(*loopyWriter).run+0x7a	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/controlbuf.go:552
+#	0xbc62d4	google.golang.org/grpc/internal/transport.NewServerTransport.func2+0xd4	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/http2_server.go:336
+
+1 @ 0x47442e 0x44fe05 0xbcd3b3 0x47c7a1
+#	0xbcd3b2	google.golang.org/grpc/internal/transport.(*http2Server).keepalive+0x1f2	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/http2_server.go:1152
+
+1 @ 0x47442e 0x44fe05 0xbd2495 0xbd220d 0xbd368c 0x4ae8f0 0xbd35f6 0xbd35cd 0xbfefc6 0xbff73a 0xbffe67 0xc12a29 0xc11b3f 0xc10bce 0xc119b8 0xc427a6 0xcd011a 0x47c7a1
+#	0xbd2494	google.golang.org/grpc/internal/transport.(*recvBufferReader).readClient+0x94	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/transport.go:191
+#	0xbd220c	google.golang.org/grpc/internal/transport.(*recvBufferReader).Read+0x12c	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/transport.go:171
+#	0xbd368b	google.golang.org/grpc/internal/transport.(*transportReader).Read+0x2b		/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/transport.go:506
+#	0x4ae8ef	io.ReadAtLeast+0x8f								/opt/homebrew/Cellar/go/1.23.5/libexec/src/io/io.go:335
+#	0xbd35f5	io.ReadFull+0x95								/opt/homebrew/Cellar/go/1.23.5/libexec/src/io/io.go:354
+#	0xbd35cc	google.golang.org/grpc/internal/transport.(*Stream).Read+0x6c			/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/internal/transport/transport.go:490
+#	0xbfefc5	google.golang.org/grpc.(*parser).recvMsg+0x45					/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/rpc_util.go:600
+#	0xbff739	google.golang.org/grpc.recvAndDecompress+0x59					/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/rpc_util.go:730
+#	0xbffe66	google.golang.org/grpc.recv+0xa6						/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/rpc_util.go:796
+#	0xc12a28	google.golang.org/grpc.(*csAttempt).recvMsg+0x288				/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/stream.go:1084
+#	0xc11b3e	google.golang.org/grpc.(*clientStream).RecvMsg.func1+0x1e			/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/stream.go:927
+#	0xc10bcd	google.golang.org/grpc.(*clientStream).withRetry+0x3ad				/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/stream.go:760
+#	0xc119b7	google.golang.org/grpc.(*clientStream).RecvMsg+0xf7				/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/stream.go:926
+#	0xc427a5	go.etcd.io/etcd/api/v3/etcdserverpb.(*leaseLeaseKeepAliveClient).Recv+0x45	/Users/alfredchaos/go/pkg/mod/go.etcd.io/etcd/api/v3@v3.5.5/etcdserverpb/rpc.pb.go:6853
+#	0xcd0119	go.etcd.io/etcd/client/v3.(*lessor).recvKeepAliveLoop+0x259			/Users/alfredchaos/go/pkg/mod/go.etcd.io/etcd/client/v3@v3.5.5/lease.go:456
+
+1 @ 0x47442e 0x44fe05 0xc0ecec 0x47c7a1
+#	0xc0eceb	google.golang.org/grpc.newClientStreamWithParams.func4+0x8b	/Users/alfredchaos/go/pkg/mod/google.golang.org/grpc@v1.59.0/stream.go:391
+
+1 @ 0x47442e 0x44fe05 0xccf16b 0x47c7a1
+#	0xccf16a	go.etcd.io/etcd/client/v3.(*lessor).keepAliveCtxCloser+0xca	/Users/alfredchaos/go/pkg/mod/go.etcd.io/etcd/client/v3@v3.5.5/lease.go:330
+
+1 @ 0x47442e 0x44fe05 0xcd0eb5 0x47c7a1
+#	0xcd0eb4	go.etcd.io/etcd/client/v3.(*lessor).deadlineLoop+0x74	/Users/alfredchaos/go/pkg/mod/go.etcd.io/etcd/client/v3@v3.5.5/lease.go:548
+
+1 @ 0x47442e 0x44fe05 0xcd1252 0x47c7a1
+#	0xcd1251	go.etcd.io/etcd/client/v3.(*lessor).sendKeepAliveLoop+0x1d1	/Users/alfredchaos/go/pkg/mod/go.etcd.io/etcd/client/v3@v3.5.5/lease.go:588
+
+1 @ 0x47442e 0x44fe05 0xd9fbb1 0xdb8db4 0x47c7a1
+#	0xd9fbb0	github.com/segmentio/kafka-go.(*ConsumerGroup).Next+0xd0	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:702
+#	0xdb8db3	github.com/segmentio/kafka-go.(*Reader).run+0x333		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/reader.go:305
+
+1 @ 0x47442e 0x44fe05 0xda0807 0xd9fca5 0xd9f9dc 0x47c7a1
+#	0xda0806	github.com/segmentio/kafka-go.(*ConsumerGroup).nextGeneration+0x946	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:865
+#	0xd9fca4	github.com/segmentio/kafka-go.(*ConsumerGroup).run+0x44			/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:723
+#	0xd9f9db	github.com/segmentio/kafka-go.NewConsumerGroup.func1+0x1b		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:661
+
+1 @ 0x47442e 0x44fe05 0xda174f 0xd9e4ab 0x47c7a1
+#	0xda174e	github.com/segmentio/kafka-go.(*ConsumerGroup).nextGeneration.(*Generation).heartbeatLoop.func6+0x1ae	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:477
+#	0xd9e4aa	github.com/segmentio/kafka-go.(*Generation).Start.func1+0x2a						/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:396
+
+1 @ 0x47442e 0x44fe05 0xdb8f2b 0xd9e4ab 0x47c7a1
+#	0xdb8f2a	github.com/segmentio/kafka-go.(*Reader).run.func4+0x8a		/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/reader.go:339
+#	0xd9e4aa	github.com/segmentio/kafka-go.(*Generation).Start.func1+0x2a	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:396
+
+1 @ 0x47442e 0x44fe05 0xdba64e 0xedf765 0xef88e6 0x47c7a1
+#	0xdba64d	github.com/segmentio/kafka-go.(*Reader).CommitMessages+0x34d	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/reader.go:905
+#	0xedf764	alfred.brave.com/joker/exchange.ConsumeAcks+0x744		/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/exchange/ack.go:61
+#	0xef88e5	alfred.brave.com/joker.Start.func4+0x25				/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/start.go:114
+
+1 @ 0x47442e 0x44fe05 0xdc31cb 0x47c7a1
+#	0xdc31ca	github.com/segmentio/kafka-go.(*connPool).discover+0x48a	/Users/alfredchaos/go/pkg/mod/github.com/segmentio/kafka-go@v0.4.47/transport.go:631
+
+1 @ 0x47442e 0x44fe05 0xee12db 0x47c7a1
+#	0xee12da	alfred.brave.com/joker/exchange.(*Manager).Start+0x17a	/Users/alfredchaos/home/infinityflow/myResume/reference/alfred.brave.com/joker/exchange/manager.go:133
+
+1 @ 0x47442e 0x450ea5 0x450e74 0x475b25 0x48a9e8 0x839352 0x47c7a1
+#	0x475b24	sync.runtime_Semacquire+0x24				/opt/homebrew/Cellar/go/1.23.5/libexec/src/runtime/sema.go:71
+#	0x48a9e7	sync.(*WaitGroup).Wait+0x47				/opt/homebrew/Cellar/go/1.23.5/libexec/src/sync/waitgroup.go:118
+#	0x839351	github.com/spf13/viper.(*Viper).WatchConfig.func1+0x331	/Users/alfredchaos/go/pkg/mod/github.com/spf13/viper@v1.7.1/viper.go:404
+
+1 @ 0x47c7a1
+
+1 @ 0x4958b9 0x7d806f 0x7d999d 0x7d8c95 0x47c7a1
+#	0x4958b8	syscall.Syscall6+0x38						/opt/homebrew/Cellar/go/1.23.5/libexec/src/syscall/syscall_linux.go:95
+#	0x7d806e	golang.org/x/sys/unix.EpollWait+0x4e				/Users/alfredchaos/go/pkg/mod/golang.org/x/sys@v0.18.0/unix/zsyscall_linux_amd64.go:55
+#	0x7d999c	github.com/fsnotify/fsnotify.(*fdPoller).wait+0x7c		/Users/alfredchaos/go/pkg/mod/github.com/fsnotify/fsnotify@v1.4.7/inotify_poller.go:86
+#	0x7d8c94	github.com/fsnotify/fsnotify.(*Watcher).readEvents+0x214	/Users/alfredchaos/go/pkg/mod/github.com/fsnotify/fsnotify@v1.4.7/inotify.go:192
+

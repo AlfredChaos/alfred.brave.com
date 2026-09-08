@@ -1,0 +1,36 @@
+{
+  "ack": {
+    "matched": 679730,
+    "missed": 1443,
+    "note": "ack_p50/p99 按 cli_msg_id 逐条结算，仅覆盖 matched 消息"
+  },
+  "connected": 30000,
+  "dropped": 0,
+  "duration_s": 600,
+  "finished_at": "2026-09-08T22:43:01+08:00",
+  "gateway": "http://127.0.0.1:37001",
+  "latency": {
+    "ack_p50_ms": 650,
+    "ack_p95_ms": 1860,
+    "ack_p99_ms": 4530,
+    "bucket_ms": 10,
+    "one_way_max_ms": 30000,
+    "one_way_p50_ms": 460,
+    "one_way_p95_ms": 1500,
+    "one_way_p99_ms": 4180
+  },
+  "ledger": {
+    "lost": 1488,
+    "note": "storm-echo 模式 recv 计数含回显帧（原始 mid 复用），dup 翻倍为预期；单向延迟以收端视角为准",
+    "out_of_order": 121119,
+    "received_dup": 0,
+    "sent_ids": 681173
+  },
+  "mode": "storm",
+  "msg_recv_total": 679685,
+  "msg_sent": 681173,
+  "rate_limit": 1167,
+  "seed": "n1",
+  "send_failed": 0,
+  "users_target": 30000
+}

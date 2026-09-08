@@ -1,0 +1,30 @@
+{
+  "connected": 30000,
+  "dropped": 0,
+  "duration_s": 600,
+  "finished_at": "2026-09-08T18:59:12+08:00",
+  "gateway": "http://127.0.0.1:37001",
+  "latency": {
+    "ack_p50_ms": 14380,
+    "ack_p99_ms": 29250,
+    "bucket_ms": 10,
+    "one_way_max_ms": 30000,
+    "one_way_p50_ms": 270,
+    "one_way_p95_ms": 520,
+    "one_way_p99_ms": 1320
+  },
+  "ledger": {
+    "lost": 5,
+    "note": "storm-echo 模式 recv 计数含回显帧（原始 mid 复用），dup 翻倍为预期；单向延迟以收端视角为准",
+    "out_of_order": 151485,
+    "received_dup": 0,
+    "sent_ids": 608414
+  },
+  "mode": "storm",
+  "msg_recv_total": 608409,
+  "msg_sent": 608414,
+  "rate_limit": 1167,
+  "seed": "n2",
+  "send_failed": 0,
+  "users_target": 30000
+}
