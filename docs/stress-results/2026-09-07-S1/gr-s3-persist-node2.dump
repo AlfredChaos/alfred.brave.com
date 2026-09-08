@@ -1,0 +1,234 @@
+goroutine profile: total 29684
+29637 @ 0x47442e 0x409c3c 0x409812 0xedec89 0x47c7a1
+#	0xedec88	alfred.brave.com/joker/exchange.(*Client).WritePump+0xa8	alfred.brave.com/joker/exchange/client.go:103
+
+6 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4b8fba 0x4b8fa8 0x55a4e5 0x56b185 0x582283 0x5823b3 0xd9c125 0xd9c4ed 0xd9881c 0xdbd5e5 0xdbbd9d 0xdbb8d8 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84					runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26					internal/poll/fd_poll_runtime.go:84
+#	0x4b8fb9	internal/poll.(*pollDesc).waitRead+0x279				internal/poll/fd_poll_runtime.go:89
+#	0x4b8fa7	internal/poll.(*FD).Read+0x267						internal/poll/fd_unix.go:165
+#	0x55a4e4	net.(*netFD).Read+0x24							net/fd_posix.go:55
+#	0x56b184	net.(*conn).Read+0x44							net/net.go:189
+#	0x582282	bufio.(*Reader).fill+0x102						bufio/bufio.go:110
+#	0x5823b2	bufio.(*Reader).Peek+0x52						bufio/bufio.go:148
+#	0xd9c124	github.com/segmentio/kafka-go.(*Conn).peekResponseSizeAndID+0x24	github.com/segmentio/kafka-go@v0.4.47/conn.go:1302
+#	0xd9c4ec	github.com/segmentio/kafka-go.(*Conn).waitResponse+0x8c			github.com/segmentio/kafka-go@v0.4.47/conn.go:1392
+#	0xd9881b	github.com/segmentio/kafka-go.(*Conn).ReadBatchWith+0x63b		github.com/segmentio/kafka-go@v0.4.47/conn.go:838
+#	0xdbd5e4	github.com/segmentio/kafka-go.(*reader).read+0xe4			github.com/segmentio/kafka-go@v0.4.47/reader.go:1495
+#	0xdbbd9c	github.com/segmentio/kafka-go.(*reader).run+0x3dc			github.com/segmentio/kafka-go@v0.4.47/reader.go:1325
+#	0xdbb8d7	github.com/segmentio/kafka-go.(*Reader).start.func1+0x1b7		github.com/segmentio/kafka-go@v0.4.47/reader.go:1217
+
+3 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4b8fba 0x4b8fa8 0x55a4e5 0x56b185 0x5827b7 0x4ae8f0 0xb839e5 0xb839b3 0xb84125 0xbc2ee6 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84					runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26					internal/poll/fd_poll_runtime.go:84
+#	0x4b8fb9	internal/poll.(*pollDesc).waitRead+0x279				internal/poll/fd_poll_runtime.go:89
+#	0x4b8fa7	internal/poll.(*FD).Read+0x267						internal/poll/fd_unix.go:165
+#	0x55a4e4	net.(*netFD).Read+0x24							net/fd_posix.go:55
+#	0x56b184	net.(*conn).Read+0x44							net/net.go:189
+#	0x5827b6	bufio.(*Reader).Read+0x196						bufio/bufio.go:241
+#	0x4ae8ef	io.ReadAtLeast+0x8f							io/io.go:335
+#	0xb839e4	io.ReadFull+0x64							io/io.go:354
+#	0xb839b2	golang.org/x/net/http2.readFrameHeader+0x32				golang.org/x/net@v0.23.0/http2/frame.go:237
+#	0xb84124	golang.org/x/net/http2.(*Framer).ReadFrame+0x84				golang.org/x/net@v0.23.0/http2/frame.go:498
+#	0xbc2ee5	google.golang.org/grpc/internal/transport.(*http2Client).reader+0x225	google.golang.org/grpc@v1.59.0/internal/transport/http2_client.go:1585
+
+3 @ 0x47442e 0x44fe05 0xb69ae9 0x47c7a1
+#	0xb69ae8	google.golang.org/grpc/internal/grpcsync.(*CallbackSerializer).run+0x108	google.golang.org/grpc@v1.59.0/internal/grpcsync/callback_serializer.go:83
+
+3 @ 0x47442e 0x44fe05 0xbaf4b3 0xbafbfb 0xbb9225 0x47c7a1
+#	0xbaf4b2	google.golang.org/grpc/internal/transport.(*controlBuffer).get+0x112	google.golang.org/grpc@v1.59.0/internal/transport/controlbuf.go:418
+#	0xbafbfa	google.golang.org/grpc/internal/transport.(*loopyWriter).run+0x7a	google.golang.org/grpc@v1.59.0/internal/transport/controlbuf.go:552
+#	0xbb9224	google.golang.org/grpc/internal/transport.newHTTP2Client.func6+0x84	google.golang.org/grpc@v1.59.0/internal/transport/http2_client.go:451
+
+1 @ 0x40f749 0x476669 0x8748b3 0x47c7a1
+#	0x476668	os/signal.signal_recv+0x28	runtime/sigqueue.go:152
+#	0x8748b2	os/signal.loop+0x12		os/signal/signal_unix.go:23
+
+1 @ 0x433091 0x47335d 0xd7dc91 0xd7dac5 0xd7a8eb 0xef4a2f 0xef54de 0x71cfa9 0x71eeaa 0x73c14e 0x71b950 0x47c7a1
+#	0xd7dc90	runtime/pprof.writeRuntimeProfile+0xb0	runtime/pprof/pprof.go:793
+#	0xd7dac4	runtime/pprof.writeGoroutine+0x44	runtime/pprof/pprof.go:752
+#	0xd7a8ea	runtime/pprof.(*Profile).WriteTo+0x14a	runtime/pprof/pprof.go:374
+#	0xef4a2e	net/http/pprof.handler.ServeHTTP+0x52e	net/http/pprof/pprof.go:272
+#	0xef54dd	net/http/pprof.Index+0xdd		net/http/pprof/pprof.go:388
+#	0x71cfa8	net/http.HandlerFunc.ServeHTTP+0x28	net/http/server.go:2220
+#	0x71eea9	net/http.(*ServeMux).ServeHTTP+0x1c9	net/http/server.go:2747
+#	0x73c14d	net/http.serverHandler.ServeHTTP+0x8d	net/http/server.go:3210
+#	0x71b94f	net/http.(*conn).serve+0x5cf		net/http/server.go:2092
+
+1 @ 0x47442e 0x409c3c 0x4097f2 0xef7886 0x47c7a1
+#	0xef7885	alfred.brave.com/joker.Start+0xda5	alfred.brave.com/joker/start.go:120
+
+1 @ 0x47442e 0x409c3c 0x4097f2 0xef80a9 0x47c7a1
+#	0xef80a8	alfred.brave.com/joker.ServiceRegister+0x2c8	alfred.brave.com/joker/start.go:151
+
+1 @ 0x47442e 0x409c3c 0x4097f2 0xf23cd1 0x8619d0 0x8627bc 0x85f67b 0xf259ee 0x43dbcb 0x47c7a1
+#	0xf23cd0	alfred.brave.com/commands.jokerAction+0x290	alfred.brave.com/commands/jokerCommand.go:49
+#	0x8619cf	github.com/urfave/cli.HandleAction+0x4f		github.com/urfave/cli@v1.22.10/app.go:524
+#	0x8627bb	github.com/urfave/cli.Command.Run+0x67b		github.com/urfave/cli@v1.22.10/command.go:173
+#	0x85f67a	github.com/urfave/cli.(*App).Run+0xb3a		github.com/urfave/cli@v1.22.10/app.go:277
+#	0xf259ed	main.main+0xcd					alfred.brave.com/cmd/brave.go:27
+#	0x43dbca	runtime.main+0x28a				runtime/proc.go:272
+
+1 @ 0x47442e 0x409c3c 0x409812 0xceb7a6 0x47c7a1
+#	0xceb7a5	alfred.brave.com/internal/etcd.(*ServiceRegister).Run+0x3c5	alfred.brave.com/internal/etcd/service_register.go:76
+
+1 @ 0x47442e 0x409c3c 0x409812 0xdc7579 0x47c7a1
+#	0xdc7578	github.com/segmentio/kafka-go.(*conn).run+0x98	github.com/segmentio/kafka-go@v0.4.47/transport.go:1257
+
+1 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4b8fba 0x4b8fa8 0x55a4e5 0x56b185 0x5827b7 0x4ae8f0 0xb839e5 0xb839b3 0xb84125 0xbc9358 0xc03b16 0xc03385 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84						runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26						internal/poll/fd_poll_runtime.go:84
+#	0x4b8fb9	internal/poll.(*pollDesc).waitRead+0x279					internal/poll/fd_poll_runtime.go:89
+#	0x4b8fa7	internal/poll.(*FD).Read+0x267							internal/poll/fd_unix.go:165
+#	0x55a4e4	net.(*netFD).Read+0x24								net/fd_posix.go:55
+#	0x56b184	net.(*conn).Read+0x44								net/net.go:189
+#	0x5827b6	bufio.(*Reader).Read+0x196							bufio/bufio.go:241
+#	0x4ae8ef	io.ReadAtLeast+0x8f								io/io.go:335
+#	0xb839e4	io.ReadFull+0x64								io/io.go:354
+#	0xb839b2	golang.org/x/net/http2.readFrameHeader+0x32					golang.org/x/net@v0.23.0/http2/frame.go:237
+#	0xb84124	golang.org/x/net/http2.(*Framer).ReadFrame+0x84					golang.org/x/net@v0.23.0/http2/frame.go:498
+#	0xbc9357	google.golang.org/grpc/internal/transport.(*http2Server).HandleStreams+0x137	google.golang.org/grpc@v1.59.0/internal/transport/http2_server.go:636
+#	0xc03b15	google.golang.org/grpc.(*Server).serveStreams+0x195				google.golang.org/grpc@v1.59.0/server.go:979
+#	0xc03384	google.golang.org/grpc.(*Server).handleRawConn.func1+0x44			google.golang.org/grpc@v1.59.0/server.go:920
+
+1 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4b8fba 0x4b8fa8 0x55a4e5 0x56b185 0x7162d7 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84		runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26		internal/poll/fd_poll_runtime.go:84
+#	0x4b8fb9	internal/poll.(*pollDesc).waitRead+0x279	internal/poll/fd_poll_runtime.go:89
+#	0x4b8fa7	internal/poll.(*FD).Read+0x267			internal/poll/fd_unix.go:165
+#	0x55a4e4	net.(*netFD).Read+0x24				net/fd_posix.go:55
+#	0x56b184	net.(*conn).Read+0x44				net/net.go:189
+#	0x7162d6	net/http.(*connReader).backgroundRead+0x36	net/http/server.go:690
+
+1 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4bd095 0x4bd083 0x55c4a9 0x5747fe 0x5739d0 0x7209cc 0x720691 0xef7cf7 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84		runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26		internal/poll/fd_poll_runtime.go:84
+#	0x4bd094	internal/poll.(*pollDesc).waitRead+0x294	internal/poll/fd_poll_runtime.go:89
+#	0x4bd082	internal/poll.(*FD).Accept+0x282		internal/poll/fd_unix.go:620
+#	0x55c4a8	net.(*netFD).accept+0x28			net/fd_unix.go:172
+#	0x5747fd	net.(*TCPListener).accept+0x1d			net/tcpsock_posix.go:159
+#	0x5739cf	net.(*TCPListener).Accept+0x2f			net/tcpsock.go:372
+#	0x7209cb	net/http.(*Server).Serve+0x30b			net/http/server.go:3330
+#	0x720690	net/http.(*Server).ListenAndServe+0x70		net/http/server.go:3259
+#	0xef7cf6	alfred.brave.com/joker.StartHttp+0x16		alfred.brave.com/joker/start.go:130
+
+1 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4bd095 0x4bd083 0x55c4a9 0x5747fe 0x5739d0 0x7209cc 0x720691 0xef82f7 0xef82f8 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84		runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26		internal/poll/fd_poll_runtime.go:84
+#	0x4bd094	internal/poll.(*pollDesc).waitRead+0x294	internal/poll/fd_poll_runtime.go:89
+#	0x4bd082	internal/poll.(*FD).Accept+0x282		internal/poll/fd_unix.go:620
+#	0x55c4a8	net.(*netFD).accept+0x28			net/fd_unix.go:172
+#	0x5747fd	net.(*TCPListener).accept+0x1d			net/tcpsock_posix.go:159
+#	0x5739cf	net.(*TCPListener).Accept+0x2f			net/tcpsock.go:372
+#	0x7209cb	net/http.(*Server).Serve+0x30b			net/http/server.go:3330
+#	0x720690	net/http.(*Server).ListenAndServe+0x70		net/http/server.go:3259
+#	0xef82f6	net/http.ListenAndServe+0x96			net/http/server.go:3514
+#	0xef82f7	alfred.brave.com/joker.Start.func2+0x97		alfred.brave.com/joker/start.go:53
+
+1 @ 0x47442e 0x436597 0x473725 0x4b7cc7 0x4bd095 0x4bd083 0x55c4a9 0x5747fe 0x5739d0 0xc029fa 0xef7b33 0x47c7a1
+#	0x473724	internal/poll.runtime_pollWait+0x84		runtime/netpoll.go:351
+#	0x4b7cc6	internal/poll.(*pollDesc).wait+0x26		internal/poll/fd_poll_runtime.go:84
+#	0x4bd094	internal/poll.(*pollDesc).waitRead+0x294	internal/poll/fd_poll_runtime.go:89
+#	0x4bd082	internal/poll.(*FD).Accept+0x282		internal/poll/fd_unix.go:620
+#	0x55c4a8	net.(*netFD).accept+0x28			net/fd_unix.go:172
+#	0x5747fd	net.(*TCPListener).accept+0x1d			net/tcpsock_posix.go:159
+#	0x5739cf	net.(*TCPListener).Accept+0x2f			net/tcpsock.go:372
+#	0xc029f9	google.golang.org/grpc.(*Server).Serve+0x439	google.golang.org/grpc@v1.59.0/server.go:852
+#	0xef7b32	alfred.brave.com/joker.Start.func3+0xb2		alfred.brave.com/joker/start.go:99
+
+1 @ 0x47442e 0x44fe05 0x83949c 0x47c7a1
+#	0x83949b	github.com/spf13/viper.(*Viper).WatchConfig.func1.1+0xfb	github.com/spf13/viper@v1.7.1/viper.go:365
+
+1 @ 0x47442e 0x44fe05 0xa12985 0xa11b12 0x47c7a1
+#	0xa12984	github.com/jackc/pgx/v5/pgxpool.(*Pool).backgroundHealthCheck+0xc4	github.com/jackc/pgx/v5@v5.5.5/pgxpool/pool.go:400
+#	0xa11b11	github.com/jackc/pgx/v5/pgxpool.NewWithConfig.func3+0x31		github.com/jackc/pgx/v5@v5.5.5/pgxpool/pool.go:264
+
+1 @ 0x47442e 0x44fe05 0xbaf4b3 0xbafbfb 0xbc62d5 0x47c7a1
+#	0xbaf4b2	google.golang.org/grpc/internal/transport.(*controlBuffer).get+0x112	google.golang.org/grpc@v1.59.0/internal/transport/controlbuf.go:418
+#	0xbafbfa	google.golang.org/grpc/internal/transport.(*loopyWriter).run+0x7a	google.golang.org/grpc@v1.59.0/internal/transport/controlbuf.go:552
+#	0xbc62d4	google.golang.org/grpc/internal/transport.NewServerTransport.func2+0xd4	google.golang.org/grpc@v1.59.0/internal/transport/http2_server.go:336
+
+1 @ 0x47442e 0x44fe05 0xbcd3b3 0x47c7a1
+#	0xbcd3b2	google.golang.org/grpc/internal/transport.(*http2Server).keepalive+0x1f2	google.golang.org/grpc@v1.59.0/internal/transport/http2_server.go:1152
+
+1 @ 0x47442e 0x44fe05 0xbd2495 0xbd220d 0xbd368c 0x4ae8f0 0xbd35f6 0xbd35cd 0xbfefc6 0xbff73a 0xbffe67 0xc12a29 0xc11b3f 0xc10bce 0xc119b8 0xc427a6 0xcd011a 0x47c7a1
+#	0xbd2494	google.golang.org/grpc/internal/transport.(*recvBufferReader).readClient+0x94	google.golang.org/grpc@v1.59.0/internal/transport/transport.go:191
+#	0xbd220c	google.golang.org/grpc/internal/transport.(*recvBufferReader).Read+0x12c	google.golang.org/grpc@v1.59.0/internal/transport/transport.go:171
+#	0xbd368b	google.golang.org/grpc/internal/transport.(*transportReader).Read+0x2b		google.golang.org/grpc@v1.59.0/internal/transport/transport.go:506
+#	0x4ae8ef	io.ReadAtLeast+0x8f								io/io.go:335
+#	0xbd35f5	io.ReadFull+0x95								io/io.go:354
+#	0xbd35cc	google.golang.org/grpc/internal/transport.(*Stream).Read+0x6c			google.golang.org/grpc@v1.59.0/internal/transport/transport.go:490
+#	0xbfefc5	google.golang.org/grpc.(*parser).recvMsg+0x45					google.golang.org/grpc@v1.59.0/rpc_util.go:600
+#	0xbff739	google.golang.org/grpc.recvAndDecompress+0x59					google.golang.org/grpc@v1.59.0/rpc_util.go:730
+#	0xbffe66	google.golang.org/grpc.recv+0xa6						google.golang.org/grpc@v1.59.0/rpc_util.go:796
+#	0xc12a28	google.golang.org/grpc.(*csAttempt).recvMsg+0x288				google.golang.org/grpc@v1.59.0/stream.go:1084
+#	0xc11b3e	google.golang.org/grpc.(*clientStream).RecvMsg.func1+0x1e			google.golang.org/grpc@v1.59.0/stream.go:927
+#	0xc10bcd	google.golang.org/grpc.(*clientStream).withRetry+0x3ad				google.golang.org/grpc@v1.59.0/stream.go:760
+#	0xc119b7	google.golang.org/grpc.(*clientStream).RecvMsg+0xf7				google.golang.org/grpc@v1.59.0/stream.go:926
+#	0xc427a5	go.etcd.io/etcd/api/v3/etcdserverpb.(*leaseLeaseKeepAliveClient).Recv+0x45	go.etcd.io/etcd/api/v3@v3.5.5/etcdserverpb/rpc.pb.go:6853
+#	0xcd0119	go.etcd.io/etcd/client/v3.(*lessor).recvKeepAliveLoop+0x259			go.etcd.io/etcd/client/v3@v3.5.5/lease.go:456
+
+1 @ 0x47442e 0x44fe05 0xc0ecec 0x47c7a1
+#	0xc0eceb	google.golang.org/grpc.newClientStreamWithParams.func4+0x8b	google.golang.org/grpc@v1.59.0/stream.go:391
+
+1 @ 0x47442e 0x44fe05 0xccf16b 0x47c7a1
+#	0xccf16a	go.etcd.io/etcd/client/v3.(*lessor).keepAliveCtxCloser+0xca	go.etcd.io/etcd/client/v3@v3.5.5/lease.go:330
+
+1 @ 0x47442e 0x44fe05 0xcd0eb5 0x47c7a1
+#	0xcd0eb4	go.etcd.io/etcd/client/v3.(*lessor).deadlineLoop+0x74	go.etcd.io/etcd/client/v3@v3.5.5/lease.go:548
+
+1 @ 0x47442e 0x44fe05 0xcd1252 0x47c7a1
+#	0xcd1251	go.etcd.io/etcd/client/v3.(*lessor).sendKeepAliveLoop+0x1d1	go.etcd.io/etcd/client/v3@v3.5.5/lease.go:588
+
+1 @ 0x47442e 0x44fe05 0xd9fbb1 0xdb8db4 0x47c7a1
+#	0xd9fbb0	github.com/segmentio/kafka-go.(*ConsumerGroup).Next+0xd0	github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:702
+#	0xdb8db3	github.com/segmentio/kafka-go.(*Reader).run+0x333		github.com/segmentio/kafka-go@v0.4.47/reader.go:305
+
+1 @ 0x47442e 0x44fe05 0xda0807 0xd9fca5 0xd9f9dc 0x47c7a1
+#	0xda0806	github.com/segmentio/kafka-go.(*ConsumerGroup).nextGeneration+0x946	github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:865
+#	0xd9fca4	github.com/segmentio/kafka-go.(*ConsumerGroup).run+0x44			github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:723
+#	0xd9f9db	github.com/segmentio/kafka-go.NewConsumerGroup.func1+0x1b		github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:661
+
+1 @ 0x47442e 0x44fe05 0xda174f 0xd9e4ab 0x47c7a1
+#	0xda174e	github.com/segmentio/kafka-go.(*ConsumerGroup).nextGeneration.(*Generation).heartbeatLoop.func6+0x1ae	github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:477
+#	0xd9e4aa	github.com/segmentio/kafka-go.(*Generation).Start.func1+0x2a						github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:396
+
+1 @ 0x47442e 0x44fe05 0xdb7c8f 0xdb8905 0xdb8f8e 0xd9e4ab 0x47c7a1
+#	0xdb7c8e	github.com/segmentio/kafka-go.(*Reader).commitLoopImmediate+0x18e	github.com/segmentio/kafka-go@v0.4.47/reader.go:198
+#	0xdb8904	github.com/segmentio/kafka-go.(*Reader).commitLoop+0x164		github.com/segmentio/kafka-go@v0.4.47/reader.go:281
+#	0xdb8f8d	github.com/segmentio/kafka-go.(*Reader).run.func3+0x2d			github.com/segmentio/kafka-go@v0.4.47/reader.go:335
+#	0xd9e4aa	github.com/segmentio/kafka-go.(*Generation).Start.func1+0x2a		github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:396
+
+1 @ 0x47442e 0x44fe05 0xdb8f2b 0xd9e4ab 0x47c7a1
+#	0xdb8f2a	github.com/segmentio/kafka-go.(*Reader).run.func4+0x8a		github.com/segmentio/kafka-go@v0.4.47/reader.go:339
+#	0xd9e4aa	github.com/segmentio/kafka-go.(*Generation).Start.func1+0x2a	github.com/segmentio/kafka-go@v0.4.47/consumergroup.go:396
+
+1 @ 0x47442e 0x44fe05 0xdba047 0xede2b0 0xef79c6 0x47c7a1
+#	0xdba046	github.com/segmentio/kafka-go.(*Reader).FetchMessage+0x2c6	github.com/segmentio/kafka-go@v0.4.47/reader.go:826
+#	0xede2af	alfred.brave.com/joker/exchange.ConsumeAcks+0x1af		alfred.brave.com/joker/exchange/ack.go:32
+#	0xef79c5	alfred.brave.com/joker.Start.func4+0x25				alfred.brave.com/joker/start.go:114
+
+1 @ 0x47442e 0x44fe05 0xdc31cb 0x47c7a1
+#	0xdc31ca	github.com/segmentio/kafka-go.(*connPool).discover+0x48a	github.com/segmentio/kafka-go@v0.4.47/transport.go:631
+
+1 @ 0x47442e 0x44fe05 0xee03bb 0x47c7a1
+#	0xee03ba	alfred.brave.com/joker/exchange.(*Manager).Start+0x17a	alfred.brave.com/joker/exchange/manager.go:133
+
+1 @ 0x47442e 0x450ea5 0x450e74 0x475b25 0x48a9e8 0x839352 0x47c7a1
+#	0x475b24	sync.runtime_Semacquire+0x24				runtime/sema.go:71
+#	0x48a9e7	sync.(*WaitGroup).Wait+0x47				sync/waitgroup.go:118
+#	0x839351	github.com/spf13/viper.(*Viper).WatchConfig.func1+0x331	github.com/spf13/viper@v1.7.1/viper.go:404
+
+1 @ 0x47442e 0x475e99 0x475e79 0x487345 0xdcd2a5 0xdcd7f8 0xdcab73 0x47c7a1
+#	0x475e78	sync.runtime_notifyListWait+0x138					runtime/sema.go:587
+#	0x487344	sync.(*Cond).Wait+0x84							sync/cond.go:71
+#	0xdcd2a4	github.com/segmentio/kafka-go.(*batchQueue).Get+0x84			github.com/segmentio/kafka-go@v0.4.47/writer.go:953
+#	0xdcd7f7	github.com/segmentio/kafka-go.(*partitionWriter).writeBatches+0x37	github.com/segmentio/kafka-go@v0.4.47/writer.go:1013
+#	0xdcab72	github.com/segmentio/kafka-go.(*Writer).spawn.func1+0x52		github.com/segmentio/kafka-go@v0.4.47/writer.go:547
+
+1 @ 0x4958b9 0x7d806f 0x7d999d 0x7d8c95 0x47c7a1
+#	0x4958b8	syscall.Syscall6+0x38						syscall/syscall_linux.go:95
+#	0x7d806e	golang.org/x/sys/unix.EpollWait+0x4e				golang.org/x/sys@v0.18.0/unix/zsyscall_linux_amd64.go:55
+#	0x7d999c	github.com/fsnotify/fsnotify.(*fdPoller).wait+0x7c		github.com/fsnotify/fsnotify@v1.4.7/inotify_poller.go:86
+#	0x7d8c94	github.com/fsnotify/fsnotify.(*Watcher).readEvents+0x214	github.com/fsnotify/fsnotify@v1.4.7/inotify.go:192
+
