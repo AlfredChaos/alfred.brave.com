@@ -1,6 +1,6 @@
 # S3 消息风暴 · DAU 容量测试（混部拓扑，2026-09-08 00:3x 起）
 
-> 拓扑：混部（3×4C15G，每台 etcd+broker+cs+worker 分摊；PG 原生 node-1）——
+> 拓扑：混部（3×4C16G，每台 etcd+broker+cs+worker 分摊；PG 原生 node-1）——
 > 消息轴瓶颈在中间件，混部 DAU 优于 2+1'（stress-plan §1.3）。
 > 连接水位：9 万（30k/台，DAU 30 万 × 30% 在线）。
 > 判据（stress-plan §1.3 预注册）：落库稳态吞吐 T ≥ 3600 → 30 万 DAU ×20 口径达标；

@@ -1,6 +1,6 @@
 # Brave IM · DAU 容量战役报告（S3 → S3c → S3d，2026-09-08 收官）
 
-> 硬件：3×4C15G 腾讯云 CVM 混部（每台 etcd+kafka；PG18 原生 node-1；gateway/cs/worker 分摊）。
+> 硬件：3×4C16G 腾讯云 CVM 混部（每台 etcd+kafka；PG18 原生 node-1；gateway/cs/worker 分摊）。
 > 连接轴基线：S1 已验证 501,752 稳态 / 71 万建连（[findings.md](findings.md)）。
 > 本报告覆盖消息轴全战役：瓶颈定位 → 批量化改造 → 投递链修复 → 冻结口径终测 → DAU 结论与单聊/群聊配比。
 > 判读口径遵循 [stress-plan.md §1.3.1](../../stress-plan.md)：**TPS 是事实，DAU 是估值**。
@@ -62,7 +62,7 @@ S3d 投递修复（09-08 晚）   persist 批幂等 / ack 共享组路由 / Batc
 
 ## 2. 数据与指标记录
 
-### 2.1 演进梯度（同硬件 3×4C15G 混部）
+### 2.1 演进梯度（同硬件 3×4C16G 混部）
 
 | 阶段 | persist 落库 | deliver 在线投递 | ack 延迟 p50 | 备注 |
 |---|---:|---:|---:|---|
